@@ -29,6 +29,10 @@ export function buildChainModel(parseResult: ParseResult): ChainModel {
 
   for (const node of nodes.values()) {
     for (const ref of node.references) {
+      // A node's own `**ID**` field is backtick-quoted like any other
+      // citation, so the generic reference scan picks up self-citations —
+      // never a real edge (a node is never its own upstream/downstream).
+      if (ref === node.id) continue;
       if (!nodes.has(ref)) continue;
 
       if (!edges.has(node.id)) edges.set(node.id, new Set());

@@ -108,4 +108,27 @@ describe("buildChainModel", () => {
       { file: "b.md", line: 5 },
     ]);
   });
+
+  it("never creates a self-edge, even when a node's raw references include its own id", () => {
+    // A node's own `**ID**` field is backtick-quoted like any citation, so
+    // the parser's generic scan legitimately puts a node's own id in its
+    // own references — the graph must not turn that into a self-loop.
+    const a = node({
+      id: "REQ-000001",
+      kind: "dev-artifact",
+      artifactType: "requirement",
+      status: "in-progress",
+      targets: [],
+      registered: true,
+      fileExists: true,
+      references: ["REQ-000001"],
+    });
+
+    const model = buildChainModel(
+      parseResult([{ file: "a.md", mtimeMs: 0, nodes: [a] }]),
+    );
+
+    expect(model.edges.has("REQ-000001")).toBe(false);
+    expect(model.reverseEdges.has("REQ-000001")).toBe(false);
+  });
 });
