@@ -124,3 +124,19 @@ export interface WatcherOptions {
   /** Trailing debounce/coalesce window in ms. Default 180 (within the 150-200ms contract). */
   debounceMs?: number;
 }
+
+export interface WatchUpdate {
+  model: ChainModel;
+  report: ValidationReport;
+}
+
+/**
+ * The extension-host <-> webview message payload for one node's detail
+ * view: its own fields plus what it's justified by (upstream) and what
+ * it produces (downstream), resolved from the chain model's edges.
+ */
+export interface NodeDetailPayload {
+  node: ChainNode;
+  upstream: ChainNode[];
+  downstream: ChainNode[];
+}

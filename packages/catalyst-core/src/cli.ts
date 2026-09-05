@@ -45,7 +45,7 @@ export function main(argv: string[] = process.argv.slice(2)): number | null {
   }
 
   if (watch) {
-    watchCorpus(root, (report) => printReport(report, json));
+    watchCorpus(root, ({ report }) => printReport(report, json));
     return null;
   }
 

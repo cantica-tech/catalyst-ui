@@ -1,15 +1,44 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "vscode": "^1.85.0"
   },
   "main": "dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "catalyst",
+          "title": "Catalyst",
+          "icon": "resources/catalyst.svg"
+        }
+      ]
+    },
+    "views": {
+      "catalyst": [
+        {
+          "id": "catalystChainInspector",
+          "name": "Chain Inspector"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "catalyst.showNodeDetail",
+        "title": "Catalyst: Show Node Detail"
+      }
+    ]
+  },
   "scripts": {
     "build": "tsc --build --force",
+    "prebuild": "npm run build:webview --workspace=catalyst-ui",
     "test": "mocha \"dist/test/**/*.test.js\"",
     "pretest": "npm run build"
+  },
+  "dependencies": {
+    "catalyst-core": "^0.2.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
