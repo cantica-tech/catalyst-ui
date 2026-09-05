@@ -1,7 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// `main([..., "--watch"])` calls the real `watchCorpus`, which spins up a
+// live chokidar watcher with no way for this test to close it — that leaked
+// handle stalls vitest's worker shutdown for ~10s. Mock it so the --watch
+// branch's contract (returns null, never a real watcher) is still verified
+// without ever touching the filesystem watcher.
+vi.mock("../watcher.js", () => ({
+  watchCorpus: vi.fn(() => ({ close: vi.fn().mockResolvedValue(undefined) })),
+}));
+
 import { main } from "../cli.js";
 import { createFixtureCorpus, removeFixtureCorpus } from "./test-support.js";
+import { watchCorpus } from "../watcher.js";
 
 let root: string | undefined;
 
@@ -66,5 +76,9 @@ describe("main", () => {
       requirements: [{ id: "REQ-000001", title: "x", targets: [] }],
     });
     expect(main([root, "--watch"])).toBeNull();
+    expect(vi.mocked(watchCorpus)).toHaveBeenCalledWith(
+      root,
+      expect.any(Function),
+    );
   });
 });
