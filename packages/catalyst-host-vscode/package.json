@@ -7,7 +7,7 @@
   },
   "main": "dist/extension.js",
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build --force",
     "test": "mocha \"dist/test/**/*.test.js\"",
     "pretest": "npm run build"
   },
