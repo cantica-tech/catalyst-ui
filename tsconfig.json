@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/catalyst-core" },
+    { "path": "packages/catalyst-ui" },
+    { "path": "packages/catalyst-host-vscode" },
+    { "path": "packages/catalyst-host-electron" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "catalyst-host-vscode",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "main": "dist/extension.js",
+  "scripts": {
+    "build": "tsc --build",
+    "test": "mocha \"dist/test/**/*.test.js\"",
+    "pretest": "npm run build"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.9",
+    "mocha": "^10.3.0"
+  }
+}
