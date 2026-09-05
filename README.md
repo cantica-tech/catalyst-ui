@@ -35,6 +35,10 @@ npm run typecheck
 npm test
 ```
 
+Or via [Task](https://taskfile.dev): `task --list` shows every available
+task, including one per catalyst slash command (`task check-rules`,
+`task show-backlog`, ...) from the deployed `Taskfile.common.yml`.
+
 This project is itself governed by catalyst — see
 `.criterion`-equivalent state (agent-owned, not in this repo) for the
 current dev-environment rules and, once real application work starts,

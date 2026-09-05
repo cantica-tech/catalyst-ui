@@ -1,0 +1,53 @@
+# catalyst-ui's own operations. Mirrors .github/workflows/ci.yml exactly, so
+# `task ci` is what CI runs, runnable locally.
+#
+# Catalyst-operation dispatch tasks (create-bug, check-rules, sync-framework,
+# ...) come from Taskfile.common.yml (deployed from catalyst's
+# development-framework/templates/Taskfile.common.template.yml — refreshed
+# by /sync-framework, not hand-edited here).
+
+version: "3"
+
+includes:
+  common:
+    taskfile: ./Taskfile.common.yml
+    flatten: true
+
+tasks:
+  install:
+    desc: "Install npm workspace dependencies"
+    cmds:
+      - npm ci
+
+  lint:
+    desc: "Lint all workspaces"
+    cmds:
+      - npm run lint
+
+  format:check:
+    desc: "Check formatting across all workspaces"
+    cmds:
+      - npm run format:check
+
+  typecheck:
+    desc: "Type-check all workspaces (tsc --build; also emits output, since every package is composite)"
+    cmds:
+      - npm run typecheck
+
+  build:
+    desc: "Build all workspaces (alias of typecheck: TS project references emit on build)"
+    cmds:
+      - npm run typecheck
+
+  test:
+    desc: "Run tests across all workspaces"
+    cmds:
+      - npm test
+
+  ci:
+    desc: "Run everything CI runs: lint, format:check, typecheck, test"
+    cmds:
+      - task: lint
+      - task: format:check
+      - task: typecheck
+      - task: test
