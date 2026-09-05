@@ -2,7 +2,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 
 import { buildChainModel } from "./graph.js";
 import { parseCorpus } from "./parser.js";
-import type { ValidationReport, WatcherOptions } from "./types.js";
+import type { WatchUpdate, WatcherOptions } from "./types.js";
 import { validate } from "./validator.js";
 
 export interface WatcherHandle {
@@ -10,17 +10,18 @@ export interface WatcherHandle {
 }
 
 /**
- * Watches a corpus root and reports revalidation after each change.
- * Debounces/coalesces changes in a trailing window (agent bursts rewrite
- * many files at once) and is single-flight: a change landing mid-parse
- * bumps the generation, `parseCorpus` notices via `shouldContinue` and bails
- * out early, and the already-rescheduled timer's next firing supplies the
- * authoritative result — correctness comes from that reschedule, not from
- * the aborted pass produding anything itself.
+ * Watches a corpus root and reports a fresh model + validation report
+ * after each change. Debounces/coalesces changes in a trailing window
+ * (agent bursts rewrite many files at once) and is single-flight: a
+ * change landing mid-parse bumps the generation, `parseCorpus` notices
+ * via `shouldContinue` and bails out early, and the already-rescheduled
+ * timer's next firing supplies the authoritative result — correctness
+ * comes from that reschedule, not from the aborted pass producing
+ * anything itself.
  */
 export function watchCorpus(
   root: string,
-  onReport: (report: ValidationReport) => void,
+  onUpdate: (update: WatchUpdate) => void,
   options: WatcherOptions = {},
 ): WatcherHandle {
   const debounceMs = options.debounceMs ?? 180;
@@ -33,7 +34,8 @@ export function watchCorpus(
       shouldContinue: () => myGeneration === generation,
     });
     if (result === null) return;
-    onReport(validate(buildChainModel(result)));
+    const model = buildChainModel(result);
+    onUpdate({ model, report: validate(model) });
   };
 
   const schedule = () => {

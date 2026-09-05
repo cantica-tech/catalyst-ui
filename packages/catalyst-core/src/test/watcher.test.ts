@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { ValidationReport } from "../types.js";
+import type { WatchUpdate } from "../types.js";
 import { watchCorpus } from "../watcher.js";
 import { createFixtureCorpus, removeFixtureCorpus } from "./test-support.js";
 
@@ -21,16 +21,17 @@ describe("watchCorpus", () => {
         { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
       ],
     });
-    const reports: ValidationReport[] = [];
-    const handle = watchCorpus(root, (report) => reports.push(report), {
+    const updates: WatchUpdate[] = [];
+    const handle = watchCorpus(root, (update) => updates.push(update), {
       debounceMs: 30,
     });
 
     await new Promise((resolve) => setTimeout(resolve, 200));
     await handle.close();
 
-    expect(reports.length).toBe(1);
-    expect(reports[0].nodeCount).toBeGreaterThan(0);
+    expect(updates.length).toBe(1);
+    expect(updates[0].report.nodeCount).toBeGreaterThan(0);
+    expect(updates[0].model.nodes.size).toBe(updates[0].report.nodeCount);
   });
 
   it("coalesces a rapid burst of changes into a single report", async () => {
@@ -39,13 +40,13 @@ describe("watchCorpus", () => {
         { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
       ],
     });
-    const reports: ValidationReport[] = [];
-    const handle = watchCorpus(root, (report) => reports.push(report), {
+    const updates: WatchUpdate[] = [];
+    const handle = watchCorpus(root, (update) => updates.push(update), {
       debounceMs: 80,
     });
 
     await new Promise((resolve) => setTimeout(resolve, 150));
-    expect(reports.length).toBe(1);
+    expect(updates.length).toBe(1);
 
     // Fired back-to-back, no delay: a real agent burst rewriting many files
     // lands well inside both chokidar's own write-finish coalescing and our
@@ -63,7 +64,7 @@ describe("watchCorpus", () => {
 
     // Proves coalescing happened (far fewer reports than raw writes) without
     // pinning an exact count that real filesystem-event timing can't guarantee.
-    expect(reports.length).toBeGreaterThanOrEqual(2);
-    expect(reports.length).toBeLessThan(5);
+    expect(updates.length).toBeGreaterThanOrEqual(2);
+    expect(updates.length).toBeLessThan(5);
   });
 });
