@@ -3,4 +3,5 @@ dist/
 out/
 *.log
 *.tsbuildinfo
+*.vsix
 .DS_Store

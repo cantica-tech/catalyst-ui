@@ -1,7 +1,12 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
+  "publisher": "catalyst-local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliben67/catalyst-ui.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -41,17 +46,21 @@
   },
   "scripts": {
     "build": "tsc --build --force",
-    "prebuild": "npm run build:webview --workspace=catalyst-ui",
+    "prebuild": "npm run build:webview --workspace=catalyst-ui && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js",
     "test": "mocha \"dist/test/**/*.test.js\"",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:fsevents --outfile=dist/extension.js",
+    "package": "npm run build && npm run bundle && npx vsce package --no-dependencies -o catalyst-host-vscode.vsix"
   },
   "dependencies": {
-    "catalyst-core": "^0.4.0"
+    "catalyst-core": "^0.4.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
     "@types/vscode": "^1.85.0",
     "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.27.0",
+    "esbuild": "^0.21.5",
     "mocha": "^10.3.0"
   }
 }
