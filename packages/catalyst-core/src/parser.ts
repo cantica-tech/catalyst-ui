@@ -159,7 +159,7 @@ function parseIndexTable(
 }
 
 /** `| **Field** | Value |` rows in one artifact file, plus its raw text for reference scanning. */
-function parseFieldTable(filePath: string): {
+export function parseFieldTable(filePath: string): {
   fields: Map<string, string>;
   text: string;
 } {

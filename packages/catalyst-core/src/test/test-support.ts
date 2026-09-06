@@ -43,6 +43,15 @@ export interface FixtureFeature {
   createFile?: boolean;
 }
 
+export interface FixtureProposal {
+  id: string;
+  status?: string;
+  intent?: string;
+  targets?: string[];
+  expectations?: string[];
+  constraints?: string[];
+}
+
 export interface FixtureSpec {
   ruleDocs?: FixtureRuleDoc[];
   domains?: FixtureDomain[];
@@ -50,6 +59,7 @@ export interface FixtureSpec {
   bugs?: FixtureArtifact[];
   houseKeeping?: FixtureArtifact[];
   features?: FixtureFeature[];
+  proposals?: FixtureProposal[];
   /** Extra rule ids to also list in rules.md's "Rule IDs" section (e.g. to simulate an orphan-registration mismatch). */
   extraRegisteredRuleIds?: string[];
 }
@@ -134,6 +144,21 @@ function renderDevArtifactFile(artifact: FixtureArtifact): string {
 
 function renderFeatureFile(feature: FixtureFeature): string {
   return `# \`${feature.id}\` — ${feature.title}\n\n${renderFieldTable({ ID: `\`${feature.id}\``, Status: feature.status ?? "in-development" })}\n`;
+}
+
+function renderProposalFile(proposal: FixtureProposal): string {
+  const fields = renderFieldTable({
+    ID: `\`${proposal.id}\``,
+    Status: proposal.status ?? "proposed",
+  });
+  const targets = (proposal.targets ?? []).map((t) => `- \`${t}\``).join("\n");
+  const expectations = (proposal.expectations ?? ["Placeholder expectation."])
+    .map((e) => `- ${e}`)
+    .join("\n");
+  const constraints = (proposal.constraints ?? [])
+    .map((c) => `- ${c}`)
+    .join("\n");
+  return `# \`${proposal.id}\` — fixture proposal\n\n${fields}\n## Intent\n\n${proposal.intent ?? "Fixture intent."}\n\n## Targets\n\n${targets}\n\n## Expectations\n\n${expectations}\n\n## Constraints\n\n${constraints}\n`;
 }
 
 function renderArtifactIndex(
@@ -235,6 +260,18 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
       join(featuresDir, `${feature.id}-file.md`),
       renderFeatureFile(feature),
     );
+  }
+
+  const proposals = spec.proposals ?? [];
+  if (proposals.length > 0) {
+    const proposalsDir = join(root, "proposals");
+    mkdirSync(proposalsDir, { recursive: true });
+    for (const proposal of proposals) {
+      writeFileSync(
+        join(proposalsDir, `${proposal.id}-fixture.md`),
+        renderProposalFile(proposal),
+      );
+    }
   }
 
   return root;
