@@ -51,3 +51,16 @@ tasks:
       - task: format:check
       - task: typecheck
       - task: test
+
+  build:vscode-extension:
+    desc: "Package catalyst-host-vscode into a self-contained .vsix (bundles catalyst-core and the webview script — no monorepo dependency at install time)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - npm run package
+
+  install:vscode-extension:
+    desc: "Build and install catalyst-host-vscode into the local VS Code (requires the 'code' CLI on PATH — Command Palette: Shell Command: Install 'code' command in PATH)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - task: build:vscode-extension
+      - code --install-extension catalyst-host-vscode.vsix
