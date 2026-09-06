@@ -19,13 +19,13 @@ function resolveAll(
 }
 
 /**
- * Builds the extension -> webview payload for one node: itself, plus what
- * it's justified by (upstream, its resolved references), what it
- * produces (downstream, whatever resolves a reference back to it), and
- * any open (non-`applied`) proposal targeting it. Returns null for an
- * unknown id rather than throwing — the tree and the model it's built
- * from can only ever hand back ids that exist, but a stale command
- * invocation after a corpus change is still possible.
+ * Builds one node's detail payload for the renderer's `NodeDetail`
+ * mount: itself, upstream/downstream (resolved chain-model edges), and
+ * any open proposal targeting it. Same shape and behavior as
+ * `catalyst-host-vscode`'s own `buildNodeDetail` — kept as a local,
+ * independent copy rather than a cross-host import, matching how
+ * neither host package exposes its adapter logic for the other to
+ * import today.
  */
 export function buildNodeDetail(
   model: ChainModel,

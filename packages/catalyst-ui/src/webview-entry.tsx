@@ -20,6 +20,7 @@ if (container) {
         node={payload.node}
         upstream={payload.upstream}
         downstream={payload.downstream}
+        openProposals={payload.openProposals}
       />,
     );
   };

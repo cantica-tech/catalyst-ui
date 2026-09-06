@@ -125,18 +125,40 @@ export interface WatcherOptions {
   debounceMs?: number;
 }
 
+export type ProposalStatus =
+  "proposed" | "applying" | "applied" | "partial" | "stale";
+
+/**
+ * A reviewable, agent-mediated write request — the only path from a
+ * read-only view to an actual change on a governed file. A host only
+ * ever creates and displays these; executing `expectations` and
+ * advancing `status` is an agent's job, never a host's or core's own.
+ */
+export interface Proposal {
+  id: string;
+  status: ProposalStatus;
+  intent: string;
+  targets: string[];
+  expectations: string[];
+  constraints: string[];
+  location: SourceLocation;
+}
+
 export interface WatchUpdate {
   model: ChainModel;
   report: ValidationReport;
+  proposals: Proposal[];
 }
 
 /**
  * The extension-host <-> webview message payload for one node's detail
  * view: its own fields plus what it's justified by (upstream) and what
- * it produces (downstream), resolved from the chain model's edges.
+ * it produces (downstream), resolved from the chain model's edges, plus
+ * any open proposal targeting it.
  */
 export interface NodeDetailPayload {
   node: ChainNode;
   upstream: ChainNode[];
   downstream: ChainNode[];
+  openProposals: Proposal[];
 }

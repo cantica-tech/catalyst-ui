@@ -46,6 +46,7 @@ describe("buildDiagnosticsByFile", () => {
     assert.strictEqual(byFile.get("a.md")?.length, 2);
     assert.strictEqual(byFile.get("b.md")?.length, 1);
     assert.strictEqual(byFile.get("a.md")?.[0].line, 3);
+    assert.strictEqual(byFile.get("a.md")?.[0].issue.kind, "orphaned-artifact");
   });
 
   it("falls back to every definition site for an issue with no location", () => {
