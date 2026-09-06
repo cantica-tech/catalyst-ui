@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "engines": {
     "vscode": "^1.85.0"
@@ -46,7 +46,7 @@
     "pretest": "npm run build"
   },
   "dependencies": {
-    "catalyst-core": "^0.3.0"
+    "catalyst-core": "^0.4.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

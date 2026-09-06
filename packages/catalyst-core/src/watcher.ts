@@ -3,6 +3,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 import { buildChainModel } from "./graph.js";
 import { parseCorpus } from "./parser.js";
 import { parseProposals } from "./proposals.js";
+import { parseRuns } from "./runs.js";
 import type { WatchUpdate, WatcherOptions } from "./types.js";
 import { validate } from "./validator.js";
 
@@ -40,6 +41,7 @@ export function watchCorpus(
       model,
       report: validate(model),
       proposals: parseProposals(root),
+      runs: parseRuns(root),
     });
   };
 

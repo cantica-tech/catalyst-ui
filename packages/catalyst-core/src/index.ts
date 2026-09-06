@@ -1,4 +1,4 @@
-export const VERSION = "0.3.0";
+export const VERSION = "0.4.0";
 
 export * from "./types.js";
 export { buildChainModel } from "./graph.js";
@@ -14,6 +14,7 @@ export {
   nextProposalId,
   openProposalsByTarget,
 } from "./proposals.js";
+export { parseRuns, hasDrift } from "./runs.js";
 export { validate } from "./validator.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";

@@ -144,10 +144,38 @@ export interface Proposal {
   location: SourceLocation;
 }
 
+export type RunStatus = "running" | "completed" | "failed";
+
+export type RunStepStatus = "done" | "failed" | "pending" | "drift";
+
+/** One `## Checklist` line, glyph-parsed into a status plus its text. */
+export interface RunStep {
+  status: RunStepStatus;
+  text: string;
+}
+
+/**
+ * An external agent's own live run-state — unlike a `Proposal`, never
+ * created or edited by a host UI, only parsed and displayed. A `drift`
+ * step is self-reported by the agent; `catalyst-core` never
+ * independently verifies the claim, the same way it never executes a
+ * proposal's `expectations`.
+ */
+export interface Run {
+  id: string;
+  status: RunStatus;
+  command: string;
+  started: string;
+  steps: RunStep[];
+  ledger: string[];
+  location: SourceLocation;
+}
+
 export interface WatchUpdate {
   model: ChainModel;
   report: ValidationReport;
   proposals: Proposal[];
+  runs: Run[];
 }
 
 /**
