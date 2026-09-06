@@ -1,0 +1,8 @@
+src/**
+dist/**
+!dist/extension.js
+!dist/webview.js
+**/*.map
+tsconfig.json
+tsconfig.tsbuildinfo
+.gitignore

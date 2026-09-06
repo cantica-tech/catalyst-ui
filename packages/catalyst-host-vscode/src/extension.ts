@@ -439,13 +439,7 @@ export function activate(context: vscode.ExtensionContext): void {
         },
       );
       const scriptUri = panel.webview.asWebviewUri(
-        vscode.Uri.joinPath(
-          context.extensionUri,
-          "..",
-          "catalyst-ui",
-          "dist",
-          "webview.js",
-        ),
+        vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
       );
       panel.webview.html = renderWebviewHtml(scriptUri, payload);
     }),
