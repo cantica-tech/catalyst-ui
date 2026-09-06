@@ -2,6 +2,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 
 import { buildChainModel } from "./graph.js";
 import { parseCorpus } from "./parser.js";
+import { parseProposals } from "./proposals.js";
 import type { WatchUpdate, WatcherOptions } from "./types.js";
 import { validate } from "./validator.js";
 
@@ -35,7 +36,11 @@ export function watchCorpus(
     });
     if (result === null) return;
     const model = buildChainModel(result);
-    onUpdate({ model, report: validate(model) });
+    onUpdate({
+      model,
+      report: validate(model),
+      proposals: parseProposals(root),
+    });
   };
 
   const schedule = () => {

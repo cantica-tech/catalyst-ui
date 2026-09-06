@@ -29,6 +29,7 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
+        openProposals: [],
       }),
     );
 
@@ -43,6 +44,7 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", title: "Language and runtime" }),
         upstream: [rule({ id: "rr-META-003", title: "Unique ids" })],
         downstream: [rule({ id: "env-RUNTIME-002", title: "Downstream rule" })],
+        openProposals: [],
       }),
     );
 
@@ -58,10 +60,44 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", title: "x" }),
         upstream: [],
         downstream: [],
+        openProposals: [],
       }),
     );
 
     const noneCount = html.split("None.").length - 1;
     expect(noneCount).toBe(2);
+  });
+
+  it("renders open proposals when present, and nothing when there are none", () => {
+    const withProposal = renderToStaticMarkup(
+      NodeDetail({
+        node: rule({ id: "env-RUNTIME-001", title: "x" }),
+        upstream: [],
+        downstream: [],
+        openProposals: [
+          {
+            id: "PROP-000001",
+            status: "proposed",
+            intent: "Fix it",
+            targets: ["env-RUNTIME-001"],
+            expectations: [],
+            constraints: [],
+            location: { file: "p.md", line: 1 },
+          },
+        ],
+      }),
+    );
+    expect(withProposal).toContain("PROP-000001");
+    expect(withProposal).toContain("Fix it");
+
+    const withoutProposal = renderToStaticMarkup(
+      NodeDetail({
+        node: rule({ id: "env-RUNTIME-001", title: "x" }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+    expect(withoutProposal).not.toContain("Open proposals");
   });
 });

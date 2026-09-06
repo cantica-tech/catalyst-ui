@@ -1,8 +1,7 @@
-import * as assert from "assert";
-
 import type { ChainModel, ChainNode, Proposal } from "catalyst-core";
+import { describe, expect, it } from "vitest";
 
-import { buildNodeDetail } from "../detail.js";
+import { buildNodeDetail } from "./detail.js";
 
 const noProposals = new Map<string, Proposal[]>();
 
@@ -24,17 +23,12 @@ describe("buildNodeDetail", () => {
       reverseEdges: new Map(),
       definitionsById: new Map(),
     };
-    assert.strictEqual(buildNodeDetail(model, "nowhere", noProposals), null);
+    expect(buildNodeDetail(model, "nowhere", noProposals)).toBeNull();
   });
 
   it("resolves upstream and downstream from the model's edges", () => {
-    const req = node({ id: "REQ-000002", kind: "dev-artifact" });
-    const rule = node({
-      id: "vscode-INSPECTOR-001",
-      kind: "rule",
-      docPrefix: "vscode",
-      domain: "INSPECTOR",
-    });
+    const req = node({ id: "REQ-000006" });
+    const rule = node({ id: "electron-DESKTOP-001", kind: "rule" });
 
     const model: ChainModel = {
       nodes: new Map([
@@ -47,23 +41,16 @@ describe("buildNodeDetail", () => {
     };
 
     const reqDetail = buildNodeDetail(model, req.id, noProposals)!;
-    assert.strictEqual(reqDetail.node.id, "REQ-000002");
-    assert.deepStrictEqual(
-      reqDetail.upstream.map((n) => n.id),
-      ["vscode-INSPECTOR-001"],
-    );
-    assert.deepStrictEqual(reqDetail.downstream, []);
+    expect(reqDetail.upstream.map((n) => n.id)).toEqual([rule.id]);
+    expect(reqDetail.downstream).toEqual([]);
 
     const ruleDetail = buildNodeDetail(model, rule.id, noProposals)!;
-    assert.deepStrictEqual(ruleDetail.upstream, []);
-    assert.deepStrictEqual(
-      ruleDetail.downstream.map((n) => n.id),
-      ["REQ-000002"],
-    );
+    expect(ruleDetail.upstream).toEqual([]);
+    expect(ruleDetail.downstream.map((n) => n.id)).toEqual([req.id]);
   });
 
   it("includes any open proposal targeting the node", () => {
-    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const req = node({ id: "REQ-000006" });
     const model: ChainModel = {
       nodes: new Map([[req.id, req]]),
       edges: new Map(),
@@ -74,14 +61,17 @@ describe("buildNodeDetail", () => {
       id: "PROP-000001",
       status: "proposed",
       intent: "Fix it",
-      targets: ["REQ-000001"],
+      targets: [req.id],
       expectations: [],
       constraints: [],
       location: { file: "p.md", line: 1 },
     };
-    const byTarget = new Map([["REQ-000001", [proposal]]]);
 
-    const detail = buildNodeDetail(model, req.id, byTarget)!;
-    assert.deepStrictEqual(detail.openProposals, [proposal]);
+    const detail = buildNodeDetail(
+      model,
+      req.id,
+      new Map([[req.id, [proposal]]]),
+    )!;
+    expect(detail.openProposals).toEqual([proposal]);
   });
 });

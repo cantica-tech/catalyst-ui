@@ -1,6 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none">
-  <circle cx="3" cy="3" r="2" fill="currentColor" />
-  <circle cx="13" cy="3" r="2" fill="currentColor" />
-  <circle cx="8" cy="13" r="2" fill="currentColor" />
-  <path d="M3 5v3a2 2 0 0 0 2 2h1M13 5v3a2 2 0 0 1-2 2h-1" stroke="currentColor" stroke-width="1.2" />
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g>
+	<g>
+		
+			<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="99.518" y1="20" x2="233.142" y2="20"/>
+		<g>
+			<path style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;&#9;&#9;M299.717,215.074c-16.142-39.301-49.148-69.893-90.012-82.772V20h-86.75v112.302C64.545,150.71,22.19,205.308,22.19,269.8&#10;&#9;&#9;&#9;&#9;c0,79.606,64.534,144.14,144.14,144.14c19.902,0,38.861-4.033,56.106-11.327"/>
+			<g>
+				<g>
+					
+						<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="336.426" y1="185.233" x2="336.426" y2="210.624"/>
+					
+						<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="336.426" y1="466.609" x2="336.426" y2="492"/>
+				</g>
+				<g>
+					
+						<ellipse style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" cx="336.426" cy="338.617" rx="44.81" ry="44.502"/>
+					<g>
+						
+							<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="489.81" y1="338.617" x2="464.419" y2="338.617"/>
+						
+							<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="208.434" y1="338.617" x2="183.043" y2="338.617"/>
+					</g>
+					<g>
+						
+							<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="444.885" y1="230.158" x2="426.931" y2="248.112"/>
+						
+							<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="245.922" y1="429.121" x2="227.968" y2="447.075"/>
+					</g>
+					<g>
+						
+							<line style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" x1="245.922" y1="248.112" x2="227.968" y2="230.158"/>
+					</g>
+				</g>
+			</g>
+		</g>
+	</g>
+	<path style="fill:none;stroke:#000000;stroke-width:40;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="&#10;&#9;&#9;M455.091,383.317c5.264-13.898,8.145-28.964,8.145-44.701c0-69.865-56.775-126.503-126.81-126.503s-126.81,56.637-126.81,126.503&#10;&#9;&#9;c0,69.865,56.775,126.502,126.81,126.502c13.452,0,26.414-2.09,38.579-5.961"/>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
+<g>
+</g>
 </svg>

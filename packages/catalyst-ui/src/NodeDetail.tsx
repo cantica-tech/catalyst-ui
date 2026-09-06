@@ -1,9 +1,10 @@
-import type { ChainNode } from "catalyst-core";
+import type { ChainNode, Proposal } from "catalyst-core";
 
 export interface NodeDetailProps {
   node: ChainNode;
   upstream: ChainNode[];
   downstream: ChainNode[];
+  openProposals: Proposal[];
 }
 
 function statusOf(node: ChainNode): string | undefined {
@@ -29,13 +30,34 @@ function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
   );
 }
 
+function ProposalList({ proposals }: { proposals: Proposal[] }) {
+  if (proposals.length === 0) return null;
+  return (
+    <section>
+      <h2>Open proposals</h2>
+      <ul>
+        {proposals.map((p) => (
+          <li key={p.id}>
+            <code>{p.id}</code> ({p.status}) — {p.intent}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /**
  * The chain inspector's node-detail view — presentational only, no
  * VS Code or Electron API awareness, so it mounts unchanged inside
  * either host's webview (the roadmap's "one protocol, three packages"
  * decision).
  */
-export function NodeDetail({ node, upstream, downstream }: NodeDetailProps) {
+export function NodeDetail({
+  node,
+  upstream,
+  downstream,
+  openProposals,
+}: NodeDetailProps) {
   const status = statusOf(node);
   return (
     <div>
@@ -46,6 +68,7 @@ export function NodeDetail({ node, upstream, downstream }: NodeDetailProps) {
         {node.kind} — {node.title}
       </p>
       {status ? <p>Status: {status}</p> : null}
+      <ProposalList proposals={openProposals} />
       <NodeList title="Justified by (upstream)" nodes={upstream} />
       <NodeList title="Produces (downstream)" nodes={downstream} />
     </div>

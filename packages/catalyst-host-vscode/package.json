@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "engines": {
     "vscode": "^1.85.0"
@@ -28,6 +28,14 @@
       {
         "command": "catalyst.showNodeDetail",
         "title": "Catalyst: Show Node Detail"
+      },
+      {
+        "command": "catalyst.proposeFix",
+        "title": "Catalyst: Propose Fix"
+      },
+      {
+        "command": "catalyst.composeProposal",
+        "title": "Catalyst: Compose Proposal"
       }
     ]
   },
@@ -38,7 +46,7 @@
     "pretest": "npm run build"
   },
   "dependencies": {
-    "catalyst-core": "^0.2.0"
+    "catalyst-core": "^0.3.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
