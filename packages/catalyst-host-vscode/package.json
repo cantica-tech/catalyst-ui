@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "publisher": "catalyst-local",
   "repository": {
@@ -50,10 +50,11 @@
     "test": "mocha \"dist/test/**/*.test.js\"",
     "pretest": "npm run build",
     "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:fsevents --outfile=dist/extension.js",
-    "package": "npm run build && npm run bundle && npx vsce package --no-dependencies -o catalyst-host-vscode.vsix"
+    "package": "npm run build && npm run bundle && npx vsce package --no-dependencies -o catalyst-host-vscode.vsix",
+    "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.4.1"
+    "catalyst-core": "^0.4.2"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
