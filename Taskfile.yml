@@ -64,3 +64,9 @@ tasks:
     cmds:
       - task: build:vscode-extension
       - code --install-extension catalyst-host-vscode.vsix
+
+  publish:vscode-extension:
+    desc: 'Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs a registered publisher id in package.json, replacing the current "catalyst-local" placeholder, and VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage — see marketplace.visualstudio.com/manage)'
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - npm run publish
