@@ -175,6 +175,31 @@ export function parseFieldTable(filePath: string): {
   return { fields, text };
 }
 
+/** Trimmed, non-empty lines under one `## Heading` section, up to the next `##`. */
+export function sectionLines(text: string, heading: string): string[] {
+  const lines = text.split("\n");
+  const collected: string[] = [];
+  let inSection = false;
+
+  for (const line of lines) {
+    if (/^##\s+/.test(line)) {
+      if (inSection) break;
+      inSection = line.trim() === `## ${heading}`;
+      continue;
+    }
+    if (inSection && line.trim().length > 0) collected.push(line.trim());
+  }
+
+  return collected;
+}
+
+/** `sectionLines`, stripped of each line's leading `- ` bullet marker. */
+export function bulletItems(text: string, heading: string): string[] {
+  return sectionLines(text, heading)
+    .map((line) => line.replace(/^-\s*/, "").trim())
+    .filter((line) => line.length > 0);
+}
+
 function filesById(
   dirPath: string,
   indexPath: string,

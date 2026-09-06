@@ -2,34 +2,11 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { collectIdReferences } from "./ids.js";
-import { parseFieldTable } from "./parser.js";
+import { bulletItems, parseFieldTable, sectionLines } from "./parser.js";
 import type { Proposal, ProposalStatus } from "./types.js";
 
 const PROPOSAL_ID_RE = /^(PROP-\d{6})-/;
 const INDEX_FILENAME = "proposals.md";
-
-function sectionLines(text: string, heading: string): string[] {
-  const lines = text.split("\n");
-  const collected: string[] = [];
-  let inSection = false;
-
-  for (const line of lines) {
-    if (/^##\s+/.test(line)) {
-      if (inSection) break;
-      inSection = line.trim() === `## ${heading}`;
-      continue;
-    }
-    if (inSection && line.trim().length > 0) collected.push(line.trim());
-  }
-
-  return collected;
-}
-
-function bulletItems(text: string, heading: string): string[] {
-  return sectionLines(text, heading)
-    .map((line) => line.replace(/^-\s*/, "").trim())
-    .filter((line) => line.length > 0);
-}
 
 function isProposalStatus(value: string | undefined): value is ProposalStatus {
   return (

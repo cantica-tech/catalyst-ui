@@ -5,6 +5,8 @@ import type {
   ChainModel,
   ChainNode,
   Proposal,
+  Run,
+  RunStep,
   ValidationIssue,
   ValidationReport,
 } from "catalyst-core";
@@ -26,6 +28,12 @@ import { resolveDefinitionAt } from "./definitions.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
 import { buildNodeDetail } from "./detail.js";
 import { buildProposalSection, type ProposalSection } from "./proposals.js";
+import {
+  buildRunSection,
+  formatRunLabel,
+  formatStepLabel,
+  type RunSection,
+} from "./runmonitor.js";
 import { buildTreeSections, type TreeSection } from "./tree.js";
 
 const VIEW_ID = "catalystChainInspector";
@@ -44,18 +52,24 @@ type InspectorTreeItem =
   | { type: "section"; section: TreeSection }
   | { type: "node"; node: ChainNode; pending: boolean }
   | { type: "proposal-section"; section: ProposalSection }
-  | { type: "proposal"; proposal: Proposal };
+  | { type: "proposal"; proposal: Proposal }
+  | { type: "run-section"; section: RunSection }
+  | { type: "run"; run: Run }
+  | { type: "run-step"; step: RunStep }
+  | { type: "run-ledger-entry"; text: string };
 
 class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeItem> {
   private model: ChainModel | undefined;
   private proposals: Proposal[] = [];
+  private runs: Run[] = [];
   private pendingTargets: Map<string, Proposal[]> = new Map();
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
-  setState(model: ChainModel, proposals: Proposal[]): void {
+  setState(model: ChainModel, proposals: Proposal[], runs: Run[]): void {
     this.model = model;
     this.proposals = proposals;
+    this.runs = runs;
     this.pendingTargets = openProposalsByTarget(proposals);
     this.changeEmitter.fire();
   }
@@ -93,6 +107,30 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         vscode.TreeItemCollapsibleState.None,
       );
     }
+    if (element.type === "run-section") {
+      return new vscode.TreeItem(
+        element.section.label,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+    }
+    if (element.type === "run") {
+      return new vscode.TreeItem(
+        formatRunLabel(element.run),
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+    }
+    if (element.type === "run-step") {
+      return new vscode.TreeItem(
+        formatStepLabel(element.step),
+        vscode.TreeItemCollapsibleState.None,
+      );
+    }
+    if (element.type === "run-ledger-entry") {
+      return new vscode.TreeItem(
+        element.text,
+        vscode.TreeItemCollapsibleState.None,
+      );
+    }
 
     const pendingMark = element.pending ? "⏳ " : "";
     const item = new vscode.TreeItem(
@@ -117,6 +155,10 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         type: "proposal-section",
         section: buildProposalSection(this.proposals),
       });
+      sections.push({
+        type: "run-section",
+        section: buildRunSection(this.runs),
+      });
       return sections;
     }
     if (element.type === "section") {
@@ -131,6 +173,19 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         type: "proposal",
         proposal,
       }));
+    }
+    if (element.type === "run-section") {
+      return element.section.runs.map((run) => ({ type: "run", run }));
+    }
+    if (element.type === "run") {
+      const stepItems: InspectorTreeItem[] = element.run.steps.map((step) => ({
+        type: "run-step",
+        step,
+      }));
+      const ledgerItems: InspectorTreeItem[] = element.run.ledger.map(
+        (text) => ({ type: "run-ledger-entry", text }),
+      );
+      return [...stepItems, ...ledgerItems];
     }
     return [];
   }
@@ -220,12 +275,15 @@ export function activate(context: vscode.ExtensionContext): void {
   let latestReport: ValidationReport | undefined;
 
   if (corpusRoot) {
-    const handle = watchCorpus(corpusRoot, ({ model, report, proposals }) => {
-      provider.setState(model, proposals);
-      latestReport = report;
-      refreshDiagnostics(diagnostics, report, model);
-      codeLensChangeEmitter.fire();
-    });
+    const handle = watchCorpus(
+      corpusRoot,
+      ({ model, report, proposals, runs }) => {
+        provider.setState(model, proposals, runs);
+        latestReport = report;
+        refreshDiagnostics(diagnostics, report, model);
+        codeLensChangeEmitter.fire();
+      },
+    );
     context.subscriptions.push({ dispose: () => void handle.close() });
 
     const selector: vscode.DocumentSelector = {

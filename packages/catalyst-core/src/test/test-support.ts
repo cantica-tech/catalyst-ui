@@ -52,6 +52,16 @@ export interface FixtureProposal {
   constraints?: string[];
 }
 
+export interface FixtureRun {
+  id: string;
+  status?: string;
+  command?: string;
+  started?: string;
+  /** Raw checklist lines, glyph prefix included (e.g. `"✅ Ran tests"`). */
+  checklist?: string[];
+  ledger?: string[];
+}
+
 export interface FixtureSpec {
   ruleDocs?: FixtureRuleDoc[];
   domains?: FixtureDomain[];
@@ -60,6 +70,7 @@ export interface FixtureSpec {
   houseKeeping?: FixtureArtifact[];
   features?: FixtureFeature[];
   proposals?: FixtureProposal[];
+  runs?: FixtureRun[];
   /** Extra rule ids to also list in rules.md's "Rule IDs" section (e.g. to simulate an orphan-registration mismatch). */
   extraRegisteredRuleIds?: string[];
 }
@@ -159,6 +170,20 @@ function renderProposalFile(proposal: FixtureProposal): string {
     .map((c) => `- ${c}`)
     .join("\n");
   return `# \`${proposal.id}\` — fixture proposal\n\n${fields}\n## Intent\n\n${proposal.intent ?? "Fixture intent."}\n\n## Targets\n\n${targets}\n\n## Expectations\n\n${expectations}\n\n## Constraints\n\n${constraints}\n`;
+}
+
+function renderRunFile(run: FixtureRun): string {
+  const fields = renderFieldTable({
+    ID: `\`${run.id}\``,
+    Status: run.status ?? "running",
+    Command: run.command ?? "fixture command",
+    Started: run.started ?? "2026-01-01T00:00:00Z",
+  });
+  const checklist = (run.checklist ?? ["✅ Fixture step"])
+    .map((c) => `- ${c}`)
+    .join("\n");
+  const ledger = (run.ledger ?? []).map((l) => `- ${l}`).join("\n");
+  return `# \`${run.id}\` — fixture run\n\n${fields}\n## Checklist\n\n${checklist}\n\n## Ledger\n\n${ledger}\n`;
 }
 
 function renderArtifactIndex(
@@ -271,6 +296,15 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
         join(proposalsDir, `${proposal.id}-fixture.md`),
         renderProposalFile(proposal),
       );
+    }
+  }
+
+  const runs = spec.runs ?? [];
+  if (runs.length > 0) {
+    const runsDir = join(root, "runs");
+    mkdirSync(runsDir, { recursive: true });
+    for (const run of runs) {
+      writeFileSync(join(runsDir, `${run.id}-fixture.md`), renderRunFile(run));
     }
   }
 
