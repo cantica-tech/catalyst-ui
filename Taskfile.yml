@@ -8,6 +8,15 @@
 
 version: "3"
 
+dotenv: [".env"]
+
+vars:
+  # Falls back to the macOS app bundle when the `code` shim hasn't been
+  # installed on PATH (Command Palette: Shell Command: Install 'code' command
+  # in PATH is the permanent fix — this just unblocks tasks in the meantime).
+  CODE_BIN:
+    sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+
 includes:
   common:
     taskfile: ./Taskfile.common.yml
@@ -63,10 +72,18 @@ tasks:
     dir: packages/catalyst-host-vscode
     cmds:
       - task: build:vscode-extension
-      - code --install-extension catalyst-host-vscode.vsix
+      - "{{.CODE_BIN}} --install-extension catalyst-host-vscode.vsix"
+
+  install:vscode-extension:unsigned:
+    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for local test builds (one-time sets extensions.verifySignature: false in your real VS Code user settings, since VS Code has no per-install CLI flag for this)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - task: build:vscode-extension
+      - node scripts/enable-unsigned-install.js
+      - "{{.CODE_BIN}} --install-extension catalyst-host-vscode.vsix"
 
   publish:vscode-extension:
-    desc: 'Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs a registered publisher id in package.json, replacing the current "catalyst-local" placeholder, and VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage — see marketplace.visualstudio.com/manage)'
+    desc: "Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage for package.json's registered publisher — see marketplace.visualstudio.com/manage)"
     dir: packages/catalyst-host-vscode
     cmds:
       - npm run publish
