@@ -19,12 +19,14 @@ import {
 } from "catalyst-core";
 import * as vscode from "vscode";
 
+import { resolveAgentCommand } from "./agent-launch.js";
 import {
   buildAuthoringProposalContent,
   type ComposableArtifactType,
 } from "./composer.js";
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
+import { discoverSlashCommands } from "./commands-discovery.js";
 import { resolveDefinitionAt } from "./definitions.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
 import { buildNodeDetail } from "./detail.js";
@@ -45,6 +47,8 @@ const VIEW_ID = "catalystChainInspector";
 const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
 const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
+const RUN_SLASH_COMMAND_COMMAND = "catalyst.runSlashCommand";
+const AGENT_TERMINAL_NAME = "Catalyst";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
@@ -657,6 +661,81 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(RUN_SLASH_COMMAND_COMMAND, async () => {
+      const folders = vscode.workspace.workspaceFolders ?? [];
+      const candidates = folders
+        .map((folder) => ({
+          folder,
+          commands: discoverSlashCommands(folder.uri.fsPath),
+        }))
+        .filter((entry) => entry.commands.length > 0);
+
+      if (candidates.length === 0) {
+        void vscode.window.showInformationMessage(
+          "No .claude/commands found in this workspace.",
+        );
+        return;
+      }
+
+      let chosen = candidates[0];
+      if (candidates.length > 1) {
+        const pick = await vscode.window.showQuickPick(
+          candidates.map((entry) => ({ label: entry.folder.name, entry })),
+          { placeHolder: "Which project?" },
+        );
+        if (!pick) return;
+        chosen = pick.entry;
+      }
+
+      const commandPick = await vscode.window.showQuickPick(
+        chosen.commands.map((cmd) => ({
+          label: `/${cmd.name}`,
+          description: cmd.description ?? "",
+          detail: cmd.argumentHint,
+          cmd,
+        })),
+        { placeHolder: "Which catalyst command?", matchOnDescription: true },
+      );
+      if (!commandPick) return;
+
+      let args = "";
+      if (commandPick.cmd.argumentHint) {
+        args =
+          (await vscode.window.showInputBox({
+            prompt: `Arguments for /${commandPick.cmd.name}`,
+            placeHolder: commandPick.cmd.argumentHint,
+          })) ?? "";
+      }
+
+      const agentCommand = resolveAgentCommand(chosen.folder.uri.fsPath);
+      if (!agentCommand) {
+        void vscode.window.showErrorMessage(
+          'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.',
+        );
+        return;
+      }
+
+      const composed =
+        args.trim().length > 0
+          ? `/${commandPick.cmd.name} ${args.trim()}`
+          : `/${commandPick.cmd.name}`;
+
+      let terminal = vscode.window.terminals.find(
+        (t) => t.name === AGENT_TERMINAL_NAME,
+      );
+      if (!terminal) {
+        terminal = vscode.window.createTerminal(AGENT_TERMINAL_NAME);
+        terminal.sendText(agentCommand, true);
+      }
+      terminal.show();
+      terminal.sendText(composed, false);
+    }),
+  );
+
+  let detailPanel: vscode.WebviewPanel | undefined;
+  context.subscriptions.push({ dispose: () => detailPanel?.dispose() });
+
+  context.subscriptions.push(
     vscode.commands.registerCommand(
       SHOW_DETAIL_COMMAND,
       (corpusRoot: string, nodeId: string) => {
@@ -669,18 +748,27 @@ export function activate(context: vscode.ExtensionContext): void {
         );
         if (!payload) return;
 
-        const panel = vscode.window.createWebviewPanel(
-          "catalystNodeDetail",
-          `Node: ${nodeId}`,
-          vscode.ViewColumn.Beside,
-          {
-            enableScripts: true,
-          },
-        );
-        const scriptUri = panel.webview.asWebviewUri(
+        if (detailPanel) {
+          detailPanel.title = `Node: ${nodeId}`;
+          detailPanel.reveal(undefined, true);
+        } else {
+          detailPanel = vscode.window.createWebviewPanel(
+            "catalystNodeDetail",
+            `Node: ${nodeId}`,
+            vscode.ViewColumn.Beside,
+            {
+              enableScripts: true,
+            },
+          );
+          detailPanel.onDidDispose(() => {
+            detailPanel = undefined;
+          });
+        }
+
+        const scriptUri = detailPanel.webview.asWebviewUri(
           vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
         );
-        panel.webview.html = renderWebviewHtml(scriptUri, payload);
+        detailPanel.webview.html = renderWebviewHtml(scriptUri, payload);
       },
     ),
   );

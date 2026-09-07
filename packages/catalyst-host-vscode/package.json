@@ -43,8 +43,22 @@
       {
         "command": "catalyst.composeProposal",
         "title": "Catalyst: Compose Proposal"
+      },
+      {
+        "command": "catalyst.runSlashCommand",
+        "title": "Catalyst: Run Slash Command…",
+        "icon": "$(terminal)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "catalyst.runSlashCommand",
+          "when": "view == catalystChainInspector",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Catalyst",
       "properties": {
