@@ -1,8 +1,9 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "private": true,
-  "publisher": "catalyst-local",
+  "license": "UNLICENSED",
+  "publisher": "CanticaTech",
   "repository": {
     "type": "git",
     "url": "https://github.com/oliben67/catalyst-ui.git"
@@ -25,7 +26,8 @@
       "catalyst": [
         {
           "id": "catalystChainInspector",
-          "name": "Chain Inspector"
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg"
         }
       ]
     },
@@ -42,7 +44,17 @@
         "command": "catalyst.composeProposal",
         "title": "Catalyst: Compose Proposal"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Catalyst",
+      "properties": {
+        "catalyst.frameworkPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
+        }
+      }
+    }
   },
   "scripts": {
     "build": "tsc --build --force",
@@ -54,7 +66,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.4.2"
+    "catalyst-core": "^0.5.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
