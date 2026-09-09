@@ -34,6 +34,34 @@ describe("watchCorpus", () => {
     expect(updates[0].model.nodes.size).toBe(updates[0].report.nodeCount);
   });
 
+  it("populates users and roles from the corpus's IAM files", async () => {
+    root = createFixtureCorpus({
+      users: [{ name: "alice", roles: ["Developer"], active: true }],
+      roles: [{ name: "Developer", actions: ["/create-req"] }],
+    });
+    const updates: WatchUpdate[] = [];
+    const handle = watchCorpus(root, (update) => updates.push(update), {
+      debounceMs: 30,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await handle.close();
+
+    expect(updates.length).toBe(1);
+    expect(updates[0].users).toEqual([
+      {
+        name: "alice",
+        roles: ["Developer"],
+        registered: "2026-01-01",
+        active: true,
+        notes: "",
+      },
+    ]);
+    expect(updates[0].roles).toEqual([
+      { name: "Developer", actions: ["/create-req"] },
+    ]);
+  });
+
   it("coalesces a rapid burst of changes into a single report", async () => {
     root = createFixtureCorpus({
       requirements: [

@@ -1,9 +1,13 @@
+import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { ChainModel, Proposal } from "catalyst-core";
+import type { ChainModel, Proposal, SlashCommandSpec } from "catalyst-core";
 import {
+  composeSlashCommand,
+  discoverSlashCommands,
   openProposalsByTarget,
+  resolveAgentCommand,
   resolveCorpusRoot,
   watchCorpus,
 } from "catalyst-core";
@@ -23,6 +27,7 @@ interface ProjectRuntime {
   handle: { close(): Promise<void> };
   model: ChainModel | null;
   proposals: Proposal[];
+  agentProcess?: ChildProcessWithoutNullStreams;
 }
 
 const runtimeByProjectId = new Map<string, ProjectRuntime>();
@@ -51,6 +56,45 @@ function startWatching(project: TrackedProject, win: BrowserWindow): void {
   );
 
   runtimeByProjectId.set(project.id, { handle, model: null, proposals: [] });
+}
+
+/** One spawned agent process per project, reused across multiple slash-command runs — never crossed with another project's live session. */
+function runSlashCommand(
+  win: BrowserWindow,
+  project: TrackedProject,
+  runtime: ProjectRuntime,
+  name: string,
+  args: string,
+): string | null {
+  const agentCommand = resolveAgentCommand(project.projectRoot);
+  if (!agentCommand) {
+    return 'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.';
+  }
+
+  if (!runtime.agentProcess) {
+    const child = spawn(agentCommand, [], {
+      cwd: project.projectRoot,
+      shell: true,
+    });
+    const forward = (chunk: Buffer) =>
+      win.webContents.send("catalyst:agent-output", {
+        projectId: project.id,
+        chunk: chunk.toString("utf8"),
+      });
+    child.stdout.on("data", forward);
+    child.stderr.on("data", forward);
+    child.on("exit", (code) => {
+      win.webContents.send("catalyst:agent-output", {
+        projectId: project.id,
+        chunk: `\n[process exited with code ${code}]\n`,
+      });
+      runtime.agentProcess = undefined;
+    });
+    runtime.agentProcess = child;
+  }
+
+  runtime.agentProcess.stdin.write(`${composeSlashCommand(name, args)}\n`);
+  return null;
 }
 
 function registerIpcHandlers(win: BrowserWindow): void {
@@ -83,6 +127,7 @@ function registerIpcHandlers(win: BrowserWindow): void {
     const runtime = runtimeByProjectId.get(id);
     if (runtime) {
       await runtime.handle.close();
+      runtime.agentProcess?.kill();
       runtimeByProjectId.delete(id);
     }
     const projects = loadTrackedProjects(stateFilePath());
@@ -99,6 +144,35 @@ function registerIpcHandlers(win: BrowserWindow): void {
         nodeId,
         openProposalsByTarget(runtime.proposals),
       );
+    },
+  );
+
+  ipcMain.handle(
+    "catalyst:listSlashCommands",
+    (_event, projectId: string): SlashCommandSpec[] => {
+      const project = loadTrackedProjects(stateFilePath()).find(
+        (p) => p.id === projectId,
+      );
+      return project ? discoverSlashCommands(project.projectRoot) : [];
+    },
+  );
+
+  ipcMain.handle(
+    "catalyst:runSlashCommand",
+    (_event, projectId: string, name: string, args: string): string | null => {
+      const project = loadTrackedProjects(stateFilePath()).find(
+        (p) => p.id === projectId,
+      );
+      const runtime = runtimeByProjectId.get(projectId);
+      if (!project || !runtime) return "Unknown project.";
+      return runSlashCommand(win, project, runtime, name, args);
+    },
+  );
+
+  ipcMain.handle(
+    "catalyst:sendAgentInput",
+    (_event, projectId: string, text: string) => {
+      runtimeByProjectId.get(projectId)?.agentProcess?.stdin.write(`${text}\n`);
     },
   );
 }

@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -37,14 +37,40 @@
         "title": "Catalyst: Show Node Detail"
       },
       {
+        "command": "catalyst.showIamDetail",
+        "title": "Catalyst: Show User/Role Detail"
+      },
+      {
+        "command": "catalyst.openJournal",
+        "title": "Catalyst: Open Journal"
+      },
+      {
+        "command": "catalyst.openBacklog",
+        "title": "Catalyst: Open Backlog"
+      },
+      {
         "command": "catalyst.proposeFix",
         "title": "Catalyst: Propose Fix"
       },
       {
         "command": "catalyst.composeProposal",
         "title": "Catalyst: Compose Proposal"
+      },
+      {
+        "command": "catalyst.runSlashCommand",
+        "title": "Catalyst: Run Slash Command…",
+        "icon": "$(terminal)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "catalyst.runSlashCommand",
+          "when": "view == catalystChainInspector",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "Catalyst",
       "properties": {
@@ -66,7 +92,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.5.0"
+    "catalyst-core": "^0.6.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
