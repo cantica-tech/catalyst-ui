@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 
 import type {
+  AgentBinding,
   ChainModel,
   ChainNode,
   IamRole,
@@ -10,6 +11,7 @@ import type {
   RoadmapNode,
   Run,
   RunStep,
+  SlashCommandSpec,
   ValidationIssue,
   ValidationReport,
   WatcherHandle,
@@ -17,9 +19,11 @@ import type {
 } from "catalyst-core";
 import {
   composeSlashCommand,
+  defaultChatAgent,
   discoverSlashCommands,
   nextProposalId,
   openProposalsByTarget,
+  parseChatAgents,
   parseJournal,
   resolveAgentCommand,
   resolveCorpusRoot,
@@ -27,6 +31,7 @@ import {
 } from "catalyst-core";
 import * as vscode from "vscode";
 
+import { resolveAndInvoke } from "./agent-bridge.js";
 import {
   buildAuthoringProposalContent,
   type ComposableArtifactType,
@@ -72,6 +77,7 @@ const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
 const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const RUN_SLASH_COMMAND_COMMAND = "catalyst.runSlashCommand";
+const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
@@ -703,6 +709,77 @@ function setupDeployment(
   return { handle, disposables, ownedDiagnosticFiles };
 }
 
+interface CommandCandidate {
+  folder: vscode.WorkspaceFolder;
+  commands: SlashCommandSpec[];
+}
+
+interface PickedCommand {
+  folder: vscode.WorkspaceFolder;
+  cmd: SlashCommandSpec;
+  args: string;
+}
+
+/**
+ * Shared by every command that needs "which project, which catalyst
+ * command, what arguments" — today `RUN_SLASH_COMMAND_COMMAND` (terminal)
+ * and `SEND_TO_AGENT_CHAT_COMMAND` (chat bridge). Returns `undefined` if
+ * the user dismissed a picker, or there was nothing to pick from (already
+ * reported to the user in that case).
+ */
+async function pickCommandAndArgs(
+  candidates: CommandCandidate[],
+): Promise<PickedCommand | undefined> {
+  if (candidates.length === 0) {
+    void vscode.window.showInformationMessage(
+      "No .claude/commands found in this workspace.",
+    );
+    return undefined;
+  }
+
+  let chosen = candidates[0];
+  if (candidates.length > 1) {
+    const pick = await vscode.window.showQuickPick(
+      candidates.map((entry) => ({ label: entry.folder.name, entry })),
+      { placeHolder: "Which project?" },
+    );
+    if (!pick) return undefined;
+    chosen = pick.entry;
+  }
+
+  const commandPick = await vscode.window.showQuickPick(
+    chosen.commands.map((cmd) => ({
+      label: `/${cmd.name}`,
+      description: cmd.description ?? "",
+      detail: cmd.argumentHint,
+      cmd,
+    })),
+    { placeHolder: "Which catalyst command?", matchOnDescription: true },
+  );
+  if (!commandPick) return undefined;
+
+  let args = "";
+  if (commandPick.cmd.argumentHint) {
+    args =
+      (await vscode.window.showInputBox({
+        prompt: `Arguments for /${commandPick.cmd.name}`,
+        placeHolder: commandPick.cmd.argumentHint,
+      })) ?? "";
+  }
+
+  return { folder: chosen.folder, cmd: commandPick.cmd, args };
+}
+
+function discoverCommandCandidates(): CommandCandidate[] {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  return folders
+    .map((folder) => ({
+      folder,
+      commands: discoverSlashCommands(folder.uri.fsPath),
+    }))
+    .filter((entry) => entry.commands.length > 0);
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new ChainInspectorProvider();
   context.subscriptions.push(
@@ -856,52 +933,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(RUN_SLASH_COMMAND_COMMAND, async () => {
-      const folders = vscode.workspace.workspaceFolders ?? [];
-      const candidates = folders
-        .map((folder) => ({
-          folder,
-          commands: discoverSlashCommands(folder.uri.fsPath),
-        }))
-        .filter((entry) => entry.commands.length > 0);
+      const picked = await pickCommandAndArgs(discoverCommandCandidates());
+      if (!picked) return;
 
-      if (candidates.length === 0) {
-        void vscode.window.showInformationMessage(
-          "No .claude/commands found in this workspace.",
-        );
-        return;
-      }
-
-      let chosen = candidates[0];
-      if (candidates.length > 1) {
-        const pick = await vscode.window.showQuickPick(
-          candidates.map((entry) => ({ label: entry.folder.name, entry })),
-          { placeHolder: "Which project?" },
-        );
-        if (!pick) return;
-        chosen = pick.entry;
-      }
-
-      const commandPick = await vscode.window.showQuickPick(
-        chosen.commands.map((cmd) => ({
-          label: `/${cmd.name}`,
-          description: cmd.description ?? "",
-          detail: cmd.argumentHint,
-          cmd,
-        })),
-        { placeHolder: "Which catalyst command?", matchOnDescription: true },
-      );
-      if (!commandPick) return;
-
-      let args = "";
-      if (commandPick.cmd.argumentHint) {
-        args =
-          (await vscode.window.showInputBox({
-            prompt: `Arguments for /${commandPick.cmd.name}`,
-            placeHolder: commandPick.cmd.argumentHint,
-          })) ?? "";
-      }
-
-      const projectRoot = chosen.folder.uri.fsPath;
+      const projectRoot = picked.folder.uri.fsPath;
       const agentCommand = resolveAgentCommand(projectRoot);
       if (!agentCommand) {
         void vscode.window.showErrorMessage(
@@ -910,14 +945,14 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const composed = composeSlashCommand(commandPick.cmd.name, args);
+      const composed = composeSlashCommand(picked.cmd.name, picked.args);
 
       // One terminal per project — reusing a stale one could send this
       // command into a different project's still-running agent process.
       let terminal = agentTerminals.get(projectRoot);
       if (!terminal) {
         terminal = vscode.window.createTerminal({
-          name: `Catalyst: ${chosen.folder.name}`,
+          name: `Catalyst: ${picked.folder.name}`,
           iconPath: vscode.Uri.joinPath(
             context.extensionUri,
             "resources",
@@ -931,6 +966,45 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       terminal.show();
       terminal.sendText(composed, false);
+    }),
+  );
+
+  const agentBridgeOutputChannel =
+    vscode.window.createOutputChannel("Catalyst");
+  context.subscriptions.push(agentBridgeOutputChannel);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SEND_TO_AGENT_CHAT_COMMAND, async () => {
+      const picked = await pickCommandAndArgs(discoverCommandCandidates());
+      if (!picked) return;
+
+      const projectRoot = picked.folder.uri.fsPath;
+      const chatAgents = parseChatAgents(projectRoot);
+      let agentDef: AgentBinding | null = chatAgents[0] ?? null;
+      if (chatAgents.length > 1) {
+        const pick = await vscode.window.showQuickPick(
+          chatAgents.map((a) => ({ label: a.name, description: a.binding, a })),
+          { placeHolder: "Which configured agent?" },
+        );
+        if (!pick) return;
+        agentDef = pick.a;
+      }
+      if (!agentDef) agentDef = defaultChatAgent(projectRoot);
+
+      if (!agentDef) {
+        void vscode.window.showErrorMessage(
+          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+        );
+        return;
+      }
+
+      await resolveAndInvoke(
+        agentDef,
+        `/${picked.cmd.name}`,
+        picked.args,
+        context.workspaceState,
+        agentBridgeOutputChannel,
+      );
     }),
   );
 

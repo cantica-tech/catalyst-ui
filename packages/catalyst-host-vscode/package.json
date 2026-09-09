@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -60,12 +60,22 @@
         "command": "catalyst.runSlashCommand",
         "title": "Catalyst: Run Slash Command…",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "catalyst.sendToAgentChat",
+        "title": "Catalyst: Send to Agent (Chat)…",
+        "icon": "$(comment-discussion)"
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "catalyst.runSlashCommand",
+          "when": "view == catalystChainInspector",
+          "group": "navigation"
+        },
+        {
+          "command": "catalyst.sendToAgentChat",
           "when": "view == catalystChainInspector",
           "group": "navigation"
         }
@@ -92,7 +102,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.6.0"
+    "catalyst-core": "^0.7.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
