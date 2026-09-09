@@ -1,6 +1,16 @@
-export const VERSION = "0.6.0";
+export const VERSION = "0.7.0";
 
 export * from "./types.js";
+export {
+  AGENT_PRESETS,
+  declaresCommand,
+  defaultChatAgent,
+  findExactMatch,
+  parseChatAgents,
+  resolveBinding,
+  resolveParticipant,
+  type AgentPreset,
+} from "./agent-bridge.js";
 export { resolveAgentCommand } from "./agent-launch.js";
 export {
   discoverSlashCommands,
