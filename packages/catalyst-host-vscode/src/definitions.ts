@@ -1,6 +1,7 @@
 import {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
+  BACKTICK_ROADMAP_ID_RE,
   BACKTICK_RULE_ID_RE,
 } from "catalyst-core";
 import type { ChainModel, SourceLocation } from "catalyst-core";
@@ -9,6 +10,7 @@ const ID_PATTERNS = [
   BACKTICK_RULE_ID_RE,
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
+  BACKTICK_ROADMAP_ID_RE,
 ];
 
 /**

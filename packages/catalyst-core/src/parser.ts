@@ -6,6 +6,7 @@ import {
   BACKTICK_RULE_ID_RE,
   DEV_ARTIFACT_ID_PATTERN,
   FEATURE_ID_PATTERN,
+  ROADMAP_ID_PATTERN,
   collectIdReferences,
   devArtifactType,
   extractIds,
@@ -18,6 +19,8 @@ import type {
   ParseOptions,
   ParseResult,
   ParsedFile,
+  RoadmapNode,
+  RoadmapStatus,
   RuleNode,
 } from "./types.js";
 
@@ -26,6 +29,10 @@ const RULE_HEADING_RE =
   /^(#{2,3})\s+(?:\d+\.\s+)?`([a-z]+-[A-Z]+-\d{3}(?:-[a-zA-Z0-9]+)*)`\s+(.*)$/;
 const ANY_HEADING_RE = /^#{1,6}\s+/;
 const STATUS_GLYPH_RE = /(✅|❌|🗑|⚠️)/;
+const ROADMAP_ROW_RE = new RegExp(
+  `^\\|\\s*\`(${ROADMAP_ID_PATTERN})\`\\s*\\|(.+)\\|\\s*$`,
+);
+const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
 /** Rule bullets in one rule document (`### id Title` or `## N. id Title`). */
 export function parseRuleDocument(
@@ -353,6 +360,81 @@ function parseFeatureCollection(
   return files;
 }
 
+function isRoadmapStatus(value: string | undefined): value is RoadmapStatus {
+  return (
+    value === "Not triaged" ||
+    value === "Triaged" ||
+    value === "In progress" ||
+    value === "Done"
+  );
+}
+
+/**
+ * One named roadmap's `RM-NNNNNN` table rows (`rr-META-010`). A row is
+ * exempt from `Targets`/`Domain` (roadmap items aren't rule-linked), so
+ * unlike a rule or dev-artifact its `references` come from scanning the
+ * whole row rather than a dedicated field — same "cite it in backticks
+ * and it resolves" convention as everywhere else, which is what lets a
+ * `Linked` `FEAT-`/`REQ-` id (and a feature's own back-citation of this
+ * row's id) auto-resolve into real graph edges.
+ */
+function parseRoadmapFile(
+  filePath: string,
+  roadmapName: string,
+): RoadmapNode[] {
+  const text = readFileSync(filePath, "utf8");
+  const roadmapRetired = RETIRED_HEADER_RE.test(text);
+  const nodes: RoadmapNode[] = [];
+
+  text.split("\n").forEach((line, i) => {
+    const match = line.match(ROADMAP_ROW_RE);
+    if (!match) return;
+    const cells = match[2].split("|").map((c) => c.trim());
+    const [title, status, linkedCell, signedOffBy, ...rest] = cells;
+    const linked = collectIdReferences(linkedCell ?? "")[0];
+
+    nodes.push({
+      id: match[1],
+      kind: "roadmap",
+      title: title || match[1],
+      location: { file: filePath, line: i + 1 },
+      roadmapName,
+      roadmapRetired,
+      status: isRoadmapStatus(status) ? status : "Not triaged",
+      linked,
+      signedOffBy: signedOffBy ?? "",
+      notes: rest.join("|").trim(),
+      references: collectIdReferences(line),
+    });
+  });
+
+  return nodes;
+}
+
+/**
+ * `development/roadmaps/*.md` — one file per named roadmap, plus the
+ * `roadmaps.md` registry (skipped — it names roadmaps, it doesn't carry
+ * rows itself) and any `templates/` subdirectory (excluded by `isFile()`,
+ * same as every other collection scan in this file).
+ */
+function parseRoadmapCollection(root: string): ParsedFile[] {
+  const roadmapsDir = join(root, "development", "roadmaps");
+  if (!existsSync(roadmapsDir)) return [];
+  const files: ParsedFile[] = [];
+
+  for (const entry of readdirSync(roadmapsDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
+    if (entry.name === "roadmaps.md" || entry.name === "README.md") continue;
+    const filePath = join(roadmapsDir, entry.name);
+    files.push({
+      file: filePath,
+      mtimeMs: statSync(filePath).mtimeMs,
+      nodes: parseRoadmapFile(filePath, basename(entry.name, ".md")),
+    });
+  }
+  return files;
+}
+
 /**
  * Full reparse of a catalyst deployment corpus (a `.criterion`-shaped tree)
  * into per-file node lists. Never incremental — validation is inherently
@@ -437,6 +519,9 @@ export function parseCorpus(
       ...parseFeatureCollection(featuresIndexPath, join(root, "features")),
     );
   }
+
+  if (!shouldContinue()) return null;
+  files.push(...parseRoadmapCollection(root));
 
   return { root, files, durationMs: performance.now() - start };
 }

@@ -4,6 +4,7 @@ import {
   BACKTICK_RULE_ID_RE,
   DEV_ARTIFACT_ID_RE,
   FEATURE_ID_RE,
+  ROADMAP_ID_RE,
   RULE_ID_RE,
   collectIdReferences,
   devArtifactType,
@@ -33,6 +34,12 @@ describe("id patterns", () => {
     expect(FEATURE_ID_RE.test("FEAT-000001")).toBe(true);
     expect(FEATURE_ID_RE.test("REQ-000001")).toBe(false);
   });
+
+  it("matches well-formed roadmap ids", () => {
+    expect(ROADMAP_ID_RE.test("RM-000001")).toBe(true);
+    expect(ROADMAP_ID_RE.test("REQ-000001")).toBe(false);
+    expect(ROADMAP_ID_RE.test("FEAT-000001")).toBe(false);
+  });
 });
 
 describe("extractIds", () => {
@@ -56,6 +63,11 @@ describe("collectIdReferences", () => {
     expect(collectIdReferences(text).sort()).toEqual(
       ["FEAT-000001", "REQ-000001", "env-RUNTIME-001"].sort(),
     );
+  });
+
+  it("collects a roadmap id, e.g. a feature's own `Roadmap` field citation", () => {
+    const text = "**Roadmap:** `RM-000001`";
+    expect(collectIdReferences(text)).toEqual(["RM-000001"]);
   });
 
   it("dedupes repeated citations", () => {

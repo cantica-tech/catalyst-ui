@@ -1,4 +1,4 @@
-export const VERSION = "0.5.0";
+export const VERSION = "0.6.0";
 
 export * from "./types.js";
 export { resolveAgentCommand } from "./agent-launch.js";
@@ -12,7 +12,10 @@ export {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
   BACKTICK_RULE_ID_RE,
+  BACKTICK_ROADMAP_ID_RE,
 } from "./ids.js";
+export { parseIamUsers, parseIamRoles } from "./iam.js";
+export { parseJournal, queryJournal } from "./journal.js";
 export { parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
 export {
   parseProposals,

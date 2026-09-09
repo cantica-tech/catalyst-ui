@@ -5,6 +5,7 @@ import type {
   DevArtifactNode,
   DomainNode,
   FeatureNode,
+  RoadmapNode,
   RuleNode,
 } from "../types.js";
 import {
@@ -172,5 +173,54 @@ describe("parseCorpus", () => {
 
     const result = parseCorpus(root, { shouldContinue: () => false });
     expect(result).toBeNull();
+  });
+
+  it("parses roadmap rows from every named roadmap file, skipping the roadmaps.md index itself", () => {
+    root = createFixtureCorpus({
+      roadmaps: [
+        {
+          name: "product",
+          items: [
+            {
+              id: "RM-000001",
+              title: "Idea one",
+              status: "Triaged",
+              linked: "FEAT-000001",
+              signedOffBy: "alice",
+              notes: "from the fixture",
+            },
+          ],
+        },
+        {
+          name: "infra",
+          retired: true,
+          items: [{ id: "RM-000002", title: "Idea two" }],
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const roadmapNodes = allNodes.filter(
+      (n): n is RoadmapNode => n.kind === "roadmap",
+    );
+    expect(roadmapNodes.map((n) => n.id).sort()).toEqual([
+      "RM-000001",
+      "RM-000002",
+    ]);
+
+    const item1 = roadmapNodes.find((n) => n.id === "RM-000001")!;
+    expect(item1.roadmapName).toBe("product");
+    expect(item1.roadmapRetired).toBe(false);
+    expect(item1.status).toBe("Triaged");
+    expect(item1.linked).toBe("FEAT-000001");
+    expect(item1.signedOffBy).toBe("alice");
+    expect(item1.notes).toBe("from the fixture");
+    expect(item1.references).toContain("FEAT-000001");
+
+    const item2 = roadmapNodes.find((n) => n.id === "RM-000002")!;
+    expect(item2.roadmapName).toBe("infra");
+    expect(item2.roadmapRetired).toBe(true);
+    expect(item2.status).toBe("Not triaged");
+    expect(item2.linked).toBeUndefined();
   });
 });
