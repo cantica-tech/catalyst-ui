@@ -44,10 +44,10 @@ vars:
 
 includes:
   common:
-    taskfile: '{{.CRITERION_DIR}}/Taskfile.common.yml'
+    taskfile: "{{.CRITERION_DIR}}/Taskfile.common.yml"
     flatten: true
     vars:
-      AGENT_CMD: '{{.AGENT_CMD}}'
+      AGENT_CMD: "{{.AGENT_CMD}}"
 
 tasks:
   install:
