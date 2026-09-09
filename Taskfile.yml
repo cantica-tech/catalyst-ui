@@ -2,9 +2,12 @@
 # `task ci` is what CI runs, runnable locally.
 #
 # Catalyst-operation dispatch tasks (create-bug, check-rules, sync-framework,
-# ...) come from Taskfile.common.yml (deployed from catalyst's
-# development-framework/templates/Taskfile.common.template.yml — refreshed
-# by /sync-framework, not hand-edited here).
+# ...) come from Taskfile.common.yml, deployed inside .criterion/ (agent-owned
+# space, INV-6 — not this repo's own tree) from catalyst's development-
+# framework/templates/Taskfile.common.template.yml, refreshed by
+# /sync-framework, not hand-edited here. See catalyst's development-framework/
+# migrations/0.19.0/taskfile-into-criterion.md for why it moved out of this
+# repo's own root.
 
 version: "3"
 
@@ -16,11 +19,35 @@ vars:
   # in PATH is the permanent fix — this just unblocks tasks in the meantime).
   CODE_BIN:
     sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+  # This deployment's *.catalyst pointer's own agent-source field (INV-6),
+  # copied here as a literal — NOT `sh:`-computed. Task resolves an
+  # `includes.taskfile` path before dynamic (`sh:`) vars are evaluated, so
+  # a dynamic value here silently produces an empty path and "no Taskfile
+  # found" (confirmed by hand in catalyst's own self-deployment). Update by
+  # hand (or via /sync-framework) if agent-source ever changes.
+  CRITERION_DIR: "/Users/oliviersteck/.claude/projects/-Users-oliviersteck-sources-catalyst-ui/.criterion"
+  # Resolves the deployed agent's CLI binary from the pointer's "agent"
+  # field. "claude-code" is the one known id whose CLI binary name differs
+  # from the id itself (mirrors catalyst-ui's own agent-launch.ts); any
+  # other agent id is assumed to already be its own binary name. Falls
+  # back to "claude" — today's only known agent — when no pointer/field is
+  # found. Safe to compute dynamically, unlike CRITERION_DIR above — this
+  # only feeds ordinary task commands, not an include path.
+  AGENT_ID:
+    sh: |
+      f=$(ls *.catalyst 2>/dev/null | head -1)
+      [ -n "$f" ] && grep -oE '"agent"[[:space:]]*:[[:space:]]*"[^"]*"' "$f" | head -1 | sed -E 's/.*"([^"]*)"$/\1/'
+  AGENT_BIN: '{{if eq .AGENT_ID "claude-code"}}claude{{else if .AGENT_ID}}{{.AGENT_ID}}{{else}}claude{{end}}'
+  # Full override escape hatch for an agent needing different flags than
+  # `<bin> -p "<prompt>"` entirely (e.g. a non-Claude CLI).
+  AGENT_CMD: '{{.AGENT_CMD_OVERRIDE | default (printf "%s -p" .AGENT_BIN)}}'
 
 includes:
   common:
-    taskfile: ./Taskfile.common.yml
+    taskfile: "{{.CRITERION_DIR}}/Taskfile.common.yml"
     flatten: true
+    vars:
+      AGENT_CMD: "{{.AGENT_CMD}}"
 
 tasks:
   install:

@@ -274,3 +274,40 @@ export type WebviewPayload =
   | { type: "iam-user"; user: IamUser; roles: IamRole[] }
   | { type: "iam-role"; role: IamRole; users: IamUser[] }
   | { type: "journal"; entries: JournalEntry[] };
+
+export type AgentBindingKind = "chat-participant" | "command" | "lm-model";
+
+/**
+ * One entry of a `*.catalyst` pointer's optional `chatAgents` array — a
+ * VS-Code-specific, additive extension of the pointer format, separate
+ * from the pointer's own `agent` field (which names the CLI agent that
+ * runs this deployment's terminal-based commands, e.g. `resolveAgentCommand`
+ * in `agent-launch.ts`). `chatAgents` instead names chat-participant/
+ * command/language-model targets a host UI can route a slash command to.
+ */
+export interface AgentBinding {
+  name: string;
+  binding: AgentBindingKind;
+  participant?: string;
+  command?: string;
+}
+
+/**
+ * A binding resolved to something a host can actually invoke. Kept as its
+ * own type (not folded into `AgentBinding`) so a future `catalyst-host-
+ * electron` adapter can consume the exact same resolved shape via a
+ * `DirectApiAdapter` implementing the same `invoke()` contract, without
+ * depending on `vscode` types at all.
+ */
+export type ResolvedBinding =
+  | { kind: "chat-participant"; participant: string }
+  | { kind: "command"; commandId: string }
+  | { kind: "lm-model"; vendor?: string; family?: string };
+
+/** One chat-participant extension actually present in this VS Code instance, from a manifest scan — no activation required. */
+export interface DetectedAgent {
+  extensionId: string;
+  participant: string;
+  commands: string[];
+  active: boolean;
+}
