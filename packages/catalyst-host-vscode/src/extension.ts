@@ -12,21 +12,22 @@ import type {
   WatcherHandle,
 } from "catalyst-core";
 import {
+  composeSlashCommand,
+  discoverSlashCommands,
   nextProposalId,
   openProposalsByTarget,
+  resolveAgentCommand,
   resolveCorpusRoot,
   watchCorpus,
 } from "catalyst-core";
 import * as vscode from "vscode";
 
-import { resolveAgentCommand } from "./agent-launch.js";
 import {
   buildAuthoringProposalContent,
   type ComposableArtifactType,
 } from "./composer.js";
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
-import { discoverSlashCommands } from "./commands-discovery.js";
 import { resolveDefinitionAt } from "./definitions.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
 import { buildNodeDetail } from "./detail.js";
@@ -48,7 +49,6 @@ const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
 const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const RUN_SLASH_COMMAND_COMMAND = "catalyst.runSlashCommand";
-const AGENT_TERMINAL_NAME = "Catalyst";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
@@ -660,6 +660,18 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  const agentTerminals = new Map<string, vscode.Terminal>();
+  context.subscriptions.push(
+    vscode.window.onDidCloseTerminal((closed) => {
+      for (const [projectRoot, terminal] of agentTerminals) {
+        if (terminal === closed) {
+          agentTerminals.delete(projectRoot);
+          break;
+        }
+      }
+    }),
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand(RUN_SLASH_COMMAND_COMMAND, async () => {
       const folders = vscode.workspace.workspaceFolders ?? [];
@@ -707,7 +719,8 @@ export function activate(context: vscode.ExtensionContext): void {
           })) ?? "";
       }
 
-      const agentCommand = resolveAgentCommand(chosen.folder.uri.fsPath);
+      const projectRoot = chosen.folder.uri.fsPath;
+      const agentCommand = resolveAgentCommand(projectRoot);
       if (!agentCommand) {
         void vscode.window.showErrorMessage(
           'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.',
@@ -715,16 +728,23 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      const composed =
-        args.trim().length > 0
-          ? `/${commandPick.cmd.name} ${args.trim()}`
-          : `/${commandPick.cmd.name}`;
+      const composed = composeSlashCommand(commandPick.cmd.name, args);
 
-      let terminal = vscode.window.terminals.find(
-        (t) => t.name === AGENT_TERMINAL_NAME,
-      );
+      // One terminal per project — reusing a stale one could send this
+      // command into a different project's still-running agent process.
+      let terminal = agentTerminals.get(projectRoot);
       if (!terminal) {
-        terminal = vscode.window.createTerminal(AGENT_TERMINAL_NAME);
+        terminal = vscode.window.createTerminal({
+          name: `Catalyst: ${chosen.folder.name}`,
+          iconPath: vscode.Uri.joinPath(
+            context.extensionUri,
+            "resources",
+            "catalyst.svg",
+          ),
+          cwd: projectRoot,
+          location: { viewColumn: vscode.ViewColumn.Beside },
+        });
+        agentTerminals.set(projectRoot, terminal);
         terminal.sendText(agentCommand, true);
       }
       terminal.show();

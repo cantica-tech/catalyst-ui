@@ -11,7 +11,10 @@ export interface SlashCommandSpec {
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---/;
 const FIELD_LINE_RE = /^([\w-]+):\s*(.*)$/;
 
-function parseFrontmatter(raw: string): { description?: string; argumentHint?: string } {
+function parseFrontmatter(raw: string): {
+  description?: string;
+  argumentHint?: string;
+} {
   const match = raw.match(FRONTMATTER_RE);
   if (!match) return {};
 
@@ -21,7 +24,10 @@ function parseFrontmatter(raw: string): { description?: string; argumentHint?: s
     if (!fieldMatch) continue;
     fields[fieldMatch[1]] = fieldMatch[2].trim().replace(/^["']|["']$/g, "");
   }
-  return { description: fields.description, argumentHint: fields["argument-hint"] };
+  return {
+    description: fields.description,
+    argumentHint: fields["argument-hint"],
+  };
 }
 
 /**
@@ -29,7 +35,9 @@ function parseFrontmatter(raw: string): { description?: string; argumentHint?: s
  * (per CLAUDE.md / CODE-OF-CONDUCT.md §4) — read directly from the workspace
  * folder, not the resolved corpus root, since that's where they're deployed.
  */
-export function discoverSlashCommands(workspaceRoot: string): SlashCommandSpec[] {
+export function discoverSlashCommands(
+  workspaceRoot: string,
+): SlashCommandSpec[] {
   const dir = join(workspaceRoot, ".claude", "commands");
   if (!existsSync(dir)) return [];
 

@@ -1,14 +1,15 @@
-import * as assert from "assert";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveAgentCommand } from "../agent-launch.js";
 
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "catalyst-host-vscode-agent-launch-"));
+  root = mkdtempSync(join(tmpdir(), "catalyst-core-agent-launch-"));
 });
 
 afterEach(() => {
@@ -22,25 +23,25 @@ function writePointer(content: string): void {
 describe("resolveAgentCommand", () => {
   it("aliases claude-code to its actual CLI binary", () => {
     writePointer(JSON.stringify({ agent: "claude-code" }));
-    assert.strictEqual(resolveAgentCommand(root), "claude");
+    expect(resolveAgentCommand(root)).toBe("claude");
   });
 
   it("passes an unrecognized agent id through verbatim", () => {
     writePointer(JSON.stringify({ agent: "some-other-agent" }));
-    assert.strictEqual(resolveAgentCommand(root), "some-other-agent");
+    expect(resolveAgentCommand(root)).toBe("some-other-agent");
   });
 
   it("returns null when no pointer file exists", () => {
-    assert.strictEqual(resolveAgentCommand(root), null);
+    expect(resolveAgentCommand(root)).toBeNull();
   });
 
   it("returns null for malformed JSON", () => {
     writePointer("{ not json");
-    assert.strictEqual(resolveAgentCommand(root), null);
+    expect(resolveAgentCommand(root)).toBeNull();
   });
 
   it("returns null when the pointer has no agent field", () => {
     writePointer(JSON.stringify({ "agent-source": "/tmp/wherever" }));
-    assert.strictEqual(resolveAgentCommand(root), null);
+    expect(resolveAgentCommand(root)).toBeNull();
   });
 });

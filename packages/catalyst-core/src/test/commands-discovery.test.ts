@@ -1,14 +1,15 @@
-import * as assert from "assert";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { discoverSlashCommands } from "../commands-discovery.js";
 
 let root: string;
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), "catalyst-host-vscode-commands-"));
+  root = mkdtempSync(join(tmpdir(), "catalyst-core-commands-"));
 });
 
 afterEach(() => {
@@ -29,22 +30,22 @@ describe("discoverSlashCommands", () => {
     );
 
     const [spec] = discoverSlashCommands(root);
-    assert.strictEqual(spec.name, "create-bug");
-    assert.strictEqual(spec.description, "Create a new bug artifact");
-    assert.strictEqual(spec.argumentHint, "<title>");
+    expect(spec.name).toBe("create-bug");
+    expect(spec.description).toBe("Create a new bug artifact");
+    expect(spec.argumentHint).toBe("<title>");
   });
 
   it("yields a spec with no description/hint when there's no frontmatter", () => {
     writeCommand("help", "# Help\nJust a body.\n");
 
     const [spec] = discoverSlashCommands(root);
-    assert.strictEqual(spec.name, "help");
-    assert.strictEqual(spec.description, undefined);
-    assert.strictEqual(spec.argumentHint, undefined);
+    expect(spec.name).toBe("help");
+    expect(spec.description).toBeUndefined();
+    expect(spec.argumentHint).toBeUndefined();
   });
 
   it("returns an empty array when .claude/commands doesn't exist", () => {
-    assert.deepStrictEqual(discoverSlashCommands(root), []);
+    expect(discoverSlashCommands(root)).toEqual([]);
   });
 
   it("ignores non-.md files", () => {
@@ -54,7 +55,7 @@ describe("discoverSlashCommands", () => {
     writeCommand("dogfood", "---\ndescription: Vet the repo\n---\n");
 
     const specs = discoverSlashCommands(root);
-    assert.strictEqual(specs.length, 1);
-    assert.strictEqual(specs[0].name, "dogfood");
+    expect(specs).toHaveLength(1);
+    expect(specs[0].name).toBe("dogfood");
   });
 });

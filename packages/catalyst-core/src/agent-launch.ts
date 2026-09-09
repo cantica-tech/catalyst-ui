@@ -15,10 +15,10 @@ const KNOWN_AGENT_COMMANDS: Record<string, string> = {
 /**
  * Resolves the shell command that launches the coding agent running this
  * deployment, read from the workspace folder's `*.catalyst` pointer file
- * (same lookup `resolveCorpusRoot` uses in catalyst-core, but reading the
- * `agent` field instead of `agent-source`). Returns `null` if no pointer
- * file, invalid JSON, or no `agent` field is found — callers should surface
- * that rather than silently guessing a default.
+ * (same lookup `resolveCorpusRoot` uses, but reading the `agent` field
+ * instead of `agent-source`). Returns `null` if no pointer file, invalid
+ * JSON, or no `agent` field is found — callers should surface that
+ * rather than silently guessing a default.
  */
 export function resolveAgentCommand(workspaceRoot: string): string | null {
   if (!existsSync(workspaceRoot)) return null;
@@ -30,7 +30,9 @@ export function resolveAgentCommand(workspaceRoot: string): string | null {
 
   let pointer: unknown;
   try {
-    pointer = JSON.parse(readFileSync(join(workspaceRoot, pointerFile), "utf8"));
+    pointer = JSON.parse(
+      readFileSync(join(workspaceRoot, pointerFile), "utf8"),
+    );
   } catch {
     return null;
   }
