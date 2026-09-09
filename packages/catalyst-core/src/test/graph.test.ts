@@ -109,6 +109,44 @@ describe("buildChainModel", () => {
     ]);
   });
 
+  it("resolves a roadmap row's Linked feature and that feature's own back-citation into both directions", () => {
+    const roadmap = node({
+      id: "RM-000001",
+      kind: "roadmap",
+      roadmapName: "product",
+      roadmapRetired: false,
+      status: "Triaged",
+      linked: "FEAT-000001",
+      signedOffBy: "alice",
+      notes: "",
+      references: ["FEAT-000001"],
+    });
+    const feature = node({
+      id: "FEAT-000001",
+      kind: "feature",
+      status: "in-development",
+      registered: true,
+      fileExists: true,
+      references: ["RM-000001"],
+    });
+
+    const model = buildChainModel(
+      parseResult([
+        { file: "roadmap.md", mtimeMs: 0, nodes: [roadmap] },
+        { file: "feature.md", mtimeMs: 0, nodes: [feature] },
+      ]),
+    );
+
+    expect(model.edges.get("RM-000001")).toEqual(new Set(["FEAT-000001"]));
+    expect(model.reverseEdges.get("FEAT-000001")).toEqual(
+      new Set(["RM-000001"]),
+    );
+    expect(model.edges.get("FEAT-000001")).toEqual(new Set(["RM-000001"]));
+    expect(model.reverseEdges.get("RM-000001")).toEqual(
+      new Set(["FEAT-000001"]),
+    );
+  });
+
   it("never creates a self-edge, even when a node's raw references include its own id", () => {
     // A node's own `**ID**` field is backtick-quoted like any citation, so
     // the parser's generic scan legitimately puts a node's own id in its

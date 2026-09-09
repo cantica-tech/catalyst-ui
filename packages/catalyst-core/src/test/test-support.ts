@@ -62,6 +62,46 @@ export interface FixtureRun {
   ledger?: string[];
 }
 
+export interface FixtureRoadmapItem {
+  id: string;
+  title: string;
+  status?: string;
+  /** Backtick-quoted in the rendered `Linked` cell when given; `*(none)*` otherwise. */
+  linked?: string;
+  signedOffBy?: string;
+  notes?: string;
+}
+
+export interface FixtureRoadmap {
+  /** Also the rendered file's basename: `development/roadmaps/<name>.md`. */
+  name: string;
+  retired?: boolean;
+  items: FixtureRoadmapItem[];
+}
+
+export interface FixtureUser {
+  name: string;
+  roles?: string[];
+  registered?: string;
+  active?: boolean;
+  notes?: string;
+}
+
+export interface FixtureRole {
+  name: string;
+  actions?: string[];
+}
+
+export interface FixtureJournalEntry {
+  timestamp: string;
+  actor: string;
+  command?: string;
+  action?: string;
+  artifact: string;
+  targets?: string[];
+  intent?: string[];
+}
+
 export interface FixtureSpec {
   ruleDocs?: FixtureRuleDoc[];
   domains?: FixtureDomain[];
@@ -71,6 +111,10 @@ export interface FixtureSpec {
   features?: FixtureFeature[];
   proposals?: FixtureProposal[];
   runs?: FixtureRun[];
+  roadmaps?: FixtureRoadmap[];
+  users?: FixtureUser[];
+  roles?: FixtureRole[];
+  journal?: FixtureJournalEntry[];
   /** Extra rule ids to also list in rules.md's "Rule IDs" section (e.g. to simulate an orphan-registration mismatch). */
   extraRegisteredRuleIds?: string[];
 }
@@ -184,6 +228,80 @@ function renderRunFile(run: FixtureRun): string {
     .join("\n");
   const ledger = (run.ledger ?? []).map((l) => `- ${l}`).join("\n");
   return `# \`${run.id}\` — fixture run\n\n${fields}\n## Checklist\n\n${checklist}\n\n## Ledger\n\n${ledger}\n`;
+}
+
+function renderRoadmapFile(roadmap: FixtureRoadmap): string {
+  let text = `# roadmap — ${roadmap.name}\n\n**Name:** ${roadmap.name}\n**Source:** fixture\n**Added:** 2026-01-01\n**Last updated:** 2026-01-01\n`;
+  if (roadmap.retired) text += `**Retired:** 2026-01-02\n`;
+  text +=
+    "\n## Items\n\n| ID | Title | Status | Linked | Signed-off-by | Notes |\n|---|---|---|---|---|---|\n";
+  for (const item of roadmap.items) {
+    const linked = item.linked ? `\`${item.linked}\`` : "*(none)*";
+    text += `| \`${item.id}\` | ${item.title} | ${item.status ?? "Not triaged"} | ${linked} | ${item.signedOffBy ?? "fixture-user"} | ${item.notes ?? ""} |\n`;
+  }
+  return text;
+}
+
+function writeRoadmapCollection(
+  root: string,
+  roadmaps: FixtureRoadmap[],
+): void {
+  const roadmapsDir = join(root, "development", "roadmaps");
+  mkdirSync(roadmapsDir, { recursive: true });
+  let index = "# Roadmaps\n\n";
+  for (const roadmap of roadmaps) {
+    index += `- ${roadmap.name}${roadmap.retired ? " (retired)" : ""}\n`;
+    writeFileSync(
+      join(roadmapsDir, `${roadmap.name}.md`),
+      renderRoadmapFile(roadmap),
+    );
+  }
+  writeFileSync(join(roadmapsDir, "roadmaps.md"), index);
+}
+
+function writeIamUsers(root: string, users: FixtureUser[]): void {
+  const dir = join(root, "IAM", "users");
+  mkdirSync(dir, { recursive: true });
+  const payload = {
+    users: users.map((u) => ({
+      name: u.name,
+      roles: u.roles ?? [],
+      registered: u.registered ?? "2026-01-01",
+      active: u.active ?? true,
+      notes: u.notes ?? "",
+    })),
+  };
+  writeFileSync(join(dir, "users.json"), JSON.stringify(payload, null, 2));
+}
+
+function writeIamRoles(root: string, roles: FixtureRole[]): void {
+  const dir = join(root, "IAM", "roles");
+  mkdirSync(dir, { recursive: true });
+  const payload = {
+    roles: roles.map((r) => ({ name: r.name, actions: r.actions ?? [] })),
+  };
+  writeFileSync(join(dir, "roles.json"), JSON.stringify(payload, null, 2));
+}
+
+function writeJournal(root: string, entries: FixtureJournalEntry[]): void {
+  const dir = join(root, "development");
+  mkdirSync(dir, { recursive: true });
+  const lines = entries.map((e) =>
+    JSON.stringify({
+      timestamp: e.timestamp,
+      actor: e.actor,
+      command: e.command ?? "/fixture",
+      action: e.action ?? "update",
+      artifact: e.artifact,
+      targets: e.targets ?? [],
+      intent: e.intent ?? ["Fixture intent."],
+      files: [],
+    }),
+  );
+  writeFileSync(
+    join(dir, "journal.jsonl"),
+    lines.length > 0 ? lines.join("\n") + "\n" : "",
+  );
 }
 
 function renderArtifactIndex(
@@ -307,6 +425,18 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
       writeFileSync(join(runsDir, `${run.id}-fixture.md`), renderRunFile(run));
     }
   }
+
+  const roadmaps = spec.roadmaps ?? [];
+  if (roadmaps.length > 0) writeRoadmapCollection(root, roadmaps);
+
+  const users = spec.users ?? [];
+  if (users.length > 0) writeIamUsers(root, users);
+
+  const roles = spec.roles ?? [];
+  if (roles.length > 0) writeIamRoles(root, roles);
+
+  const journal = spec.journal ?? [];
+  if (journal.length > 0) writeJournal(root, journal);
 
   return root;
 }

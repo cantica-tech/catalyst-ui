@@ -6,7 +6,7 @@
  */
 
 export type NodeKind =
-  "work-item" | "dev-artifact" | "rule" | "domain" | "feature";
+  "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap";
 
 export type DevArtifactType = "bug" | "requirement" | "house-keeping";
 
@@ -69,8 +69,33 @@ export interface FeatureNode extends ChainNodeBase {
   fileExists: boolean;
 }
 
+export type RoadmapStatus = "Not triaged" | "Triaged" | "In progress" | "Done";
+
+/**
+ * One `RM-NNNNNN` row inside a `development/roadmaps/<name>.md` file
+ * (`rr-META-010`) — a row, not its own file, so `registered`/`fileExists`
+ * (meaningful for dev-artifacts/features) don't apply here.
+ */
+export interface RoadmapNode extends ChainNodeBase {
+  kind: "roadmap";
+  /** Which named roadmap file this row lives in (that file's basename). */
+  roadmapName: string;
+  /** True iff the owning roadmap file's header carries a `**Retired:**` field. */
+  roadmapRetired: boolean;
+  status: RoadmapStatus;
+  /** The row's `Linked` cell's `FEAT-`/`REQ-` id, if any — also present in `references`. */
+  linked?: string;
+  signedOffBy: string;
+  notes: string;
+}
+
 export type ChainNode =
-  WorkItemNode | DevArtifactNode | RuleNode | DomainNode | FeatureNode;
+  | WorkItemNode
+  | DevArtifactNode
+  | RuleNode
+  | DomainNode
+  | FeatureNode
+  | RoadmapNode;
 
 export interface ChainModel {
   nodes: Map<string, ChainNode>;
@@ -171,11 +196,57 @@ export interface Run {
   location: SourceLocation;
 }
 
+/** `IAM/users/users.json` — advisory registry, not access control (`rr-META-011`). Identity key is `name`. */
+export interface IamUser {
+  name: string;
+  roles: string[];
+  registered: string;
+  active: boolean;
+  notes: string;
+}
+
+/** `IAM/roles/roles.json` — a role's `name` is what a user's own `roles` array cites. */
+export interface IamRole {
+  name: string;
+  actions: string[];
+}
+
+export type JournalAction =
+  "create" | "update" | "close" | "retire" | "status-change" | "sync";
+
+export interface JournalFileChange {
+  path: string;
+  before: string | null;
+  after: string;
+}
+
+/** One append-only line of `development/journal.jsonl` (`rr-META-012`) — transaction-log-grade, not prose. */
+export interface JournalEntry {
+  timestamp: string;
+  actor: string;
+  command: string;
+  action: JournalAction;
+  artifact: string;
+  targets: string[];
+  intent: string[];
+  files: JournalFileChange[];
+}
+
+/** Filters mirroring the `/journal` slash-command's `--since/--actor/--artifact/--rule` flags. */
+export interface JournalFilters {
+  since?: string;
+  actor?: string;
+  artifact?: string;
+  rule?: string;
+}
+
 export interface WatchUpdate {
   model: ChainModel;
   report: ValidationReport;
   proposals: Proposal[];
   runs: Run[];
+  users: IamUser[];
+  roles: IamRole[];
 }
 
 /**
@@ -190,3 +261,16 @@ export interface NodeDetailPayload {
   downstream: ChainNode[];
   openProposals: Proposal[];
 }
+
+/**
+ * Every shape the single bundled webview can be asked to render, tagged by
+ * `type` so `webview-entry.tsx` can dispatch with one switch. Wraps
+ * `NodeDetailPayload` rather than folding into it, so hosts/tests that only
+ * know about node detail (e.g. `catalyst-host-electron`'s own independent
+ * `detail.ts`) are unaffected by the IAM/journal additions.
+ */
+export type WebviewPayload =
+  | ({ type: "node" } & NodeDetailPayload)
+  | { type: "iam-user"; user: IamUser; roles: IamRole[] }
+  | { type: "iam-role"; role: IamRole; users: IamUser[] }
+  | { type: "journal"; entries: JournalEntry[] };

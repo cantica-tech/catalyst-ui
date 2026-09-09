@@ -37,6 +37,7 @@ function sectionKindOf(node: ChainNode): TreeSectionKind | null {
   if (node.kind === "rule")
     return node.docPrefix === "rr" ? "rule-of-rules" : "rule";
   if (node.kind === "work-item") return null;
+  if (node.kind === "roadmap") return null; // own section — see roadmaps.ts
   return node.kind;
 }
 

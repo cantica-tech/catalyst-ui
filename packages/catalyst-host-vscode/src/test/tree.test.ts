@@ -78,4 +78,21 @@ describe("buildTreeSections", () => {
       ["REQ-000001", "REQ-000002"],
     );
   });
+
+  it("excludes roadmap nodes from all five sections — they get their own Roadmaps section instead", () => {
+    const model = modelOf([
+      node({
+        id: "RM-000001",
+        kind: "roadmap",
+        roadmapName: "product",
+        roadmapRetired: false,
+        status: "Not triaged",
+        signedOffBy: "alice",
+        notes: "",
+      }),
+    ]);
+
+    const sections = buildTreeSections(model);
+    assert.ok(sections.every((s) => s.nodes.length === 0));
+  });
 });

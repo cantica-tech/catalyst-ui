@@ -72,7 +72,7 @@ tasks:
     dir: packages/catalyst-host-vscode
     cmds:
       - task: build:vscode-extension
-      - "{{.CODE_BIN}} --install-extension catalyst-host-vscode.vsix"
+      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
 
   install:vscode-extension:unsigned:
     desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for local test builds (one-time sets extensions.verifySignature: false in your real VS Code user settings, since VS Code has no per-install CLI flag for this)"
@@ -80,10 +80,28 @@ tasks:
     cmds:
       - task: build:vscode-extension
       - node scripts/enable-unsigned-install.js
-      - "{{.CODE_BIN}} --install-extension catalyst-host-vscode.vsix"
+      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
 
   publish:vscode-extension:
     desc: "Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage for package.json's registered publisher — see marketplace.visualstudio.com/manage)"
     dir: packages/catalyst-host-vscode
     cmds:
       - npm run publish
+
+  publish:vscode-extension:release:
+    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - |
+        set -e
+        TAG="$(git describe --tags --exact-match HEAD 2>/dev/null)" || {
+          echo "HEAD is not an exact release tag — cut the release first (tags the release branch), or check out the release tag before publishing." >&2
+          exit 1
+        }
+        PKG_VERSION="$(node -p "require('./package.json').version")"
+        if [ "$TAG" != "$PKG_VERSION" ]; then
+          echo "Release tag ($TAG) doesn't match package.json version ($PKG_VERSION) — refusing to publish a mismatched build." >&2
+          exit 1
+        fi
+        echo "HEAD is release $TAG, matching package.json — proceeding to publish."
+      - task: publish:vscode-extension

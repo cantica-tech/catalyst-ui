@@ -30,6 +30,21 @@ function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
   );
 }
 
+function RoadmapDetails({ node }: { node: ChainNode }) {
+  if (node.kind !== "roadmap") return null;
+  return (
+    <section>
+      <h2>Roadmap</h2>
+      <p>
+        {node.roadmapName}
+        {node.roadmapRetired ? " (retired)" : ""}
+      </p>
+      <p>Signed off by: {node.signedOffBy}</p>
+      {node.notes ? <p>{node.notes}</p> : null}
+    </section>
+  );
+}
+
 function ProposalList({ proposals }: { proposals: Proposal[] }) {
   if (proposals.length === 0) return null;
   return (
@@ -68,6 +83,7 @@ export function NodeDetail({
         {node.kind} — {node.title}
       </p>
       {status ? <p>Status: {status}</p> : null}
+      <RoadmapDetails node={node} />
       <ProposalList proposals={openProposals} />
       <NodeList title="Justified by (upstream)" nodes={upstream} />
       <NodeList title="Produces (downstream)" nodes={downstream} />

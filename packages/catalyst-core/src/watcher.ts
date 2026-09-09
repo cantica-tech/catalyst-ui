@@ -1,6 +1,7 @@
 import chokidar, { type FSWatcher } from "chokidar";
 
 import { buildChainModel } from "./graph.js";
+import { parseIamRoles, parseIamUsers } from "./iam.js";
 import { parseCorpus } from "./parser.js";
 import { parseProposals } from "./proposals.js";
 import { parseRuns } from "./runs.js";
@@ -42,6 +43,8 @@ export function watchCorpus(
       report: validate(model),
       proposals: parseProposals(root),
       runs: parseRuns(root),
+      users: parseIamUsers(root),
+      roles: parseIamRoles(root),
     });
   };
 

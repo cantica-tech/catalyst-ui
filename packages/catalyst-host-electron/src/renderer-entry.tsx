@@ -3,6 +3,7 @@ import { NodeDetail } from "catalyst-ui";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+import { AgentWindow } from "./AgentWindow.js";
 import { GraphView } from "./GraphView.js";
 import type { GraphLayout } from "./graph.js";
 import type { CatalystApi, ProjectUpdate } from "./preload.js";
@@ -49,41 +50,52 @@ function App() {
     : undefined;
 
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <nav style={{ width: 220, overflow: "auto" }}>
-        <button onClick={() => void handleAddProject()}>Add project…</button>
-        <ul>
-          {projects.map((project) => (
-            <li key={project.id}>
-              <button onClick={() => setSelectedProjectId(project.id)}>
-                {project.projectRoot}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      <main style={{ flex: 1, overflow: "auto" }}>
-        {layout ? (
-          <GraphView
-            layout={layout}
-            onSelectNode={(id) => void handleSelectNode(id)}
-          />
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <nav style={{ width: 220, overflow: "auto" }}>
+          <button onClick={() => void handleAddProject()}>Add project…</button>
+          <ul>
+            {projects.map((project) => (
+              <li key={project.id}>
+                <button onClick={() => setSelectedProjectId(project.id)}>
+                  {project.projectRoot}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <main style={{ flex: 1, overflow: "auto" }}>
+          {layout ? (
+            <GraphView
+              layout={layout}
+              onSelectNode={(id) => void handleSelectNode(id)}
+            />
+          ) : (
+            <p>Select a project.</p>
+          )}
+        </main>
+        <aside style={{ width: 320, overflow: "auto" }}>
+          {detail ? (
+            <NodeDetail
+              node={detail.node}
+              upstream={detail.upstream}
+              downstream={detail.downstream}
+              openProposals={detail.openProposals}
+            />
+          ) : (
+            <p>Select a node.</p>
+          )}
+        </aside>
+      </div>
+      <div style={{ height: 260, borderTop: "1px solid #444", flexShrink: 0 }}>
+        {selectedProjectId ? (
+          <AgentWindow projectId={selectedProjectId} />
         ) : (
-          <p>Select a project.</p>
+          <p style={{ margin: 8 }}>
+            Select a project to run catalyst commands.
+          </p>
         )}
-      </main>
-      <aside style={{ width: 320, overflow: "auto" }}>
-        {detail ? (
-          <NodeDetail
-            node={detail.node}
-            upstream={detail.upstream}
-            downstream={detail.downstream}
-            openProposals={detail.openProposals}
-          />
-        ) : (
-          <p>Select a node.</p>
-        )}
-      </aside>
+      </div>
     </div>
   );
 }
