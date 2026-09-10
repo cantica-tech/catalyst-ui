@@ -31,3 +31,23 @@ export function resolveCorpusRoot(projectRoot: string): string | null {
 
   return agentSource;
 }
+
+/**
+ * Reads a resolved deployment's `version.txt` (SYNCHRONIZE.md's "Version
+ * rule": "the deployed framework must have a version.txt file"), trimmed.
+ * `null` if missing, empty, or unreadable — callers should treat that as
+ * "can't safely compare," not as any particular version.
+ */
+export function readDeployedFrameworkVersion(
+  corpusRoot: string,
+): string | null {
+  const versionFile = join(corpusRoot, "version.txt");
+  if (!existsSync(versionFile)) return null;
+
+  try {
+    const version = readFileSync(versionFile, "utf8").trim();
+    return version.length > 0 ? version : null;
+  } catch {
+    return null;
+  }
+}

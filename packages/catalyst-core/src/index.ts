@@ -1,4 +1,4 @@
-export const VERSION = "0.8.0";
+export const VERSION = "0.9.0";
 
 export * from "./types.js";
 export {
@@ -17,7 +17,7 @@ export {
   type SlashCommandSpec,
 } from "./commands-discovery.js";
 export { buildChainModel } from "./graph.js";
-export { resolveCorpusRoot } from "./discover.js";
+export { readDeployedFrameworkVersion, resolveCorpusRoot } from "./discover.js";
 export {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
@@ -35,5 +35,6 @@ export {
 export { parseRuns, hasDrift } from "./runs.js";
 export { composeSlashCommand } from "./slash-command.js";
 export { validate } from "./validator.js";
+export { compareVersions } from "./versioning.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";
