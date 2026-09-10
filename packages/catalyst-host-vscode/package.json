@@ -1,9 +1,11 @@
 {
   "name": "catalyst-host-vscode",
-  "version": "0.10.0",
+  "displayName": "Catalyst framework",
+  "version": "0.11.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
+  "icon": "resources/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/oliben67/catalyst-ui.git"
@@ -92,7 +94,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.10.0"
+    "catalyst-core": "^0.11.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
