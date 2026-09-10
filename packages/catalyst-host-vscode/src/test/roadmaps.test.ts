@@ -13,6 +13,7 @@ function roadmapNode(
     location: { file: "r.md", line: 1 },
     references: [],
     roadmapRetired: false,
+    description: "",
     status: "Not triaged",
     signedOffBy: "fixture-user",
     notes: "",

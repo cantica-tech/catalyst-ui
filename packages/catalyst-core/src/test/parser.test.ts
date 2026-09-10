@@ -184,6 +184,7 @@ describe("parseCorpus", () => {
             {
               id: "RM-000001",
               title: "Idea one",
+              description: "A longer summary of idea one.",
               status: "Triaged",
               linked: "FEAT-000001",
               signedOffBy: "alice",
@@ -211,6 +212,7 @@ describe("parseCorpus", () => {
     const item1 = roadmapNodes.find((n) => n.id === "RM-000001")!;
     expect(item1.roadmapName).toBe("product");
     expect(item1.roadmapRetired).toBe(false);
+    expect(item1.description).toBe("A longer summary of idea one.");
     expect(item1.status).toBe("Triaged");
     expect(item1.linked).toBe("FEAT-000001");
     expect(item1.signedOffBy).toBe("alice");

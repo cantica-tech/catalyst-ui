@@ -82,6 +82,8 @@ export interface RoadmapNode extends ChainNodeBase {
   roadmapName: string;
   /** True iff the owning roadmap file's header carries a `**Retired:**` field. */
   roadmapRetired: boolean;
+  /** A sentence or two summarizing the item — distinct from `title`'s short label (framework `0.20.0`+ shape). */
+  description: string;
   status: RoadmapStatus;
   /** The row's `Linked` cell's `FEAT-`/`REQ-` id, if any — also present in `references`. */
   linked?: string;
