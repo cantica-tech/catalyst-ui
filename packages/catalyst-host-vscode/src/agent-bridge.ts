@@ -2,8 +2,6 @@ import type { AgentBinding, DetectedAgent } from "catalyst-core";
 import { declaresCommand, findExactMatch, resolveBinding } from "catalyst-core";
 import * as vscode from "vscode";
 
-const OVERRIDES_KEY = "catalystAgentOverrides";
-
 /**
  * Both a chat participant's name and its declared slash commands are
  * static data in its own manifest (`contributes.chatParticipants[]` and
@@ -125,20 +123,23 @@ export async function offerModelFallback(
 
 /**
  * Resolves one `AgentBinding` to something invocable and dispatches on
- * its kind. `command`/`lm-model` bindings are invoked directly (existence
- * is checked for `command`; `lm-model` has no "is it installed" concept
- * beyond `invokeLmModel`'s own failure). `chat-participant` gets the full
- * detection + failsafe flow: an exact detected match is used as-is; a
- * previous substitution remembered for this workspace short-circuits
- * detection entirely; otherwise the user picks a detected substitute
- * (optionally remembered), and no chat-participant extensions at all
- * falls through to `offerModelFallback`.
+ * its kind. Exclusively uses the agent the `*.catalyst` file points to —
+ * no substituting a different chat participant when the intended one
+ * isn't found, and nothing remembered/persisted about a substitution
+ * (there isn't one). `command`/`lm-model` bindings are invoked directly
+ * (existence is checked for `command`; `lm-model` has no "is it
+ * installed" concept beyond `invokeLmModel`'s own failure).
+ * `chat-participant` is the one binding kind with a real "not found"
+ * case: an exact detected match is used as-is; if the intended
+ * participant isn't detected at all, that — and only that — is the
+ * exception clause, falling through to `offerModelFallback` (a generic
+ * model, clearly labeled as such, never presented as a stand-in for a
+ * different named agent).
  */
 export async function resolveAndInvoke(
   agentDef: AgentBinding,
   slashCommand: string,
   args: string,
-  workspaceState: vscode.Memento,
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
   const resolved = resolveBinding(agentDef);
@@ -173,61 +174,24 @@ export async function resolveAndInvoke(
     return;
   }
 
-  // chat-participant
-  const overrides = workspaceState.get<Record<string, string>>(
-    OVERRIDES_KEY,
-    {},
-  );
-  const remembered = overrides[agentDef.name];
-
+  // chat-participant — exclusively the intended one, no substitution.
   const detected = scanAvailableAgents();
-  const target = remembered ?? resolved.participant;
-  const exact = findExactMatch(detected, target);
+  const exact = findExactMatch(detected, resolved.participant);
 
   if (exact) {
     if (!declaresCommand(exact, slashCommand)) {
       void vscode.window.showInformationMessage(
-        `${target} doesn't declare ${slashCommand} — sending as plain text.`,
+        `${resolved.participant} doesn't declare ${slashCommand} — sending as plain text.`,
       );
     }
-    await invokeChatParticipant(target, slashCommand, args);
+    await invokeChatParticipant(resolved.participant, slashCommand, args);
     return;
   }
 
-  if (detected.length === 0) {
-    await offerModelFallback(slashCommand, args, outputChannel);
-    return;
-  }
-
-  const requestedCmd = slashCommand.replace(/^\//, "");
-  const pick = await vscode.window.showQuickPick(
-    detected.map((a) => ({
-      label: a.participant,
-      description: a.commands.includes(requestedCmd)
-        ? `supports ${slashCommand}`
-        : `no ${slashCommand} — sent as plain text`,
-      detail: a.active ? undefined : "not yet activated",
-      agent: a,
-    })),
-    {
-      placeHolder: `"${agentDef.name}" isn't available in this VS Code instance. Use one of these instead?`,
-      canPickMany: false,
-    },
+  // Not found — the one exception: fall through to a generic model
+  // rather than substituting a different named agent.
+  void vscode.window.showWarningMessage(
+    `"${agentDef.name}" (${resolved.participant}) isn't available in this VS Code instance — falling back to a generic language model.`,
   );
-  if (!pick) return; // user dismissed — do nothing, don't retry silently
-
-  const remember = await vscode.window.showQuickPick(
-    ["Yes", "No, just this once"],
-    {
-      placeHolder: `Remember ${pick.agent.participant} as the substitute for "${agentDef.name}" in this workspace?`,
-    },
-  );
-  if (remember === "Yes") {
-    await workspaceState.update(OVERRIDES_KEY, {
-      ...overrides,
-      [agentDef.name]: pick.agent.participant,
-    });
-  }
-
-  await invokeChatParticipant(pick.agent.participant, slashCommand, args);
+  await offerModelFallback(slashCommand, args, outputChannel);
 }
