@@ -647,7 +647,6 @@ async function offerToSyncFramework(
     agentDef,
     "/sync-framework",
     MAX_COMPATIBLE_FRAMEWORK_VERSION,
-    context.workspaceState,
     outputChannel,
   );
 }
@@ -1026,7 +1025,6 @@ export function activate(context: vscode.ExtensionContext): void {
         agentDef,
         `/${picked.cmd.name}`,
         picked.args,
-        context.workspaceState,
         agentBridgeOutputChannel,
       );
     }),
