@@ -18,14 +18,12 @@ import type {
   WebviewPayload,
 } from "catalyst-core";
 import {
-  composeSlashCommand,
   defaultChatAgent,
   discoverSlashCommands,
   nextProposalId,
   openProposalsByTarget,
   parseChatAgents,
   parseJournal,
-  resolveAgentCommand,
   resolveCorpusRoot,
   watchCorpus,
 } from "catalyst-core";
@@ -76,7 +74,6 @@ const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
 const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
 const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
-const RUN_SLASH_COMMAND_COMMAND = "catalyst.runSlashCommand";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
@@ -722,10 +719,9 @@ interface PickedCommand {
 
 /**
  * Shared by every command that needs "which project, which catalyst
- * command, what arguments" — today `RUN_SLASH_COMMAND_COMMAND` (terminal)
- * and `SEND_TO_AGENT_CHAT_COMMAND` (chat bridge). Returns `undefined` if
- * the user dismissed a picker, or there was nothing to pick from (already
- * reported to the user in that case).
+ * command, what arguments" — today just `SEND_TO_AGENT_CHAT_COMMAND`.
+ * Returns `undefined` if the user dismissed a picker, or there was
+ * nothing to pick from (already reported to the user in that case).
  */
 async function pickCommandAndArgs(
   candidates: CommandCandidate[],
@@ -916,56 +912,6 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.window.showInformationMessage(
         `Created ${id} — an agent still needs to act on it.`,
       );
-    }),
-  );
-
-  const agentTerminals = new Map<string, vscode.Terminal>();
-  context.subscriptions.push(
-    vscode.window.onDidCloseTerminal((closed) => {
-      for (const [projectRoot, terminal] of agentTerminals) {
-        if (terminal === closed) {
-          agentTerminals.delete(projectRoot);
-          break;
-        }
-      }
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(RUN_SLASH_COMMAND_COMMAND, async () => {
-      const picked = await pickCommandAndArgs(discoverCommandCandidates());
-      if (!picked) return;
-
-      const projectRoot = picked.folder.uri.fsPath;
-      const agentCommand = resolveAgentCommand(projectRoot);
-      if (!agentCommand) {
-        void vscode.window.showErrorMessage(
-          'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.',
-        );
-        return;
-      }
-
-      const composed = composeSlashCommand(picked.cmd.name, picked.args);
-
-      // One terminal per project — reusing a stale one could send this
-      // command into a different project's still-running agent process.
-      let terminal = agentTerminals.get(projectRoot);
-      if (!terminal) {
-        terminal = vscode.window.createTerminal({
-          name: `Catalyst: ${picked.folder.name}`,
-          iconPath: vscode.Uri.joinPath(
-            context.extensionUri,
-            "resources",
-            "catalyst.svg",
-          ),
-          cwd: projectRoot,
-          location: { viewColumn: vscode.ViewColumn.Beside },
-        });
-        agentTerminals.set(projectRoot, terminal);
-        terminal.sendText(agentCommand, true);
-      }
-      terminal.show();
-      terminal.sendText(composed, false);
     }),
   );
 
