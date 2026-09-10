@@ -4,7 +4,10 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { resolveCorpusRoot } from "../discover.js";
+import {
+  readDeployedFrameworkVersion,
+  resolveCorpusRoot,
+} from "../discover.js";
 
 let projectRoot: string | undefined;
 
@@ -53,5 +56,24 @@ describe("resolveCorpusRoot", () => {
     expect(
       resolveCorpusRoot(join(tmpdir(), "does-not-exist-at-all")),
     ).toBeNull();
+  });
+});
+
+describe("readDeployedFrameworkVersion", () => {
+  it("reads and trims a deployment's version.txt", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(join(projectRoot, "version.txt"), "0.19.0\n");
+    expect(readDeployedFrameworkVersion(projectRoot)).toBe("0.19.0");
+  });
+
+  it("returns null when version.txt doesn't exist", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
+  });
+
+  it("returns null when version.txt is empty", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(join(projectRoot, "version.txt"), "   \n");
+    expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
   });
 });

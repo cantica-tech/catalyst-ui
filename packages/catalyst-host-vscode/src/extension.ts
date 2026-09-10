@@ -18,12 +18,14 @@ import type {
   WebviewPayload,
 } from "catalyst-core";
 import {
+  compareVersions,
   defaultChatAgent,
   discoverSlashCommands,
   nextProposalId,
   openProposalsByTarget,
   parseChatAgents,
   parseJournal,
+  readDeployedFrameworkVersion,
   resolveCorpusRoot,
   watchCorpus,
 } from "catalyst-core";
@@ -77,6 +79,17 @@ const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
+const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
+/**
+ * The highest catalyst framework version this extension build has been
+ * verified against — bumped by hand whenever that happens, same
+ * "small, verified, hand-maintained" precedent as AGENT_PRESETS/
+ * KNOWN_AGENT_COMMANDS. A deployment is only ever offered a sync to
+ * exactly this version, never blindly to "latest" — this extension
+ * should never tell a deployment to sync past what it's actually been
+ * checked against.
+ */
+const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.19.0";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
   "rule",
   "requirement",
@@ -580,6 +593,65 @@ async function offerToInstall(
   );
 }
 
+/** The chat-agent binding to target for a project root: its first configured `chatAgents` entry, or the zero-config default derived from the plain `agent` field. */
+function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
+  const chatAgents = parseChatAgents(projectRoot);
+  return chatAgents[0] ?? defaultChatAgent(projectRoot);
+}
+
+/**
+ * A resolved deployment behind the highest catalyst framework version
+ * this extension build has been verified against gets an actionable
+ * offer, mirroring `offerToInstall`'s own bar: nothing runs until the
+ * user explicitly clicks "Sync now" — `/sync-framework` mutates real
+ * deployment files, so this must never fire silently. The dismiss key
+ * includes the target version, so a future bump of
+ * `MAX_COMPATIBLE_FRAMEWORK_VERSION` re-prompts even if an earlier
+ * offer was dismissed.
+ */
+async function offerToSyncFramework(
+  context: vscode.ExtensionContext,
+  folder: vscode.WorkspaceFolder,
+  corpusRoot: string,
+  outputChannel: vscode.OutputChannel,
+): Promise<void> {
+  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${folder.uri.fsPath}:${MAX_COMPATIBLE_FRAMEWORK_VERSION}`;
+  if (context.workspaceState.get<boolean>(dismissKey)) return;
+
+  const deployed = readDeployedFrameworkVersion(corpusRoot);
+  if (!deployed) return; // can't safely compare — don't guess
+
+  if (compareVersions(deployed, MAX_COMPATIBLE_FRAMEWORK_VERSION) >= 0) return;
+
+  const choice = await vscode.window.showInformationMessage(
+    `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`,
+    "Sync now",
+    "Don't ask again",
+  );
+
+  if (choice === "Don't ask again") {
+    await context.workspaceState.update(dismissKey, true);
+    return;
+  }
+  if (choice !== "Sync now") return;
+
+  const agentDef = resolveChatAgentDef(folder.uri.fsPath);
+  if (!agentDef) {
+    void vscode.window.showErrorMessage(
+      'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+    );
+    return;
+  }
+
+  await resolveAndInvoke(
+    agentDef,
+    "/sync-framework",
+    MAX_COMPATIBLE_FRAMEWORK_VERSION,
+    context.workspaceState,
+    outputChannel,
+  );
+}
+
 interface RegisteredDeployment {
   handle: WatcherHandle;
   disposables: vscode.Disposable[];
@@ -792,6 +864,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const registeredDeployments = new Map<string, RegisteredDeployment>();
 
+  const agentBridgeOutputChannel =
+    vscode.window.createOutputChannel("Catalyst");
+  context.subscriptions.push(agentBridgeOutputChannel);
+
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
     const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
     if (!corpusRoot) {
@@ -808,6 +884,12 @@ export function activate(context: vscode.ExtensionContext): void {
         diagnostics,
         codeLensChangeEmitter,
       ),
+    );
+    void offerToSyncFramework(
+      context,
+      folder,
+      corpusRoot,
+      agentBridgeOutputChannel,
     );
   }
 
@@ -914,10 +996,6 @@ export function activate(context: vscode.ExtensionContext): void {
       );
     }),
   );
-
-  const agentBridgeOutputChannel =
-    vscode.window.createOutputChannel("Catalyst");
-  context.subscriptions.push(agentBridgeOutputChannel);
 
   context.subscriptions.push(
     vscode.commands.registerCommand(SEND_TO_AGENT_CHAT_COMMAND, async () => {
