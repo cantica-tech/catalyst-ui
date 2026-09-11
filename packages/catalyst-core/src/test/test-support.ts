@@ -65,6 +65,7 @@ export interface FixtureRun {
 export interface FixtureRoadmapItem {
   id: string;
   title: string;
+  description?: string;
   status?: string;
   /** Backtick-quoted in the rendered `Linked` cell when given; `*(none)*` otherwise. */
   linked?: string;
@@ -234,10 +235,10 @@ function renderRoadmapFile(roadmap: FixtureRoadmap): string {
   let text = `# roadmap — ${roadmap.name}\n\n**Name:** ${roadmap.name}\n**Source:** fixture\n**Added:** 2026-01-01\n**Last updated:** 2026-01-01\n`;
   if (roadmap.retired) text += `**Retired:** 2026-01-02\n`;
   text +=
-    "\n## Items\n\n| ID | Title | Status | Linked | Signed-off-by | Notes |\n|---|---|---|---|---|---|\n";
+    "\n## Items\n\n| ID | Title | Description | Status | Linked | Signed-off-by | Notes |\n|---|---|---|---|---|---|---|\n";
   for (const item of roadmap.items) {
     const linked = item.linked ? `\`${item.linked}\`` : "*(none)*";
-    text += `| \`${item.id}\` | ${item.title} | ${item.status ?? "Not triaged"} | ${linked} | ${item.signedOffBy ?? "fixture-user"} | ${item.notes ?? ""} |\n`;
+    text += `| \`${item.id}\` | ${item.title} | ${item.description ?? "Fixture description."} | ${item.status ?? "Not triaged"} | ${linked} | ${item.signedOffBy ?? "fixture-user"} | ${item.notes ?? ""} |\n`;
   }
   return text;
 }

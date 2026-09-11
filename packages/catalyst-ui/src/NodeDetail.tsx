@@ -39,6 +39,7 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
         {node.roadmapName}
         {node.roadmapRetired ? " (retired)" : ""}
       </p>
+      {node.description ? <p>{node.description}</p> : null}
       <p>Signed off by: {node.signedOffBy}</p>
       {node.notes ? <p>{node.notes}</p> : null}
     </section>
