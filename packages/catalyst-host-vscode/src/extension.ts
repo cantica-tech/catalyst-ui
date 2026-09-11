@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
@@ -128,16 +129,18 @@ type InspectorTreeItem =
   | { type: "user"; corpusRoot: string; user: IamUser }
   | { type: "role-section"; corpusRoot: string; section: RoleSection }
   | { type: "role"; corpusRoot: string; role: IamRole }
+  | { type: "separator" }
   | { type: "journal-entry"; corpusRoot: string }
   | { type: "backlog-entry"; corpusRoot: string };
 
 /**
  * Icon basename (under resources/icons/{light,dark}/<name>.svg) per tree
- * section kind. "dev-artifact" bundles bugs/requirements/house-keeping and
- * has no single icon of its own — its children get one instead, via
- * `nodeIconName`.
+ * section kind. "dev-artifact" bundles bugs/requirements/house-keeping
+ * under one section icon, but its children still get their own
+ * sub-type-specific icon via `nodeIconName`.
  */
 const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
+  "dev-artifact": "dev-artifacts",
   rule: "rule",
   "rule-of-rules": "rule",
   domain: "domain",
@@ -299,28 +302,36 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "proposal-section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.section.label,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("proposals");
+      return item;
     }
     if (element.type === "proposal") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         `${element.proposal.id} — ${element.proposal.intent} (${element.proposal.status})`,
         vscode.TreeItemCollapsibleState.None,
       );
+      item.iconPath = this.iconUris("proposals");
+      return item;
     }
     if (element.type === "run-section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.section.label,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("runs");
+      return item;
     }
     if (element.type === "run") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         formatRunLabel(element.run),
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("runs");
+      return item;
     }
     if (element.type === "run-step") {
       return new vscode.TreeItem(
@@ -378,6 +389,12 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       };
       item.iconPath = this.iconUris("roles");
       return item;
+    }
+    if (element.type === "separator") {
+      return new vscode.TreeItem(
+        "─".repeat(24),
+        vscode.TreeItemCollapsibleState.None,
+      );
     }
     if (element.type === "journal-entry") {
       const item = new vscode.TreeItem(
@@ -453,6 +470,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       corpusRoot: view.corpusRoot,
       section: buildRoleSection(view.roles),
     });
+    sections.push({ type: "separator" });
     sections.push({ type: "journal-entry", corpusRoot: view.corpusRoot });
     sections.push({ type: "backlog-entry", corpusRoot: view.corpusRoot });
     return sections;
@@ -1213,13 +1231,18 @@ export function activate(context: vscode.ExtensionContext): void {
         const backlogPath = vscode.Uri.file(
           join(corpusRoot, "development", "BACKLOG.md"),
         );
-        try {
-          await vscode.window.showTextDocument(backlogPath, { preview: false });
-        } catch {
+        if (!existsSync(backlogPath.fsPath)) {
           void vscode.window.showWarningMessage(
             "No BACKLOG.md found — run /show-backlog first.",
           );
+          return;
         }
+        // Rendered, not raw source — BACKLOG.md is generated prose for a
+        // human to read, not something authored/edited by hand in place.
+        await vscode.commands.executeCommand(
+          "markdown.showPreview",
+          backlogPath,
+        );
       },
     ),
   );
