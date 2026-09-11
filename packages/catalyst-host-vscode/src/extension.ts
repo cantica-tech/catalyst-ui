@@ -67,7 +67,11 @@ import {
   formatStepLabel,
   type RunSection,
 } from "./runmonitor.js";
-import { buildTreeSections, type TreeSection } from "./tree.js";
+import {
+  buildTreeSections,
+  type TreeSection,
+  type TreeSectionKind,
+} from "./tree.js";
 
 const VIEW_ID = "catalystChainInspector";
 const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
@@ -128,6 +132,45 @@ type InspectorTreeItem =
   | { type: "backlog-entry"; corpusRoot: string };
 
 /**
+ * Icon basename (under resources/icons/{light,dark}/<name>.svg) per tree
+ * section kind. "dev-artifact" bundles bugs/requirements/house-keeping and
+ * has no single icon of its own — its children get one instead, via
+ * `nodeIconName`.
+ */
+const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
+  rule: "rule",
+  "rule-of-rules": "rule",
+  domain: "domain",
+  feature: "features",
+};
+
+/** Icon basename for an individual chain-model node, by its kind (and dev-artifact sub-type). */
+function nodeIconName(node: ChainNode): string | undefined {
+  switch (node.kind) {
+    case "dev-artifact":
+      switch (node.artifactType) {
+        case "bug":
+          return "bug";
+        case "requirement":
+          return "requirements";
+        case "house-keeping":
+          return "house-keeping";
+      }
+      return undefined;
+    case "rule":
+      return "rule";
+    case "domain":
+      return "domain";
+    case "feature":
+      return "features";
+    case "roadmap":
+      return "roadmap";
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Deployment-aware: with exactly one resolved deployment its root shows
  * that deployment's sections directly (today's single-folder UX,
  * unchanged); with more than one, the root shows one collapsible entry
@@ -139,6 +182,28 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   private readonly deployments = new Map<string, DeploymentView>();
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
+
+  constructor(private readonly extensionUri: vscode.Uri) {}
+
+  /** Light/dark pair for an icon basename under resources/icons/. */
+  private iconUris(name: string): { light: vscode.Uri; dark: vscode.Uri } {
+    return {
+      light: vscode.Uri.joinPath(
+        this.extensionUri,
+        "resources",
+        "icons",
+        "light",
+        `${name}.svg`,
+      ),
+      dark: vscode.Uri.joinPath(
+        this.extensionUri,
+        "resources",
+        "icons",
+        "dark",
+        `${name}.svg`,
+      ),
+    };
+  }
 
   setState(
     corpusRoot: string,
@@ -208,23 +273,30 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       );
     }
     if (element.type === "section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         `${element.section.label} (${element.section.nodes.length})`,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      const iconName = SECTION_ICON_NAMES[element.section.kind];
+      if (iconName) item.iconPath = this.iconUris(iconName);
+      return item;
     }
     if (element.type === "roadmap-section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.section.label,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("roadmap");
+      return item;
     }
     if (element.type === "roadmap-group") {
       const retiredMark = element.group.retired ? " (retired)" : "";
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         `${element.group.name}${retiredMark} (${element.group.items.length})`,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("roadmap");
+      return item;
     }
     if (element.type === "proposal-section") {
       return new vscode.TreeItem(
@@ -257,16 +329,20 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       );
     }
     if (element.type === "run-ledger-entry") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.text,
         vscode.TreeItemCollapsibleState.None,
       );
+      item.iconPath = this.iconUris("ledger");
+      return item;
     }
     if (element.type === "user-section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.section.label,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("users");
+      return item;
     }
     if (element.type === "user") {
       const inactiveMark = element.user.active ? "" : " (inactive)";
@@ -279,13 +355,16 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         title: "Show detail",
         arguments: [element.corpusRoot, "user", element.user.name],
       };
+      item.iconPath = this.iconUris("users");
       return item;
     }
     if (element.type === "role-section") {
-      return new vscode.TreeItem(
+      const item = new vscode.TreeItem(
         element.section.label,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
+      item.iconPath = this.iconUris("roles");
+      return item;
     }
     if (element.type === "role") {
       const item = new vscode.TreeItem(
@@ -297,6 +376,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         title: "Show detail",
         arguments: [element.corpusRoot, "role", element.role.name],
       };
+      item.iconPath = this.iconUris("roles");
       return item;
     }
     if (element.type === "journal-entry") {
@@ -309,6 +389,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         title: "Open Journal",
         arguments: [element.corpusRoot],
       };
+      item.iconPath = this.iconUris("journal");
       return item;
     }
     if (element.type === "backlog-entry") {
@@ -321,6 +402,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         title: "Open Backlog",
         arguments: [element.corpusRoot],
       };
+      item.iconPath = this.iconUris("backlog");
       return item;
     }
 
@@ -334,6 +416,8 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       title: "Show detail",
       arguments: [element.corpusRoot, element.node.id],
     };
+    const iconName = nodeIconName(element.node);
+    if (iconName) item.iconPath = this.iconUris(iconName);
     return item;
   }
 
@@ -848,7 +932,7 @@ function discoverCommandCandidates(): CommandCandidate[] {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new ChainInspectorProvider();
+  const provider = new ChainInspectorProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(VIEW_ID, provider),
   );
