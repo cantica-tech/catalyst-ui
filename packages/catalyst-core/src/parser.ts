@@ -390,7 +390,8 @@ function parseRoadmapFile(
     const match = line.match(ROADMAP_ROW_RE);
     if (!match) return;
     const cells = match[2].split("|").map((c) => c.trim());
-    const [title, status, linkedCell, signedOffBy, ...rest] = cells;
+    const [title, description, status, linkedCell, signedOffBy, ...rest] =
+      cells;
     const linked = collectIdReferences(linkedCell ?? "")[0];
 
     nodes.push({
@@ -400,6 +401,7 @@ function parseRoadmapFile(
       location: { file: filePath, line: i + 1 },
       roadmapName,
       roadmapRetired,
+      description: description ?? "",
       status: isRoadmapStatus(status) ? status : "Not triaged",
       linked,
       signedOffBy: signedOffBy ?? "",
