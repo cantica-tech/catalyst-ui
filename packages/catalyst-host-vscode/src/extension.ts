@@ -26,8 +26,11 @@ import {
   openProposalsByTarget,
   parseChatAgents,
   parseJournal,
+  readCatalystPointer,
   readDeployedFrameworkVersion,
+  readEntityDefinition,
   resolveCorpusRoot,
+  suggestCriterionBranch,
   watchCorpus,
 } from "catalyst-core";
 import * as vscode from "vscode";
@@ -82,6 +85,7 @@ const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
 const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
+const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -105,6 +109,7 @@ const COMPOSABLE_TYPES: ComposableArtifactType[] = [
 interface DeploymentView {
   corpusRoot: string;
   folderName: string;
+  projectRoot: string;
   model: ChainModel;
   proposals: Proposal[];
   runs: Run[];
@@ -146,6 +151,57 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   domain: "domain",
   feature: "features",
 };
+
+/**
+ * Entity type(s) (`definitions/<type>.md`, INV-23) backing each root
+ * section's hover tooltip. "dev-artifact" bundles three — its tooltip
+ * combines all three definitions found. Proposals/Runs have no framework
+ * definition (catalyst-ui-only conventions) and are deliberately absent
+ * here — they simply get no tooltip.
+ */
+const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
+  "dev-artifact": ["bug", "requirement", "house-keeping"],
+  rule: ["rule"],
+  "rule-of-rules": ["rule"],
+  domain: ["domain"],
+  feature: ["feature"],
+};
+
+const ENTITY_TYPE_LABELS: Record<string, string> = {
+  bug: "Bug",
+  requirement: "Requirement",
+  "house-keeping": "House-keeping",
+  rule: "Rule",
+  domain: "Domain",
+  feature: "Feature",
+  roadmap: "Roadmap",
+  user: "User",
+  role: "Role",
+  journal: "Journal",
+  backlog: "Backlog",
+};
+
+/**
+ * Builds a root section's hover tooltip from its entity type(s)'
+ * deployed definitions — `undefined` (tooltip left unset, falling back to
+ * the label) if none are found, e.g. a deployment that predates INV-23
+ * and hasn't migrated yet.
+ */
+function sectionTooltip(
+  corpusRoot: string,
+  entityTypes: string[],
+): vscode.MarkdownString | undefined {
+  const blocks: string[] = [];
+  for (const entityType of entityTypes) {
+    const definition = readEntityDefinition(corpusRoot, entityType);
+    if (!definition) continue;
+    const label = ENTITY_TYPE_LABELS[entityType] ?? entityType;
+    blocks.push(`**${label}**\n\n${definition.description}`);
+  }
+  return blocks.length > 0
+    ? new vscode.MarkdownString(blocks.join("\n\n"))
+    : undefined;
+}
 
 /** Icon basename for an individual chain-model node, by its kind (and dev-artifact sub-type). */
 function nodeIconName(node: ChainNode): string | undefined {
@@ -211,6 +267,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   setState(
     corpusRoot: string,
     folderName: string,
+    projectRoot: string,
     model: ChainModel,
     proposals: Proposal[],
     runs: Run[],
@@ -220,6 +277,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     this.deployments.set(corpusRoot, {
       corpusRoot,
       folderName,
+      projectRoot,
       model,
       proposals,
       runs,
@@ -237,6 +295,11 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   getModel(corpusRoot: string): ChainModel | undefined {
     return this.deployments.get(corpusRoot)?.model;
+  }
+
+  /** The resolved deployment's workspace-folder path — where its `*.catalyst` pointer lives, one level up from `corpusRoot`. */
+  getProjectRoot(corpusRoot: string): string | undefined {
+    return this.deployments.get(corpusRoot)?.projectRoot;
   }
 
   getFolderName(corpusRoot: string): string | undefined {
@@ -282,6 +345,10 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       );
       const iconName = SECTION_ICON_NAMES[element.section.kind];
       if (iconName) item.iconPath = this.iconUris(iconName);
+      const entityTypes = SECTION_ENTITY_TYPES[element.section.kind];
+      if (entityTypes) {
+        item.tooltip = sectionTooltip(element.corpusRoot, entityTypes);
+      }
       return item;
     }
     if (element.type === "roadmap-section") {
@@ -290,6 +357,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         vscode.TreeItemCollapsibleState.Collapsed,
       );
       item.iconPath = this.iconUris("roadmap");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["roadmap"]);
       return item;
     }
     if (element.type === "roadmap-group") {
@@ -353,6 +421,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         vscode.TreeItemCollapsibleState.Collapsed,
       );
       item.iconPath = this.iconUris("users");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["user"]);
       return item;
     }
     if (element.type === "user") {
@@ -375,6 +444,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         vscode.TreeItemCollapsibleState.Collapsed,
       );
       item.iconPath = this.iconUris("roles");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["role"]);
       return item;
     }
     if (element.type === "role") {
@@ -407,6 +477,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("journal");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["journal"]);
       return item;
     }
     if (element.type === "backlog-entry") {
@@ -420,6 +491,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("backlog");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["backlog"]);
       return item;
     }
 
@@ -776,6 +848,7 @@ function setupDeployment(
       provider.setState(
         corpusRoot,
         folder.name,
+        folder.uri.fsPath,
         model,
         proposals,
         runs,
@@ -1127,6 +1200,89 @@ export function activate(context: vscode.ExtensionContext): void {
         agentDef,
         `/${picked.cmd.name}`,
         picked.args,
+        agentBridgeOutputChannel,
+      );
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(CONFIGURE_CRITERION_COMMAND, async () => {
+      const corpusRoots = provider.getCorpusRoots();
+      if (corpusRoots.length === 0) {
+        void vscode.window.showErrorMessage(
+          "No catalyst deployment is open in this workspace.",
+        );
+        return;
+      }
+
+      let corpusRoot = corpusRoots[0];
+      if (corpusRoots.length > 1) {
+        const picked = await vscode.window.showQuickPick(
+          corpusRoots.map((root) => ({
+            label: provider.getFolderName(root) ?? root,
+            root,
+          })),
+          { placeHolder: "Which deployment?" },
+        );
+        if (!picked) return;
+        corpusRoot = picked.root;
+      }
+
+      const projectRoot = provider.getProjectRoot(corpusRoot);
+      if (!projectRoot) return;
+
+      // Gathers <name>/<git-info>, then dispatches the real /criterion
+      // command — this never mutates the pointer or runs git itself; the
+      // agent running /criterion create owns that, including branch
+      // selection and the already-repoed/branching cases (Rules-of-Rules
+      // §13). This UI only ever drives "create" — "get" is the join path
+      // for a folder with no local .criterion/ yet, which doesn't apply
+      // to a deployment already resolved here.
+      const pointer = readCatalystPointer(projectRoot);
+      const statusText = pointer?.repoed
+        ? `Currently linked to ${pointer.catalyst_repo_url ?? pointer.catalyst_repo} (pushing to ${pointer.criterion_branch ?? "an unrecorded branch"}).`
+        : "Not yet linked to a criterion repo.";
+
+      const name = await vscode.window.showInputBox({
+        title: "Configure Criterion Repo",
+        prompt: `${statusText} Repository name`,
+        value: pointer?.catalyst_repo ?? "",
+        placeHolder: `${provider.getFolderName(corpusRoot) ?? "project"}-criterion`,
+      });
+      if (!name) return;
+
+      const gitInfo = await vscode.window.showInputBox({
+        title: "Configure Criterion Repo",
+        prompt: "Git URL or location for this repo",
+        value: pointer?.catalyst_repo_url ?? "",
+        placeHolder: "git@github.com:you/repo.git",
+      });
+      if (!gitInfo) return;
+
+      if (!pointer?.repoed) {
+        const users = provider.getUsers(corpusRoot);
+        const suggested = users[0]
+          ? suggestCriterionBranch(users[0].name)
+          : undefined;
+        if (suggested) {
+          void vscode.window.showInformationMessage(
+            `The agent will ask which branch to push to — the suggested default is "${suggested}"; choosing "criterion" itself is also valid (single-maintainer mode).`,
+          );
+        }
+      }
+
+      const agentDef = resolveChatAgentDef(projectRoot);
+      if (!agentDef) {
+        void vscode.window.showErrorMessage(
+          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+        );
+        return;
+      }
+
+      await resolveAndInvoke(
+        agentDef,
+        "/criterion",
+        `create ${name} ${gitInfo}`,
         agentBridgeOutputChannel,
       );
     }),
