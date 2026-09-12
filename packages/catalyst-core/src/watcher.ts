@@ -10,6 +10,8 @@ import { validate } from "./validator.js";
 
 export interface WatcherHandle {
   close(): Promise<void>;
+  /** Forces an immediate re-parse, bypassing the debounce window — for a manual "refresh" action rather than reacting to a filesystem event. */
+  refresh(): void;
 }
 
 /**
@@ -66,6 +68,11 @@ export function watchCorpus(
     async close() {
       if (timer) clearTimeout(timer);
       await watcher.close();
+    },
+    refresh() {
+      generation++;
+      if (timer) clearTimeout(timer);
+      runParse();
     },
   };
 }

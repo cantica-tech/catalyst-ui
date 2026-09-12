@@ -95,4 +95,26 @@ describe("watchCorpus", () => {
     expect(updates.length).toBeGreaterThanOrEqual(2);
     expect(updates.length).toBeLessThan(5);
   });
+
+  it("refresh() re-reports immediately, without waiting for the debounce window", async () => {
+    root = createFixtureCorpus({
+      requirements: [
+        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
+      ],
+    });
+    const updates: WatchUpdate[] = [];
+    const handle = watchCorpus(root, (update) => updates.push(update), {
+      debounceMs: 5000,
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(updates.length).toBe(0); // still inside the long debounce window
+
+    handle.refresh();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await handle.close();
+
+    expect(updates.length).toBe(1);
+    expect(updates[0].model.nodes.size).toBeGreaterThan(0);
+  });
 });
