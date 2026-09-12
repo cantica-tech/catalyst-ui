@@ -19,6 +19,13 @@ export interface AgentPreset {
 export const AGENT_PRESETS: Record<string, AgentPreset> = {
   copilot: { extensionId: "GitHub.copilot-chat", participant: "@workspace" },
   claude: { extensionId: "anthropic.claude-code", participant: "@claude" },
+  // Alias: agent-launch.ts's KNOWN_AGENT_COMMANDS maps this same id to the
+  // `claude` CLI binary — kept in sync here so a *.catalyst pointer's
+  // "agent" field resolves correctly through both paths, not just one.
+  "claude-code": {
+    extensionId: "anthropic.claude-code",
+    participant: "@claude",
+  },
 };
 
 function readPointer(workspaceRoot: string): Record<string, unknown> | null {
