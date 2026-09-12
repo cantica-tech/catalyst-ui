@@ -86,6 +86,7 @@ const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
 const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
+const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -1285,6 +1286,24 @@ export function activate(context: vscode.ExtensionContext): void {
         `create ${name} ${gitInfo}`,
         agentBridgeOutputChannel,
       );
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(REFRESH_CHAIN_INSPECTOR_COMMAND, () => {
+      if (registeredDeployments.size === 0) {
+        void vscode.window.showInformationMessage(
+          "No catalyst deployment is open in this workspace.",
+        );
+        return;
+      }
+      // Bypasses the watcher's own debounce for an immediate re-parse —
+      // the watcher already catches ordinary file changes on its own;
+      // this is for the case it might have missed one (an external tool,
+      // a bulk git operation) or the user just wants certainty right now.
+      for (const registered of registeredDeployments.values()) {
+        registered.handle.refresh();
+      }
     }),
   );
 
