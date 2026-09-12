@@ -313,3 +313,24 @@ export interface DetectedAgent {
   commands: string[];
   active: boolean;
 }
+
+/**
+ * The full `*.catalyst` pointer file a target project commits at its
+ * root — one JSON object naming the agent-owned working copy (INV-6) and,
+ * for a "repoed" deployment (`Rules-of-Rules.md` §13), the dedicated repo
+ * its `.criterion/` mirrors through. Most consumers only need
+ * `agent-source` (see `resolveCorpusRoot`); this is the full shape for
+ * anything that needs the repoed-criterion fields too.
+ */
+export interface CatalystPointer {
+  project_name: string;
+  agent?: string;
+  "agent-source": string;
+  repoed?: boolean;
+  catalyst_repo?: string;
+  catalyst_repo_url?: string;
+  criterion_branch?: string;
+  created_by?: string;
+  created?: string;
+  updated?: string;
+}

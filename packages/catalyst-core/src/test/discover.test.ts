@@ -5,7 +5,9 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  readCatalystPointer,
   readDeployedFrameworkVersion,
+  readEntityDefinition,
   resolveCorpusRoot,
 } from "../discover.js";
 
@@ -59,6 +61,62 @@ describe("resolveCorpusRoot", () => {
   });
 });
 
+describe("readCatalystPointer", () => {
+  it("reads the full pointer, including repoed-criterion fields", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    const agentSource = join(projectRoot, "agent-owned-criterion");
+    mkdirSync(agentSource, { recursive: true });
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({
+        project_name: "my-project",
+        agent: "claude-code",
+        "agent-source": agentSource,
+        repoed: true,
+        catalyst_repo: "my-project-criterion",
+        catalyst_repo_url: "git@github.com:example/my-project-criterion.git",
+        criterion_branch: "olivier-steck.criterion",
+        created_by: "Olivier Steck",
+      }),
+    );
+
+    expect(readCatalystPointer(projectRoot)).toEqual({
+      project_name: "my-project",
+      agent: "claude-code",
+      "agent-source": agentSource,
+      repoed: true,
+      catalyst_repo: "my-project-criterion",
+      catalyst_repo_url: "git@github.com:example/my-project-criterion.git",
+      criterion_branch: "olivier-steck.criterion",
+      created_by: "Olivier Steck",
+    });
+  });
+
+  it("returns a pointer even when repoed fields are absent", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({
+        project_name: "my-project",
+        "agent-source": join(projectRoot, "criterion"),
+      }),
+    );
+
+    expect(readCatalystPointer(projectRoot)?.repoed).toBeUndefined();
+  });
+
+  it("returns null when no *.catalyst pointer file exists", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    expect(readCatalystPointer(projectRoot)).toBeNull();
+  });
+
+  it("returns null when the pointer file is malformed JSON", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(join(projectRoot, "broken.catalyst"), "{not json");
+    expect(readCatalystPointer(projectRoot)).toBeNull();
+  });
+});
+
 describe("readDeployedFrameworkVersion", () => {
   it("reads and trims a deployment's version.txt", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
@@ -75,5 +133,53 @@ describe("readDeployedFrameworkVersion", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(join(projectRoot, "version.txt"), "   \n");
     expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
+  });
+});
+
+describe("readEntityDefinition", () => {
+  function writeDefinition(root: string, entityType: string, body: string) {
+    mkdirSync(join(root, "definitions"), { recursive: true });
+    writeFileSync(join(root, "definitions", `${entityType}.md`), body);
+  }
+
+  it("reads a definition's version and description", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeDefinition(
+      projectRoot,
+      "rule",
+      "# `rule` — entity definition (v1)\n\n" +
+        "| Field | Value |\n|---|---|\n" +
+        "| **Entity type** | `rule` |\n| **Version** | 1 |\n\n" +
+        "## Description\n\nA rule is the unit implementation is measured against.\n",
+    );
+    expect(readEntityDefinition(projectRoot, "rule")).toEqual({
+      version: "1",
+      description: "A rule is the unit implementation is measured against.",
+    });
+  });
+
+  it("returns null when definitions/<type>.md doesn't exist", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
+  });
+
+  it("returns null when the Version field is missing", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeDefinition(
+      projectRoot,
+      "rule",
+      "# `rule`\n\n## Description\n\nA rule.\n",
+    );
+    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
+  });
+
+  it("returns null when the Description section is missing", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeDefinition(
+      projectRoot,
+      "rule",
+      "# `rule`\n\n| Field | Value |\n|---|---|\n| **Version** | 1 |\n",
+    );
+    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
   });
 });

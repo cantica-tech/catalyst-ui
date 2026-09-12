@@ -1,4 +1,4 @@
-export const VERSION = "0.12.3";
+export const VERSION = "0.13.0";
 
 export * from "./types.js";
 export {
@@ -16,8 +16,14 @@ export {
   discoverSlashCommands,
   type SlashCommandSpec,
 } from "./commands-discovery.js";
+export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
 export { buildChainModel } from "./graph.js";
-export { readDeployedFrameworkVersion, resolveCorpusRoot } from "./discover.js";
+export {
+  readCatalystPointer,
+  readDeployedFrameworkVersion,
+  readEntityDefinition,
+  resolveCorpusRoot,
+} from "./discover.js";
 export {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,

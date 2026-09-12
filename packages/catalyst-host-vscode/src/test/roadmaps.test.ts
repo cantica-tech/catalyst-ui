@@ -22,10 +22,11 @@ function roadmapNode(
 }
 
 describe("buildRoadmapSection", () => {
-  it("labels the section with the total row count across every roadmap", () => {
+  it("labels the section with the number of distinct roadmaps, not the total row count", () => {
     const nodes = [
       roadmapNode({ id: "RM-000001", roadmapName: "product" }),
       roadmapNode({ id: "RM-000002", roadmapName: "infra" }),
+      roadmapNode({ id: "RM-000003", roadmapName: "infra" }),
     ];
     assert.strictEqual(buildRoadmapSection(nodes).label, "Roadmaps (2)");
   });
