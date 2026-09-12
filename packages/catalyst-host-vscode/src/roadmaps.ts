@@ -40,5 +40,5 @@ export function buildRoadmapSection(nodes: RoadmapNode[]): RoadmapSection {
     group.items.sort((a, b) => a.id.localeCompare(b.id));
   }
 
-  return { label: `Roadmaps (${nodes.length})`, groups };
+  return { label: `Roadmaps (${groups.length})`, groups };
 }
