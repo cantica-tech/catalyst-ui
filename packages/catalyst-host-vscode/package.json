@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -67,19 +67,29 @@
         "command": "catalyst.configureCriterion",
         "title": "Catalyst: Configure Criterion Repo…",
         "icon": "$(repo)"
+      },
+      {
+        "command": "catalyst.refreshChainInspector",
+        "title": "Catalyst: Refresh",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "catalyst.refreshChainInspector",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@1"
+        },
+        {
           "command": "catalyst.sendToAgentChat",
           "when": "view == catalystChainInspector",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "catalyst.configureCriterion",
           "when": "view == catalystChainInspector",
-          "group": "navigation"
+          "group": "navigation@3"
         }
       ]
     },
@@ -104,7 +114,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.13.1"
+    "catalyst-core": "^0.14.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
