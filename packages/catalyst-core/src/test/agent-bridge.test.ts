@@ -150,6 +150,12 @@ describe("resolveParticipant", () => {
     ).toBe("@workspace");
   });
 
+  it("resolves the claude-code alias to the same preset as claude", () => {
+    expect(
+      resolveParticipant({ name: "claude-code", binding: "chat-participant" }),
+    ).toBe("@claude");
+  });
+
   it("falls back to a bare @name for an unrecognized agent with no override", () => {
     expect(
       resolveParticipant({
