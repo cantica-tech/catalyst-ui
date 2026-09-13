@@ -99,7 +99,7 @@ const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
  * should never tell a deployment to sync past what it's actually been
  * checked against.
  */
-const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.19.0";
+const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.25.0";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
   "rule",
   "requirement",
@@ -141,12 +141,13 @@ type InspectorTreeItem =
 
 /**
  * Icon basename (under resources/icons/{light,dark}/<name>.svg) per tree
- * section kind. "dev-artifact" bundles bugs/requirements/house-keeping
- * under one section icon, but its children still get their own
- * sub-type-specific icon via `nodeIconName`.
+ * section kind. Dev-artifact sub-types each get their own section icon,
+ * same one their individual nodes already use via `nodeIconName`.
  */
 const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
-  "dev-artifact": "dev-artifacts",
+  requirement: "requirements",
+  bug: "bug",
+  "house-keeping": "house-keeping",
   rule: "rule",
   "rule-of-rules": "rule",
   domain: "domain",
@@ -154,14 +155,15 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
 };
 
 /**
- * Entity type(s) (`definitions/<type>.md`, INV-23) backing each root
- * section's hover tooltip. "dev-artifact" bundles three — its tooltip
- * combines all three definitions found. Proposals/Runs have no framework
- * definition (catalyst-ui-only conventions) and are deliberately absent
- * here — they simply get no tooltip.
+ * Entity type (`definitions/<type>.md`, INV-23) backing each root
+ * section's hover tooltip. Proposals/Runs have no framework definition
+ * (catalyst-ui-only conventions) and are deliberately absent here — they
+ * simply get no tooltip.
  */
 const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
-  "dev-artifact": ["bug", "requirement", "house-keeping"],
+  requirement: ["requirement"],
+  bug: ["bug"],
+  "house-keeping": ["house-keeping"],
   rule: ["rule"],
   "rule-of-rules": ["rule"],
   domain: ["domain"],
