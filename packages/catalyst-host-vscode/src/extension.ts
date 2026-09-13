@@ -73,6 +73,7 @@ import {
 } from "./runmonitor.js";
 import {
   buildTreeSections,
+  type DevArtifactGroup,
   type TreeSection,
   type TreeSectionKind,
 } from "./tree.js";
@@ -121,6 +122,7 @@ interface DeploymentView {
 
 type InspectorTreeItem =
   | { type: "deployment"; corpusRoot: string; folderName: string }
+  | { type: "dev-artifact-group"; corpusRoot: string; group: DevArtifactGroup }
   | { type: "section"; corpusRoot: string; section: TreeSection }
   | { type: "node"; corpusRoot: string; node: ChainNode; pending: boolean }
   | { type: "roadmap-section"; corpusRoot: string; section: RoadmapSection }
@@ -155,8 +157,8 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
 };
 
 /**
- * Entity type (`definitions/<type>.md`, INV-23) backing each root
- * section's hover tooltip. Proposals/Runs have no framework definition
+ * Entity type (`definitions/<type>.md`, INV-23) backing each section's
+ * hover tooltip. Proposals/Runs have no framework definition
  * (catalyst-ui-only conventions) and are deliberately absent here — they
  * simply get no tooltip.
  */
@@ -341,6 +343,18 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         vscode.TreeItemCollapsibleState.Expanded,
       );
     }
+    if (element.type === "dev-artifact-group") {
+      const total = element.group.sections.reduce(
+        (sum, s) => sum + s.nodes.length,
+        0,
+      );
+      const item = new vscode.TreeItem(
+        `${element.group.label} (${total})`,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+      item.iconPath = this.iconUris("dev-artifacts");
+      return item;
+    }
     if (element.type === "section") {
       const item = new vscode.TreeItem(
         `${element.section.label} (${element.section.nodes.length})`,
@@ -514,9 +528,21 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
-    const sections: InspectorTreeItem[] = buildTreeSections(view.model).map(
-      (section) => ({ type: "section", corpusRoot: view.corpusRoot, section }),
+    const { devArtifacts, sections: otherSections } = buildTreeSections(
+      view.model,
     );
+    const sections: InspectorTreeItem[] = [
+      {
+        type: "dev-artifact-group",
+        corpusRoot: view.corpusRoot,
+        group: devArtifacts,
+      },
+      ...otherSections.map((section): InspectorTreeItem => ({
+        type: "section",
+        corpusRoot: view.corpusRoot,
+        section,
+      })),
+    ];
     const roadmapNodes = [...view.model.nodes.values()].filter(
       (n): n is RoadmapNode => n.kind === "roadmap",
     );
@@ -565,6 +591,13 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     if (element.type === "deployment") {
       const view = this.deployments.get(element.corpusRoot);
       return view ? this.sectionsFor(view) : [];
+    }
+    if (element.type === "dev-artifact-group") {
+      return element.group.sections.map((section) => ({
+        type: "section",
+        corpusRoot: element.corpusRoot,
+        section,
+      }));
     }
     if (element.type === "section") {
       const pendingTargets = this.getPendingTargets(element.corpusRoot);

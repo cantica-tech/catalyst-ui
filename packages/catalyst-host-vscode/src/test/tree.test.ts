@@ -26,24 +26,22 @@ function modelOf(nodes: ChainNode[]): ChainModel {
 }
 
 describe("buildTreeSections", () => {
-  it("returns all seven sections in order, even when empty", () => {
-    const sections = buildTreeSections(modelOf([]));
+  it("returns the Dev Artifacts group and the four other sections, even when empty", () => {
+    const { devArtifacts, sections } = buildTreeSections(modelOf([]));
+    assert.strictEqual(devArtifacts.label, "Dev Artifacts");
+    assert.deepStrictEqual(
+      devArtifacts.sections.map((s) => s.kind),
+      ["requirement", "bug", "house-keeping"],
+    );
+    assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
     assert.deepStrictEqual(
       sections.map((s) => s.kind),
-      [
-        "requirement",
-        "bug",
-        "house-keeping",
-        "rule",
-        "rule-of-rules",
-        "domain",
-        "feature",
-      ],
+      ["rule", "rule-of-rules", "domain", "feature"],
     );
     assert.ok(sections.every((s) => s.nodes.length === 0));
   });
 
-  it("splits dev-artifact nodes into separate sections by their artifactType", () => {
+  it("splits dev-artifact nodes into separate sub-sections by their artifactType", () => {
     const model = modelOf([
       node({
         id: "REQ-000001",
@@ -58,10 +56,14 @@ describe("buildTreeSections", () => {
       }),
     ]);
 
-    const sections = buildTreeSections(model);
-    const requirements = sections.find((s) => s.kind === "requirement")!;
-    const bugs = sections.find((s) => s.kind === "bug")!;
-    const houseKeeping = sections.find((s) => s.kind === "house-keeping")!;
+    const { devArtifacts } = buildTreeSections(model);
+    const requirements = devArtifacts.sections.find(
+      (s) => s.kind === "requirement",
+    )!;
+    const bugs = devArtifacts.sections.find((s) => s.kind === "bug")!;
+    const houseKeeping = devArtifacts.sections.find(
+      (s) => s.kind === "house-keeping",
+    )!;
 
     assert.deepStrictEqual(
       requirements.nodes.map((n) => n.id),
@@ -93,7 +95,7 @@ describe("buildTreeSections", () => {
       }),
     ]);
 
-    const sections = buildTreeSections(model);
+    const { sections } = buildTreeSections(model);
     const rules = sections.find((s) => s.kind === "rule")!;
     const rulesOfRules = sections.find((s) => s.kind === "rule-of-rules")!;
 
@@ -113,7 +115,8 @@ describe("buildTreeSections", () => {
       node({ id: "REQ-000001", kind: "dev-artifact" }),
     ]);
 
-    const section = buildTreeSections(model).find(
+    const { devArtifacts } = buildTreeSections(model);
+    const section = devArtifacts.sections.find(
       (s) => s.kind === "requirement",
     )!;
     assert.deepStrictEqual(
@@ -122,7 +125,7 @@ describe("buildTreeSections", () => {
     );
   });
 
-  it("excludes roadmap nodes from all seven sections — they get their own Roadmaps section instead", () => {
+  it("excludes roadmap nodes from every section — they get their own Roadmaps section instead", () => {
     const model = modelOf([
       node({
         id: "RM-000001",
@@ -135,7 +138,8 @@ describe("buildTreeSections", () => {
       }),
     ]);
 
-    const sections = buildTreeSections(model);
+    const { devArtifacts, sections } = buildTreeSections(model);
+    assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
     assert.ok(sections.every((s) => s.nodes.length === 0));
   });
 });

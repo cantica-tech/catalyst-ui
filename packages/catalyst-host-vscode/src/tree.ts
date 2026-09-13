@@ -5,26 +5,32 @@ import type { ChainModel, ChainNode } from "catalyst-core";
  * "rule-of-rules" isn't its own `NodeKind` in the model (an `rr`-prefixed
  * rule is still `kind: "rule"`), but the roadmap's "four layers" framing
  * calls it out as its own tree section, so it's split out here for
- * display only. Dev-artifact nodes are likewise split by their own
- * `artifactType` (`requirement`/`bug`/`house-keeping`) into three
- * separate sections rather than one merged "Dev Artifacts" bucket, each
+ * display only. Dev-artifact nodes are grouped under one "Dev Artifacts"
+ * parent folder, itself split by the node's own `artifactType`
+ * (`requirement`/`bug`/`house-keeping`) into three sub-sections, each
  * getting its own entity-type identity (icon, tooltip). Work items are
  * omitted entirely: no project-management plugin is active in this
  * deployment, so the model never has any.
  */
+export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping";
 export type TreeSectionKind =
-  | "requirement"
-  | "bug"
-  | "house-keeping"
-  | "rule"
-  | "rule-of-rules"
-  | "domain"
-  | "feature";
+  DevArtifactSectionKind | "rule" | "rule-of-rules" | "domain" | "feature";
 
 export interface TreeSection {
   kind: TreeSectionKind;
   label: string;
   nodes: ChainNode[];
+}
+
+/** The "Dev Artifacts" parent folder, wrapping its three artifactType sub-sections. */
+export interface DevArtifactGroup {
+  label: string;
+  sections: TreeSection[];
+}
+
+export interface TreeSections {
+  devArtifacts: DevArtifactGroup;
+  sections: TreeSection[];
 }
 
 const SECTION_LABELS: Record<TreeSectionKind, string> = {
@@ -37,10 +43,13 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   feature: "Features",
 };
 
-const SECTION_ORDER: TreeSectionKind[] = [
+const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "requirement",
   "bug",
   "house-keeping",
+];
+
+const SECTION_ORDER: TreeSectionKind[] = [
   "rule",
   "rule-of-rules",
   "domain",
@@ -57,7 +66,7 @@ function sectionKindOf(node: ChainNode): TreeSectionKind | null {
 }
 
 /** Groups a chain model's nodes into the sidebar tree's sections, sorted by id within each. */
-export function buildTreeSections(model: ChainModel): TreeSection[] {
+export function buildTreeSections(model: ChainModel): TreeSections {
   const byKind = new Map<TreeSectionKind, ChainNode[]>();
 
   for (const node of model.nodes.values()) {
@@ -72,9 +81,20 @@ export function buildTreeSections(model: ChainModel): TreeSection[] {
     list.sort((a, b) => a.id.localeCompare(b.id));
   }
 
-  return SECTION_ORDER.map((kind) => ({
+  const devArtifacts: DevArtifactGroup = {
+    label: "Dev Artifacts",
+    sections: DEV_ARTIFACT_SECTION_ORDER.map((kind) => ({
+      kind,
+      label: SECTION_LABELS[kind],
+      nodes: byKind.get(kind) ?? [],
+    })),
+  };
+
+  const sections = SECTION_ORDER.map((kind) => ({
     kind,
     label: SECTION_LABELS[kind],
     nodes: byKind.get(kind) ?? [],
   }));
+
+  return { devArtifacts, sections };
 }
