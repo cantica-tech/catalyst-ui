@@ -40,6 +40,20 @@ const ROADMAP_ROW_RE = new RegExp(
 );
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
+export function cleanRuleTitle(raw: string): string {
+  if (!raw) return "";
+  let s = raw.trim();
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  s = s.replace(/^(?:✅|❌|🗑|⚠️)\s*/g, "");
+  s = s
+    .replace(
+      /^(?:partially fixed|fixed|working|implemented|untested|buggy|incomplete|behavioural|\d{4}-\d{2}-\d{2}|[\u2014\u2013/.:,\s])+/gi,
+      "",
+    )
+    .trim();
+  return s || raw.trim();
+}
+
 /** Rule bullets in one rule document (`### id Title` or `## N. id Title`), plus index tables. */
 export function parseRuleDocument(
   filePath: string,
@@ -48,6 +62,9 @@ export function parseRuleDocument(
 ): RuleNode[] {
   const lines = readFileSync(filePath, "utf8").split("\n");
   const nodesMap = new Map<string, RuleNode>();
+  const { fields: fileFields } = existsSync(filePath)
+    ? parseFieldTable(filePath)
+    : { fields: new Map<string, string>() };
 
   let currentDomain = docPrefix === "rr" ? "META" : "";
   let current: {
@@ -71,15 +88,17 @@ export function parseRuleDocument(
     const statusMatch = text.match(STATUS_GLYPH_RE);
     const domain = currentDomain || current.domain;
     const prefix = current.id.split("-")[0] || docPrefix;
+    const cleanTitle = cleanRuleTitle(current.title);
     addNode({
       id: current.id,
       kind: "rule",
       title: current.title,
-      name: current.title,
+      name: fileFields.get("Name") ?? cleanTitle,
       location: { file: filePath, line: current.startLine },
       docPrefix: prefix,
       domain,
-      status: statusMatch ? statusMatch[1] : "",
+      status: statusMatch ? statusMatch[1] : (fileFields.get("Status") ?? ""),
+      signedOffBy: fileFields.get("Signed-off-by"),
       registeredInRulesIndex:
         prefix === "rr" || registeredRuleIds.has(current.id),
       // `rr` (Rules-of-Rules.md) documents the id scheme itself and cites
@@ -155,15 +174,17 @@ export function parseRuleDocument(
 
         if (ruleId && RULE_ID_RE.test(ruleId)) {
           const prefix = ruleId.split("-")[0];
+          const cleanTitle = cleanRuleTitle(title);
           addNode({
             id: ruleId,
             kind: "rule",
             title,
-            name: title,
+            name: fileFields.get("Name") ?? cleanTitle,
             location: { file: filePath, line: i + 1 },
             docPrefix: prefix,
             domain: rowDomain,
             status,
+            signedOffBy: fileFields.get("Signed-off-by"),
             registeredInRulesIndex:
               prefix === "rr" || registeredRuleIds.has(ruleId),
             references: [],

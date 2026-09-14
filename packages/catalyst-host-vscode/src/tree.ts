@@ -2,7 +2,11 @@ import type { ChainModel, ChainNode } from "catalyst-core";
 
 export function getNodeUser(node: ChainNode): string | undefined {
   let user: string | undefined;
-  if (node.kind === "dev-artifact" || node.kind === "feature") {
+  if (
+    node.kind === "dev-artifact" ||
+    node.kind === "feature" ||
+    node.kind === "rule"
+  ) {
     user = node.signedOffBy || undefined;
   } else if (node.kind === "roadmap") {
     user = node.signedOffBy || undefined;

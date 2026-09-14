@@ -58,6 +58,7 @@ export interface RuleNode extends ChainNodeBase {
   docPrefix: string;
   domain: string;
   status: string;
+  signedOffBy?: string;
   /** Listed in the global rules/rules.md "Rule IDs" index. Always true for `rr` (self-governing). */
   registeredInRulesIndex: boolean;
   /** The rule's own text, as written between its heading and the next. */
