@@ -118,6 +118,7 @@ export function parseDomainsIndex(
     if (!match) return;
     const docPath = join(domainsDir, match[2]);
     const hasDoc = existsSync(docPath);
+    const docText = hasDoc ? readFileSync(docPath, "utf8") : "";
     nodes.push({
       id: match[1],
       kind: "domain",
@@ -125,9 +126,8 @@ export function parseDomainsIndex(
       location: { file: indexPath, line: i + 1 },
       code: match[1],
       hasDoc,
-      description: hasDoc
-        ? sectionLines(readFileSync(docPath, "utf8"), "Scope").join(" ")
-        : "",
+      description: hasDoc ? sectionLines(docText, "Scope").join(" ") : "",
+      content: docText,
       references: [],
     });
   });
@@ -263,6 +263,7 @@ function buildDevArtifactNode(
     fileExists: true,
     references: collectIdReferences(text),
     description: sectionLines(text, descriptionHeading).join(" "),
+    content: text,
   };
 }
 
@@ -301,6 +302,7 @@ function parseDevArtifactCollection(
         fileExists: false,
         references: [],
         description: "",
+        content: "",
       });
     }
   }
@@ -329,6 +331,7 @@ function buildFeatureNode(
     fileExists: true,
     references: collectIdReferences(text),
     description: sectionLines(text, "Description").join(" "),
+    content: text,
   };
 }
 
@@ -364,6 +367,7 @@ function parseFeatureCollection(
         fileExists: false,
         references: [],
         description: "",
+        content: "",
       });
     }
   }

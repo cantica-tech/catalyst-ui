@@ -45,6 +45,8 @@ export interface DevArtifactNode extends ChainNodeBase {
   fileExists: boolean;
   /** The document's own `## Description` section (`## Summary` for a requirement) — empty when index-only (no file) or the section is missing. */
   description: string;
+  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
+  content: string;
 }
 
 export interface RuleNode extends ChainNodeBase {
@@ -66,6 +68,8 @@ export interface DomainNode extends ChainNodeBase {
   hasDoc: boolean;
   /** The domain doc's own `## Scope` section — empty when it has no doc file or no Scope section. */
   description: string;
+  /** The domain doc's complete raw text — empty when it has no doc file. */
+  content: string;
 }
 
 export interface FeatureNode extends ChainNodeBase {
@@ -75,6 +79,8 @@ export interface FeatureNode extends ChainNodeBase {
   fileExists: boolean;
   /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
   description: string;
+  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
+  content: string;
 }
 
 export type RoadmapStatus = "Not triaged" | "Triaged" | "In progress" | "Done";
