@@ -2,7 +2,7 @@ import * as assert from "assert";
 
 import type { ChainNode } from "catalyst-core";
 
-import { formatNodeLabel } from "../extension.js";
+import { formatNodeLabel } from "../tree.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {

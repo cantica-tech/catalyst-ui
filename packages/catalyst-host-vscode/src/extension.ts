@@ -73,6 +73,7 @@ import {
 } from "./runmonitor.js";
 import {
   buildTreeSections,
+  formatNodeLabel,
   type DevArtifactGroup,
   type TreeSection,
   type TreeSectionKind,
@@ -208,19 +209,6 @@ function sectionTooltip(
     : undefined;
 }
 
-export function formatNodeLabel(node: ChainNode): string {
-  const displayName = node.name ?? node.title;
-  // Strip 8-character userid suffix (e.g. -yCNjAMXO) if present
-  const idWithoutUserid = node.id.replace(/-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/, "");
-  let user = "";
-  if (node.kind === "dev-artifact" || node.kind === "feature") {
-    user = node.signedOffBy ?? "";
-  } else if (node.kind === "roadmap") {
-    user = node.signedOffBy;
-  }
-  const userSuffix = user ? ` - _${user}_` : "";
-  return `${displayName} [${idWithoutUserid}${userSuffix}]`;
-}
 /** Icon basename for an individual chain-model node, by its kind (and dev-artifact sub-type). */
 function nodeIconName(node: ChainNode): string | undefined {
   switch (node.kind) {
