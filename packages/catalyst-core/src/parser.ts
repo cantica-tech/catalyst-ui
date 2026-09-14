@@ -119,30 +119,86 @@ export function parseDomainsIndex(
 ): DomainNode[] {
   const lines = readFileSync(indexPath, "utf8").split("\n");
   const nodes: DomainNode[] = [];
-  const rowRe = /^\|\s*\[?`([A-Z0-9_]+)`\]?(?:\(([^)]+)\))?\s*\|/;
+  const processedCodes = new Set<string>();
 
   lines.forEach((line, i) => {
-    const match = line.match(rowRe);
-    if (!match) return;
-    const filename = match[2] ?? `${match[1].toLowerCase()}.md`;
-    const docPath = join(domainsDir, filename);
+    const codeMatch = line.match(/\|?\s*\[?`([A-Z0-9_]+)`\]?/);
+    if (!codeMatch) return;
+    const code = codeMatch[1];
+    if (code === "Code" || code === "Domain" || code === "File") return;
+    if (processedCodes.has(code)) return;
+    processedCodes.add(code);
+
+    const linkMatch =
+      line.match(/\[[^\]]+\]\(([^)]+)\)/) ||
+      line.match(/\b([a-zA-Z0-9._-]+\.md)\b/);
+    let docPath = "";
+    if (linkMatch) {
+      docPath = join(domainsDir, linkMatch[1]);
+    } else {
+      docPath = join(domainsDir, `${code.toLowerCase()}.md`);
+    }
+
+    if (!existsSync(docPath) && existsSync(domainsDir)) {
+      const candidates = readdirSync(domainsDir).filter(
+        (f) => f.endsWith(".md") && f.includes(code),
+      );
+      if (candidates.length > 0) {
+        docPath = join(domainsDir, candidates[0]);
+      }
+    }
+
     const hasDoc = existsSync(docPath);
     const { fields, text: docText } = hasDoc
       ? parseFieldTable(docPath)
       : { fields: new Map<string, string>(), text: "" };
+
     nodes.push({
-      id: match[1],
+      id: code,
       kind: "domain",
-      title: match[1],
-      name: fields.get("Name") ?? match[1],
+      title: code,
+      name: fields.get("Name") ?? code,
       location: { file: indexPath, line: i + 1 },
-      code: match[1],
+      code,
       hasDoc,
       description: hasDoc ? sectionLines(docText, "Scope").join(" ") : "",
       content: docText,
       references: [],
     });
   });
+
+  if (existsSync(domainsDir)) {
+    const filesInDomainsDir = readdirSync(domainsDir).filter(
+      (f) =>
+        f.endsWith(".md") && f !== "domains.md" && !f.startsWith("TEMPLATE-"),
+    );
+    for (const f of filesInDomainsDir) {
+      const docPath = join(domainsDir, f);
+      const { fields, text: docText } = parseFieldTable(docPath);
+      const domainField = fields.get("Domain") || fields.get("Code");
+      let code = domainField;
+      if (!code) {
+        const parts = f.split("-");
+        code =
+          parts.length >= 2 ? parts[1] : f.replace(/\.md$/, "").toUpperCase();
+      }
+      if (code && !processedCodes.has(code)) {
+        processedCodes.add(code);
+        nodes.push({
+          id: code,
+          kind: "domain",
+          title: code,
+          name: fields.get("Name") ?? code,
+          location: { file: docPath, line: 1 },
+          code,
+          hasDoc: true,
+          description: sectionLines(docText, "Scope").join(" "),
+          content: docText,
+          references: [],
+        });
+      }
+    }
+  }
 
   return nodes;
 }
@@ -497,20 +553,46 @@ export function parseCorpus(
   if (existsSync(rulesIndexPath)) {
     const text = readFileSync(rulesIndexPath, "utf8");
     for (const match of text.matchAll(
-      /^\|\s*`([a-z]+)`\s*\|\s*\[`[^`]+`\]\(([^)]+)\)\s*\|/gm,
+      /^\|\s*`([a-z]+)`\s*\|\s*\[[^\]]+\]\(([^)]+)\)\s*\|/gm,
     )) {
-      ruleDocs.push({ prefix: match[1], path: join(rulesDir, match[2]) });
+      const relPath = match[2].trim();
+      const fullPath = join(rulesDir, relPath);
+      if (existsSync(fullPath) && !ruleDocs.some((d) => d.path === fullPath)) {
+        ruleDocs.push({ prefix: match[1], path: fullPath });
+      }
     }
-    for (const match of text.matchAll(/^- `([^`]+)`/gm)) {
+    for (const match of text.matchAll(/^- (?:\[`?)?`?([a-zA-Z0-9_.-]+)`?/gm)) {
       registeredRuleIds.add(match[1]);
     }
   }
+
   const rulesOfRulesPath = join(rulesDir, "Rules-of-Rules.md");
   if (
     existsSync(rulesOfRulesPath) &&
     !ruleDocs.some((d) => d.path === rulesOfRulesPath)
   ) {
     ruleDocs.push({ prefix: "rr", path: rulesOfRulesPath });
+  }
+
+  if (existsSync(rulesDir)) {
+    const scanRulesDir = (dir: string) => {
+      const entries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "domains" && entry.name !== "templates") {
+            scanRulesDir(fullPath);
+          }
+        } else if (entry.isFile() && entry.name.endsWith(".md")) {
+          if (entry.name === "rules.md") continue;
+          if (!ruleDocs.some((d) => d.path === fullPath)) {
+            const prefix = entry.name.split("-")[0] || "rule";
+            ruleDocs.push({ prefix, path: fullPath });
+          }
+        }
+      }
+    };
+    scanRulesDir(rulesDir);
   }
 
   for (const doc of ruleDocs) {

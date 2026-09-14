@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { homedir } from "node:os";
+import { isAbsolute, join, resolve } from "node:path";
 
 import { parseFieldTable, sectionLines } from "./parser.js";
 import type { CatalystPointer } from "./types.js";
@@ -24,19 +25,93 @@ function readPointerFile(projectRoot: string): CatalystPointer | null {
   }
 }
 
+function expandPath(pathStr: string, projectRoot: string): string {
+  let expanded = pathStr.trim();
+  if (expanded.startsWith("~/") || expanded === "~") {
+    expanded = join(homedir(), expanded.slice(expanded === "~" ? 1 : 2));
+  }
+  return isAbsolute(expanded) ? expanded : resolve(projectRoot, expanded);
+}
+
+/**
+ * Thoroughly explores persistent memory notes and directories to locate a project's catalyst working copy.
+ */
+function findCorpusRootFromMemory(projectRoot: string): string | null {
+  const memoryDirs = [
+    join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "Code",
+      "User",
+      "globalStorage",
+      "github.copilot-chat",
+      "memory-tool",
+      "memories",
+    ),
+    join(homedir(), ".vscode", "memories"),
+    join(homedir(), ".claude", "memories"),
+  ];
+
+  const projectName = projectRoot.split("/").pop() || "";
+
+  for (const memDir of memoryDirs) {
+    if (!existsSync(memDir)) continue;
+    try {
+      const files = readdirSync(memDir).filter((f) => f.endsWith(".md"));
+      for (const file of files) {
+        const content = readFileSync(join(memDir, file), "utf8");
+        if (
+          content.includes(projectRoot) ||
+          (projectName && content.includes(projectName))
+        ) {
+          const matches = content.matchAll(
+            /(?:deployment root|agent-source|deployment directory|working copy|path):\s*(`?[^\n`]+`?)/gi,
+          );
+          for (const match of matches) {
+            const rawPath = match[1].replace(/[`"]/g, "").trim();
+            const candidate = expandPath(rawPath, projectRoot);
+            if (existsSync(candidate)) return candidate;
+          }
+        }
+      }
+    } catch {
+      // ignore read errors
+    }
+  }
+  return null;
+}
+
 /**
  * Resolves which catalyst deployment to inspect for an opened project, the
  * same way catalyst's own scripts/check_deployment.py's find_deploy_root
  * does: a `*.catalyst` pointer file at the project root, whose
  * `agent-source` field names the real working copy (INV-6 — the working
  * copy lives in agent-owned space, never inside the project's own repo).
- * Returns null rather than throwing when nothing resolves — no catalyst
- * deployment for the opened project is a normal, expected state.
+ * Falls back to in-project `.criterion`, Claude Code storage, or memory notes.
  */
 export function resolveCorpusRoot(projectRoot: string): string | null {
-  const agentSource = readPointerFile(projectRoot)?.["agent-source"];
-  if (typeof agentSource !== "string" || !existsSync(agentSource)) return null;
-  return agentSource;
+  const pointer = readPointerFile(projectRoot);
+  const agentSource = pointer?.["agent-source"];
+  if (typeof agentSource === "string") {
+    const resolved = expandPath(agentSource, projectRoot);
+    if (existsSync(resolved)) return resolved;
+  }
+
+  // Fallback 1: in-project fallback (.criterion)
+  const inProject = join(projectRoot, ".criterion");
+  if (existsSync(inProject)) return inProject;
+
+  // Fallback 2: Claude Code per-project storage (~/.claude/projects/<slug>/.criterion)
+  const slug = projectRoot.replace(/[/:]/g, "-");
+  const claudeCode = join(homedir(), ".claude", "projects", slug, ".criterion");
+  if (existsSync(claudeCode)) return claudeCode;
+
+  // Fallback 3: Thoroughly explore persistent memory for recorded deployment targets
+  const fromMemory = findCorpusRootFromMemory(projectRoot);
+  if (fromMemory) return fromMemory;
+
+  return null;
 }
 
 /**
