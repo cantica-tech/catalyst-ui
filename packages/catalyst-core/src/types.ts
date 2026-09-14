@@ -19,6 +19,8 @@ interface ChainNodeBase {
   id: string;
   kind: NodeKind;
   title: string;
+  /** Short summary summarizing the entity's purpose (from `Name` field, slug, or title). */
+  name?: string;
   location: SourceLocation;
   /** Raw ID-shaped tokens cited from this node's own content, before resolution. */
   references: string[];
@@ -39,6 +41,7 @@ export interface DevArtifactNode extends ChainNodeBase {
   status: string;
   targets: string[];
   feature?: string;
+  signedOffBy?: string;
   /** Listed in this artifact type's index table (requirements.md/bugs.md/house-keeping.md). */
   registered: boolean;
   /** Backing .md file exists on disk. */
@@ -75,6 +78,7 @@ export interface DomainNode extends ChainNodeBase {
 export interface FeatureNode extends ChainNodeBase {
   kind: "feature";
   status: string;
+  signedOffBy?: string;
   registered: boolean;
   fileExists: boolean;
   /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
@@ -177,6 +181,7 @@ export type ProposalStatus =
  */
 export interface Proposal {
   id: string;
+  name?: string;
   status: ProposalStatus;
   intent: string;
   targets: string[];
@@ -204,6 +209,7 @@ export interface RunStep {
  */
 export interface Run {
   id: string;
+  name?: string;
   status: RunStatus;
   command: string;
   started: string;
