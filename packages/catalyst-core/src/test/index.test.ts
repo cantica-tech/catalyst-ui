@@ -3,6 +3,6 @@ import { VERSION } from "../index.js";
 
 describe("catalyst-core scaffold", () => {
   it("exposes a version", () => {
-    expect(VERSION).toBe("0.18.1");
+    expect(VERSION).toBe("0.19.0");
   });
 });

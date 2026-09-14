@@ -258,6 +258,23 @@ describe("validate — dangling references", () => {
       report.issues.filter((i) => i.kind === "dangling-reference"),
     ).toEqual([]);
   });
+
+  it("resolves a reference to a userid-suffixed id just as well as a bare one (Rules-of-Rules.md §20)", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({
+          id: "REQ-000001-Ab3xR9pQ",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+          references: ["env-RUNTIME-000001-Zz9kM2wT"],
+        }),
+        rule({ id: "env-RUNTIME-000001-Zz9kM2wT" }),
+        domain({ id: "RUNTIME" }),
+      ]),
+    );
+    expect(
+      report.issues.filter((i) => i.kind === "dangling-reference"),
+    ).toEqual([]);
+  });
 });
 
 describe("validate — report shape", () => {
