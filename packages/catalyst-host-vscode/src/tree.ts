@@ -34,8 +34,7 @@ export function formatNodeLabel(node: ChainNode): string {
  * deployment, so the model never has any.
  */
 export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping";
-export type TreeSectionKind =
-  DevArtifactSectionKind | "rule" | "rule-of-rules" | "domain" | "feature";
+export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
 
 export interface TreeSection {
   kind: TreeSectionKind;
@@ -49,8 +48,21 @@ export interface DevArtifactGroup {
   sections: TreeSection[];
 }
 
+export interface RuleTypeSection {
+  prefix: string;
+  label: string;
+  nodes: ChainNode[];
+}
+
+/** The "Rules" parent folder, wrapping sub-sections per rule type / prefix. */
+export interface RuleGroup {
+  label: string;
+  sections: RuleTypeSection[];
+}
+
 export interface TreeSections {
   devArtifacts: DevArtifactGroup;
+  rules: RuleGroup;
   sections: TreeSection[];
 }
 
@@ -58,8 +70,6 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   requirement: "Requirements",
   bug: "Bugs",
   "house-keeping": "House-keeping",
-  rule: "Rules",
-  "rule-of-rules": "Rules of Rules",
   domain: "Domains",
   feature: "Features",
 };
@@ -70,35 +80,50 @@ const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "house-keeping",
 ];
 
-const SECTION_ORDER: TreeSectionKind[] = [
-  "rule",
-  "rule-of-rules",
-  "domain",
-  "feature",
-];
+const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature"];
 
-function sectionKindOf(node: ChainNode): TreeSectionKind | null {
-  if (node.kind === "rule")
-    return node.docPrefix === "rr" ? "rule-of-rules" : "rule";
-  if (node.kind === "dev-artifact") return node.artifactType;
-  if (node.kind === "work-item") return null;
-  if (node.kind === "roadmap") return null; // own section — see roadmaps.ts
-  return node.kind;
+export function ruleTypeLabel(prefix: string): string {
+  const p = prefix.toLowerCase();
+  if (p === "rr") return "Rules of Rules";
+  if (p === "fw" || p === "framework") return "Framework Rules";
+  if (p === "ui") return "UI Rules";
+  if (p === "br" || p === "business") return "Business Rules";
+  if (p === "app") return "App Rules";
+  if (p === "hk" || p === "house-keeping") return "House-keeping Rules";
+  if (p.length <= 3) return `${prefix.toUpperCase()} Rules`;
+  return `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Rules`;
 }
 
 /** Groups a chain model's nodes into the sidebar tree's sections, sorted by id within each. */
 export function buildTreeSections(model: ChainModel): TreeSections {
-  const byKind = new Map<TreeSectionKind, ChainNode[]>();
+  const devArtifactsByKind = new Map<DevArtifactSectionKind, ChainNode[]>();
+  const rulesByPrefix = new Map<string, ChainNode[]>();
+  const otherByKind = new Map<TreeSectionKind, ChainNode[]>();
 
   for (const node of model.nodes.values()) {
-    const kind = sectionKindOf(node);
-    if (kind === null) continue;
-    const list = byKind.get(kind) ?? [];
-    list.push(node);
-    byKind.set(kind, list);
+    if (node.kind === "dev-artifact") {
+      const list = devArtifactsByKind.get(node.artifactType) ?? [];
+      list.push(node);
+      devArtifactsByKind.set(node.artifactType, list);
+    } else if (node.kind === "rule") {
+      const prefix = node.docPrefix || "rule";
+      const list = rulesByPrefix.get(prefix) ?? [];
+      list.push(node);
+      rulesByPrefix.set(prefix, list);
+    } else if (node.kind === "domain" || node.kind === "feature") {
+      const list = otherByKind.get(node.kind) ?? [];
+      list.push(node);
+      otherByKind.set(node.kind, list);
+    }
   }
 
-  for (const list of byKind.values()) {
+  for (const list of devArtifactsByKind.values()) {
+    list.sort((a, b) => a.id.localeCompare(b.id));
+  }
+  for (const list of rulesByPrefix.values()) {
+    list.sort((a, b) => a.id.localeCompare(b.id));
+  }
+  for (const list of otherByKind.values()) {
     list.sort((a, b) => a.id.localeCompare(b.id));
   }
 
@@ -107,15 +132,30 @@ export function buildTreeSections(model: ChainModel): TreeSections {
     sections: DEV_ARTIFACT_SECTION_ORDER.map((kind) => ({
       kind,
       label: SECTION_LABELS[kind],
-      nodes: byKind.get(kind) ?? [],
+      nodes: devArtifactsByKind.get(kind) ?? [],
+    })),
+  };
+
+  const sortedPrefixes = [...rulesByPrefix.keys()].sort((a, b) => {
+    if (a === "rr") return -1;
+    if (b === "rr") return 1;
+    return ruleTypeLabel(a).localeCompare(ruleTypeLabel(b));
+  });
+
+  const rules: RuleGroup = {
+    label: "Rules",
+    sections: sortedPrefixes.map((prefix) => ({
+      prefix,
+      label: ruleTypeLabel(prefix),
+      nodes: rulesByPrefix.get(prefix) ?? [],
     })),
   };
 
   const sections = SECTION_ORDER.map((kind) => ({
     kind,
     label: SECTION_LABELS[kind],
-    nodes: byKind.get(kind) ?? [],
+    nodes: otherByKind.get(kind) ?? [],
   }));
 
-  return { devArtifacts, sections };
+  return { devArtifacts, rules, sections };
 }

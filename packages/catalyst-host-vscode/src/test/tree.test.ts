@@ -26,17 +26,19 @@ function modelOf(nodes: ChainNode[]): ChainModel {
 }
 
 describe("buildTreeSections", () => {
-  it("returns the Dev Artifacts group and the four other sections, even when empty", () => {
-    const { devArtifacts, sections } = buildTreeSections(modelOf([]));
+  it("returns the Dev Artifacts group, Rules group, and the two other sections, even when empty", () => {
+    const { devArtifacts, rules, sections } = buildTreeSections(modelOf([]));
     assert.strictEqual(devArtifacts.label, "Dev Artifacts");
     assert.deepStrictEqual(
       devArtifacts.sections.map((s) => s.kind),
       ["requirement", "bug", "house-keeping"],
     );
     assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
+    assert.strictEqual(rules.label, "Rules");
+    assert.strictEqual(rules.sections.length, 0);
     assert.deepStrictEqual(
       sections.map((s) => s.kind),
-      ["rule", "rule-of-rules", "domain", "feature"],
+      ["domain", "feature"],
     );
     assert.ok(sections.every((s) => s.nodes.length === 0));
   });
@@ -79,8 +81,14 @@ describe("buildTreeSections", () => {
     );
   });
 
-  it("splits rr-prefixed rules into their own section, separate from other rules", () => {
+  it("groups rules into rule-type sections with Rules of Rules (rr) first", () => {
     const model = modelOf([
+      node({
+        id: "ui-BOOT-001",
+        kind: "rule",
+        docPrefix: "ui",
+        domain: "BOOT",
+      }),
       node({
         id: "env-RUNTIME-001",
         kind: "rule",
@@ -95,17 +103,24 @@ describe("buildTreeSections", () => {
       }),
     ]);
 
-    const { sections } = buildTreeSections(model);
-    const rules = sections.find((s) => s.kind === "rule")!;
-    const rulesOfRules = sections.find((s) => s.kind === "rule-of-rules")!;
-
+    const { rules } = buildTreeSections(model);
     assert.deepStrictEqual(
-      rules.nodes.map((n) => n.id),
-      ["env-RUNTIME-001"],
+      rules.sections.map((s) => s.prefix),
+      ["rr", "env", "ui"],
     );
+
+    const rrSection = rules.sections.find((s) => s.prefix === "rr")!;
+    assert.strictEqual(rrSection.label, "Rules of Rules");
     assert.deepStrictEqual(
-      rulesOfRules.nodes.map((n) => n.id),
+      rrSection.nodes.map((n) => n.id),
       ["rr-META-003"],
+    );
+
+    const uiSection = rules.sections.find((s) => s.prefix === "ui")!;
+    assert.strictEqual(uiSection.label, "UI Rules");
+    assert.deepStrictEqual(
+      uiSection.nodes.map((n) => n.id),
+      ["ui-BOOT-001"],
     );
   });
 

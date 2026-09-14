@@ -31,9 +31,8 @@ const DOMAIN_LINE_RE = /^>\s*\*\*Domain:\*\*\s*`([A-Z0-9_]+)`/;
 // (Rules-of-Rules.md §3/§20) are both recognized without this regex
 // drifting out of sync with ids.ts again.
 const RULE_HEADING_RE = new RegExp(
-  `^(#{2,4})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s+(.*)$`,
+  `^(#{1,4})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s*(.*)$`,
 );
-const ANY_HEADING_RE = /^#{1,6}\s+/;
 const STATUS_GLYPH_RE = /(✅|❌|🗑|⚠️)/;
 const ROADMAP_ROW_RE = new RegExp(
   `^\\|\\s*\`(${ROADMAP_ID_PATTERN})\`\\s*\\|(.+)\\|\\s*$`,
@@ -55,6 +54,7 @@ export function parseRuleDocument(
     title: string;
     startLine: number;
     domain: string;
+    level: number;
   } | null = null;
   let body: string[] = [];
 
@@ -62,6 +62,7 @@ export function parseRuleDocument(
     if (!current) return;
     const text = body.join("\n");
     const statusMatch = text.match(STATUS_GLYPH_RE);
+    const domain = currentDomain || current.domain;
     nodes.push({
       id: current.id,
       kind: "rule",
@@ -69,7 +70,7 @@ export function parseRuleDocument(
       name: current.title,
       location: { file: filePath, line: current.startLine },
       docPrefix,
-      domain: current.domain,
+      domain,
       status: statusMatch ? statusMatch[1] : "",
       registeredInRulesIndex:
         docPrefix === "rr" || registeredRuleIds.has(current.id),
@@ -89,23 +90,33 @@ export function parseRuleDocument(
     const headingMatch = line.match(RULE_HEADING_RE);
     if (headingMatch) {
       flush();
-      const rawTitle = headingMatch[3].trim();
+      const rawTitle = headingMatch[3]
+        .trim()
+        .replace(/^[\u2014\u2013-]+\s*/, "");
+      const level = headingMatch[1].length;
       current = {
         id: headingMatch[2],
-        title: rawTitle,
+        title: rawTitle || headingMatch[2],
         startLine: i + 1,
         domain: currentDomain,
+        level,
       };
       body = [];
       return;
     }
-    if (current && ANY_HEADING_RE.test(line)) {
-      flush();
-      current = null;
-      body = [];
-      return;
+    if (current) {
+      const anyHeading = line.match(/^(#{1,6})\s+/);
+      if (anyHeading) {
+        const headingLevel = anyHeading[1].length;
+        if (headingLevel <= current.level) {
+          flush();
+          current = null;
+          body = [];
+          return;
+        }
+      }
+      body.push(line);
     }
-    if (current) body.push(line);
   });
   flush();
 

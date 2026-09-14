@@ -76,6 +76,8 @@ import {
   formatNodeLabel,
   getNodeUser,
   type DevArtifactGroup,
+  type RuleGroup,
+  type RuleTypeSection,
   type TreeSection,
   type TreeSectionKind,
 } from "./tree.js";
@@ -125,6 +127,8 @@ interface DeploymentView {
 type InspectorTreeItem =
   | { type: "deployment"; corpusRoot: string; folderName: string }
   | { type: "dev-artifact-group"; corpusRoot: string; group: DevArtifactGroup }
+  | { type: "rule-group"; corpusRoot: string; group: RuleGroup }
+  | { type: "rule-type-section"; corpusRoot: string; section: RuleTypeSection }
   | { type: "section"; corpusRoot: string; section: TreeSection }
   | { type: "node"; corpusRoot: string; node: ChainNode; pending: boolean }
   | { type: "roadmap-section"; corpusRoot: string; section: RoadmapSection }
@@ -152,8 +156,6 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   requirement: "requirements",
   bug: "bug",
   "house-keeping": "house-keeping",
-  rule: "rule",
-  "rule-of-rules": "rule",
   domain: "domain",
   feature: "features",
 };
@@ -168,8 +170,6 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   requirement: ["requirement"],
   bug: ["bug"],
   "house-keeping": ["house-keeping"],
-  rule: ["rule"],
-  "rule-of-rules": ["rule"],
   domain: ["domain"],
   feature: ["feature"],
 };
@@ -357,6 +357,27 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       item.iconPath = this.iconUris("dev-artifacts");
       return item;
     }
+    if (element.type === "rule-group") {
+      const total = element.group.sections.reduce(
+        (sum, s) => sum + s.nodes.length,
+        0,
+      );
+      const item = new vscode.TreeItem(
+        `${element.group.label} (${total})`,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+      item.iconPath = this.iconUris("rule");
+      return item;
+    }
+    if (element.type === "rule-type-section") {
+      const item = new vscode.TreeItem(
+        `${element.section.label} (${element.section.nodes.length})`,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+      item.iconPath = this.iconUris("rule");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["rule"]);
+      return item;
+    }
     if (element.type === "section") {
       const item = new vscode.TreeItem(
         `${element.section.label} (${element.section.nodes.length})`,
@@ -532,14 +553,21 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
-    const { devArtifacts, sections: otherSections } = buildTreeSections(
-      view.model,
-    );
+    const {
+      devArtifacts,
+      rules,
+      sections: otherSections,
+    } = buildTreeSections(view.model);
     const sections: InspectorTreeItem[] = [
       {
         type: "dev-artifact-group",
         corpusRoot: view.corpusRoot,
         group: devArtifacts,
+      },
+      {
+        type: "rule-group",
+        corpusRoot: view.corpusRoot,
+        group: rules,
       },
       ...otherSections.map((section): InspectorTreeItem => ({
         type: "section",
@@ -601,6 +629,22 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         type: "section",
         corpusRoot: element.corpusRoot,
         section,
+      }));
+    }
+    if (element.type === "rule-group") {
+      return element.group.sections.map((section) => ({
+        type: "rule-type-section",
+        corpusRoot: element.corpusRoot,
+        section,
+      }));
+    }
+    if (element.type === "rule-type-section") {
+      const pendingTargets = this.getPendingTargets(element.corpusRoot);
+      return element.section.nodes.map((node) => ({
+        type: "node",
+        corpusRoot: element.corpusRoot,
+        node,
+        pending: pendingTargets.has(node.id),
       }));
     }
     if (element.type === "section") {
