@@ -33,20 +33,28 @@ describe("parseCorpus", () => {
               id: "core-CONTRACT-001",
               title: "Typed chain model",
               domain: "CONTRACT",
+              extraBody: "Every node on the wire carries a stable shape.",
             },
           ],
         },
       ],
-      domains: [{ code: "CONTRACT" }],
+      domains: [{ code: "CONTRACT", scope: "Covers the core wire protocol." }],
       requirements: [
         {
           id: "REQ-000001",
           title: "Implement core",
           targets: ["core-CONTRACT-001"],
           feature: "FEAT-000001",
+          description: "Ship the typed chain model end to end.",
         },
       ],
-      features: [{ id: "FEAT-000001", title: "Core" }],
+      features: [
+        {
+          id: "FEAT-000001",
+          title: "Core",
+          description: "A typed model shared by every host.",
+        },
+      ],
     });
 
     const result = parseCorpus(root);
@@ -58,9 +66,13 @@ describe("parseCorpus", () => {
     expect(rule.domain).toBe("CONTRACT");
     expect(rule.docPrefix).toBe("core");
     expect(rule.registeredInRulesIndex).toBe(true);
+    expect(rule.description).toContain(
+      "Every node on the wire carries a stable shape.",
+    );
 
     const domain = allNodes.find((n) => n.id === "CONTRACT") as DomainNode;
     expect(domain.hasDoc).toBe(true);
+    expect(domain.description).toBe("Covers the core wire protocol.");
 
     const req = allNodes.find((n) => n.id === "REQ-000001") as DevArtifactNode;
     expect(req.artifactType).toBe("requirement");
@@ -68,9 +80,61 @@ describe("parseCorpus", () => {
     expect(req.feature).toBe("FEAT-000001");
     expect(req.registered).toBe(true);
     expect(req.fileExists).toBe(true);
+    expect(req.description).toBe("Ship the typed chain model end to end.");
 
     const feature = allNodes.find((n) => n.id === "FEAT-000001") as FeatureNode;
     expect(feature.kind).toBe("feature");
+    expect(feature.description).toBe("A typed model shared by every host.");
+  });
+
+  it("reads a bug/house-keeping artifact's own `## Description` section, distinct from a requirement's `## Summary`", () => {
+    root = createFixtureCorpus({
+      bugs: [
+        {
+          id: "BUG-000001",
+          title: "Broken login",
+          description: "Login silently fails on an expired token.",
+        },
+      ],
+      houseKeeping: [
+        {
+          id: "HK-000001",
+          title: "Upgrade CI runner",
+          description: "Move CI to the newer runner image.",
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const bug = allNodes.find((n) => n.id === "BUG-000001") as DevArtifactNode;
+    expect(bug.description).toBe("Login silently fails on an expired token.");
+
+    const hk = allNodes.find((n) => n.id === "HK-000001") as DevArtifactNode;
+    expect(hk.description).toBe("Move CI to the newer runner image.");
+  });
+
+  it("leaves description empty for an index-only artifact/feature with no backing file", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Ghost", createFile: false }],
+      features: [{ id: "FEAT-000001", title: "Ghost", createFile: false }],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const req = allNodes.find((n) => n.id === "REQ-000001") as DevArtifactNode;
+    expect(req.description).toBe("");
+    const feature = allNodes.find((n) => n.id === "FEAT-000001") as FeatureNode;
+    expect(feature.description).toBe("");
+  });
+
+  it("leaves a domain's description empty when it has no doc file", () => {
+    root = createFixtureCorpus({
+      domains: [{ code: "ORPHAN", skipDoc: true }],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const domain = allNodes.find((n) => n.id === "ORPHAN") as DomainNode;
+    expect(domain.hasDoc).toBe(false);
+    expect(domain.description).toBe("");
   });
 
   it("marks an artifact registered in the index but missing its file", () => {
