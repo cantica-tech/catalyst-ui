@@ -81,10 +81,15 @@ describe("parseCorpus", () => {
     expect(req.registered).toBe(true);
     expect(req.fileExists).toBe(true);
     expect(req.description).toBe("Ship the typed chain model end to end.");
+    expect(req.content).toContain("Ship the typed chain model end to end.");
+    expect(req.content).toContain("**Targets**");
 
     const feature = allNodes.find((n) => n.id === "FEAT-000001") as FeatureNode;
     expect(feature.kind).toBe("feature");
     expect(feature.description).toBe("A typed model shared by every host.");
+    expect(feature.content).toContain("A typed model shared by every host.");
+
+    expect(domain.content).toContain("Covers the core wire protocol.");
   });
 
   it("reads a bug/house-keeping artifact's own `## Description` section, distinct from a requirement's `## Summary`", () => {
@@ -122,11 +127,13 @@ describe("parseCorpus", () => {
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
     const req = allNodes.find((n) => n.id === "REQ-000001") as DevArtifactNode;
     expect(req.description).toBe("");
+    expect(req.content).toBe("");
     const feature = allNodes.find((n) => n.id === "FEAT-000001") as FeatureNode;
     expect(feature.description).toBe("");
+    expect(feature.content).toBe("");
   });
 
-  it("leaves a domain's description empty when it has no doc file", () => {
+  it("leaves a domain's description and content empty when it has no doc file", () => {
     root = createFixtureCorpus({
       domains: [{ code: "ORPHAN", skipDoc: true }],
     });
@@ -135,6 +142,28 @@ describe("parseCorpus", () => {
     const domain = allNodes.find((n) => n.id === "ORPHAN") as DomainNode;
     expect(domain.hasDoc).toBe(false);
     expect(domain.description).toBe("");
+    expect(domain.content).toBe("");
+  });
+
+  it("captures a dev-artifact's complete raw file content, beyond just its Description section", () => {
+    root = createFixtureCorpus({
+      bugs: [
+        {
+          id: "BUG-000001",
+          title: "Broken login",
+          description: "Login silently fails on an expired token.",
+          extraBody: "Traced to auth.ts:42.",
+          targets: ["env-RUNTIME-001"],
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const bug = allNodes.find((n) => n.id === "BUG-000001") as DevArtifactNode;
+    expect(bug.content).toContain("Login silently fails on an expired token.");
+    expect(bug.content).toContain("Traced to auth.ts:42.");
+    expect(bug.content).toContain("**Targets**");
+    expect(bug.content).toContain("## Notes");
   });
 
   it("marks an artifact registered in the index but missing its file", () => {

@@ -1,4 +1,5 @@
 import type { ChainNode, Proposal } from "catalyst-core";
+import { marked } from "marked";
 
 export interface NodeDetailProps {
   node: ChainNode;
@@ -15,6 +16,19 @@ function descriptionOf(node: ChainNode): string | undefined {
   return "description" in node && node.description
     ? node.description
     : undefined;
+}
+
+/**
+ * The fullest text available for this node: the backing .md file's
+ * complete raw content (every field and section, not just the one
+ * heading `description` extracts) for a kind with a file on disk;
+ * falls back to `description` for a kind with no separate file of its
+ * own (a rule's body *is* its full text; a roadmap row has no backing
+ * file at all) or an index-only artifact with nothing to read.
+ */
+function fullContentOf(node: ChainNode): string | undefined {
+  if ("content" in node && node.content) return node.content;
+  return descriptionOf(node);
 }
 
 function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
@@ -51,6 +65,30 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
   );
 }
 
+/**
+ * Renders the node's full backing document as actual formatted HTML
+ * (headings, lists, tables, bold/italic, code blocks) rather than raw
+ * markdown syntax or a single flattened line — the whole point of
+ * surfacing the file's complete content instead of a hand-picked field
+ * is that it has to read as a normal document, not markup soup. The
+ * host's webview CSP (`default-src 'none'; script-src 'nonce-...'`)
+ * blocks any injected `<script>` from executing even though this is raw
+ * HTML, but content always originates from local, trusted files (never
+ * a remote or multi-tenant source), matching this codebase's existing
+ * trust boundary.
+ */
+function DetailsSection({ node }: { node: ChainNode }) {
+  const content = fullContentOf(node);
+  if (!content) return null;
+  const html = marked.parse(content, { async: false }) as string;
+  return (
+    <section>
+      <h2>Details</h2>
+      <div dangerouslySetInnerHTML={{ __html: html }} />
+    </section>
+  );
+}
+
 function ProposalList({ proposals }: { proposals: Proposal[] }) {
   if (proposals.length === 0) return null;
   return (
@@ -80,7 +118,6 @@ export function NodeDetail({
   openProposals,
 }: NodeDetailProps) {
   const status = statusOf(node);
-  const description = descriptionOf(node);
   return (
     <div>
       <h1>
@@ -90,8 +127,8 @@ export function NodeDetail({
         {node.kind} — {node.title}
       </p>
       {status ? <p>Status: {status}</p> : null}
-      {description ? <p>{description}</p> : null}
       <RoadmapDetails node={node} />
+      <DetailsSection node={node} />
       <ProposalList proposals={openProposals} />
       <NodeList title="Justified by (upstream)" nodes={upstream} />
       <NodeList title="Produces (downstream)" nodes={downstream} />

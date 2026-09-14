@@ -671,6 +671,12 @@ function renderWebviewHtml(
   payload: WebviewPayload,
 ): string {
   const nonce = randomBytes(16).toString("hex");
+  // A node's raw markdown content (full file text, since the description
+  // feature) can legitimately contain the literal substring `</script>`
+  // (a code sample, an HTML example) — unescaped, that would close this
+  // script block early and corrupt the page. `<` isn't a JS/JSON
+  // escape a parser treats specially, so this is invisible to both.
+  const payloadJson = JSON.stringify(payload).replace(/</g, "\\u003c");
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -679,7 +685,7 @@ function renderWebviewHtml(
 </head>
 <body>
 <div id="root"></div>
-<script nonce="${nonce}">window.__CATALYST_INITIAL_PAYLOAD__ = ${JSON.stringify(payload)};</script>
+<script nonce="${nonce}">window.__CATALYST_INITIAL_PAYLOAD__ = ${payloadJson};</script>
 <script nonce="${nonce}" src="${scriptUri.toString()}"></script>
 </body>
 </html>`;
