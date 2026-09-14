@@ -8,6 +8,7 @@ import {
   FEATURE_ID_PATTERN,
   ROADMAP_ID_PATTERN,
   RULE_ID_PATTERN,
+  RULE_ID_RE,
   collectIdReferences,
   devArtifactType,
   extractIds,
@@ -39,14 +40,14 @@ const ROADMAP_ROW_RE = new RegExp(
 );
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
-/** Rule bullets in one rule document (`### id Title` or `## N. id Title`). */
+/** Rule bullets in one rule document (`### id Title` or `## N. id Title`), plus index tables. */
 export function parseRuleDocument(
   filePath: string,
   docPrefix: string,
   registeredRuleIds: Set<string>,
 ): RuleNode[] {
   const lines = readFileSync(filePath, "utf8").split("\n");
-  const nodes: RuleNode[] = [];
+  const nodesMap = new Map<string, RuleNode>();
 
   let currentDomain = docPrefix === "rr" ? "META" : "";
   let current: {
@@ -58,27 +59,34 @@ export function parseRuleDocument(
   } | null = null;
   let body: string[] = [];
 
+  const addNode = (node: RuleNode) => {
+    if (!nodesMap.has(node.id)) {
+      nodesMap.set(node.id, node);
+    }
+  };
+
   const flush = () => {
     if (!current) return;
     const text = body.join("\n");
     const statusMatch = text.match(STATUS_GLYPH_RE);
     const domain = currentDomain || current.domain;
-    nodes.push({
+    const prefix = current.id.split("-")[0] || docPrefix;
+    addNode({
       id: current.id,
       kind: "rule",
       title: current.title,
       name: current.title,
       location: { file: filePath, line: current.startLine },
-      docPrefix,
+      docPrefix: prefix,
       domain,
       status: statusMatch ? statusMatch[1] : "",
       registeredInRulesIndex:
-        docPrefix === "rr" || registeredRuleIds.has(current.id),
+        prefix === "rr" || registeredRuleIds.has(current.id),
       // `rr` (Rules-of-Rules.md) documents the id scheme itself and cites
       // illustrative example ids (e.g. `br-AUTH-003-login-flow`) that were
       // never meant to resolve — same self-governing exemption as the
       // unbacked-rule check above, applied here to avoid false dangling refs.
-      references: docPrefix === "rr" ? [] : collectIdReferences(text),
+      references: prefix === "rr" ? [] : collectIdReferences(text),
       description: text.trim(),
     });
   };
@@ -104,6 +112,67 @@ export function parseRuleDocument(
       body = [];
       return;
     }
+
+    if (line.startsWith("|") && !line.includes("---")) {
+      const cells = line
+        .split("|")
+        .map((c) => c.trim())
+        .filter(Boolean);
+      if (cells.length >= 2) {
+        let ruleId = "";
+        let title = "";
+        let status = "";
+        let rowDomain = currentDomain;
+
+        const idMatch =
+          cells[0].match(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/) ||
+          cells[0].match(/\b([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)\b/);
+        if (idMatch) {
+          ruleId = idMatch[1];
+          title = cells[1]
+            ? cells[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
+            : ruleId;
+          status = cells[2]
+            ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
+            : "";
+        } else if (cells.length >= 4) {
+          const fileIdMatch =
+            cells[0].match(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/) ||
+            cells[0].match(
+              /\/([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)(?:\.md|\))/,
+            );
+          if (fileIdMatch) {
+            ruleId = fileIdMatch[1];
+            rowDomain = cells[1]
+              ? cells[1].replace(/[`"]/g, "").trim()
+              : currentDomain;
+            status = cells[2]
+              ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
+              : "";
+            title = cells[3] ? cells[3].trim() : ruleId;
+          }
+        }
+
+        if (ruleId && RULE_ID_RE.test(ruleId)) {
+          const prefix = ruleId.split("-")[0];
+          addNode({
+            id: ruleId,
+            kind: "rule",
+            title,
+            name: title,
+            location: { file: filePath, line: i + 1 },
+            docPrefix: prefix,
+            domain: rowDomain,
+            status,
+            registeredInRulesIndex:
+              prefix === "rr" || registeredRuleIds.has(ruleId),
+            references: [],
+            description: title,
+          });
+        }
+      }
+    }
+
     if (current) {
       const anyHeading = line.match(/^(#{1,6})\s+/);
       if (anyHeading) {
@@ -120,7 +189,7 @@ export function parseRuleDocument(
   });
   flush();
 
-  return nodes;
+  return [...nodesMap.values()];
 }
 
 /** The `rules/domains/domains.md` global index, plus each domain's own doc file presence. */
@@ -557,33 +626,8 @@ export function parseCorpus(
   const files: ParsedFile[] = [];
 
   const rulesDir = join(root, "rules");
-  const rulesIndexPath = join(rulesDir, "rules.md");
-
   const registeredRuleIds = new Set<string>();
   const ruleDocs: { prefix: string; path: string }[] = [];
-  if (existsSync(rulesIndexPath)) {
-    const text = readFileSync(rulesIndexPath, "utf8");
-    for (const match of text.matchAll(
-      /^\|\s*`([a-z]+)`\s*\|\s*\[[^\]]+\]\(([^)]+)\)\s*\|/gm,
-    )) {
-      const relPath = match[2].trim();
-      const fullPath = join(rulesDir, relPath);
-      if (existsSync(fullPath) && !ruleDocs.some((d) => d.path === fullPath)) {
-        ruleDocs.push({ prefix: match[1], path: fullPath });
-      }
-    }
-    for (const match of text.matchAll(/^- (?:\[`?)?`?([a-zA-Z0-9_.-]+)`?/gm)) {
-      registeredRuleIds.add(match[1]);
-    }
-  }
-
-  const rulesOfRulesPath = join(rulesDir, "Rules-of-Rules.md");
-  if (
-    existsSync(rulesOfRulesPath) &&
-    !ruleDocs.some((d) => d.path === rulesOfRulesPath)
-  ) {
-    ruleDocs.push({ prefix: "rr", path: rulesOfRulesPath });
-  }
 
   if (existsSync(rulesDir)) {
     const scanRulesDir = (dir: string) => {
@@ -595,9 +639,17 @@ export function parseCorpus(
             scanRulesDir(fullPath);
           }
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
-          if (entry.name === "rules.md") continue;
+          const text = readFileSync(fullPath, "utf8");
+          for (const match of text.matchAll(
+            /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/g,
+          )) {
+            registeredRuleIds.add(match[1]);
+          }
           if (!ruleDocs.some((d) => d.path === fullPath)) {
-            const prefix = entry.name.split("-")[0] || "rule";
+            const prefix =
+              entry.name === "Rules-of-Rules.md"
+                ? "rr"
+                : entry.name.split("-")[0] || "rule";
             ruleDocs.push({ prefix, path: fullPath });
           }
         }
