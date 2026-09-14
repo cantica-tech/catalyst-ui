@@ -31,7 +31,7 @@ const DOMAIN_LINE_RE = /^>\s*\*\*Domain:\*\*\s*`([A-Z0-9_]+)`/;
 // (Rules-of-Rules.md §3/§20) are both recognized without this regex
 // drifting out of sync with ids.ts again.
 const RULE_HEADING_RE = new RegExp(
-  `^(#{2,3})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s+(.*)$`,
+  `^(#{2,4})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s+(.*)$`,
 );
 const ANY_HEADING_RE = /^#{1,6}\s+/;
 const STATUS_GLYPH_RE = /(✅|❌|🗑|⚠️)/;
@@ -119,12 +119,13 @@ export function parseDomainsIndex(
 ): DomainNode[] {
   const lines = readFileSync(indexPath, "utf8").split("\n");
   const nodes: DomainNode[] = [];
-  const rowRe = /^\|\s*\[`([A-Z0-9_]+)`\]\(([^)]+)\)\s*\|/;
+  const rowRe = /^\|\s*\[?`([A-Z0-9_]+)`\]?(?:\(([^)]+)\))?\s*\|/;
 
   lines.forEach((line, i) => {
     const match = line.match(rowRe);
     if (!match) return;
-    const docPath = join(domainsDir, match[2]);
+    const filename = match[2] ?? `${match[1].toLowerCase()}.md`;
+    const docPath = join(domainsDir, filename);
     const hasDoc = existsSync(docPath);
     const { fields, text: docText } = hasDoc
       ? parseFieldTable(docPath)

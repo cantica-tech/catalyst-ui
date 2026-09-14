@@ -147,6 +147,56 @@ describe("buildChainModel", () => {
     );
   });
 
+  it("links rule nodes to domain nodes and dev-artifacts to feature nodes", () => {
+    const domainNode = node({
+      id: "RUNTIME",
+      kind: "domain",
+      code: "RUNTIME",
+      hasDoc: true,
+    });
+    const ruleNode = node({
+      id: "env-RUNTIME-001",
+      kind: "rule",
+      docPrefix: "env",
+      domain: "RUNTIME",
+      status: "✅",
+    });
+    const featNode = node({
+      id: "FEAT-000001",
+      kind: "feature",
+      status: "in-development",
+      registered: true,
+      fileExists: true,
+    });
+    const reqNode = node({
+      id: "REQ-000001",
+      kind: "dev-artifact",
+      artifactType: "requirement",
+      status: "in-progress",
+      targets: ["env-RUNTIME-001"],
+      feature: "FEAT-000001",
+      registered: true,
+      fileExists: true,
+    });
+
+    const model = buildChainModel(
+      parseResult([
+        { file: "domains.md", mtimeMs: 0, nodes: [domainNode] },
+        { file: "env.md", mtimeMs: 0, nodes: [ruleNode] },
+        { file: "features.md", mtimeMs: 0, nodes: [featNode] },
+        { file: "req.md", mtimeMs: 0, nodes: [reqNode] },
+      ]),
+    );
+
+    expect(model.edges.get("env-RUNTIME-001")).toEqual(new Set(["RUNTIME"]));
+    expect(model.reverseEdges.get("RUNTIME")).toEqual(
+      new Set(["env-RUNTIME-001"]),
+    );
+    expect(model.edges.get("REQ-000001")).toEqual(
+      new Set(["FEAT-000001", "env-RUNTIME-001"]),
+    );
+  });
+
   it("never creates a self-edge, even when a node's raw references include its own id", () => {
     // A node's own `**ID**` field is backtick-quoted like any citation, so
     // the parser's generic scan legitimately puts a node's own id in its

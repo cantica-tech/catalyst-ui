@@ -16,6 +16,7 @@ describe("id patterns", () => {
     expect(RULE_ID_RE.test("env-RUNTIME-001")).toBe(true);
     expect(RULE_ID_RE.test("rr-META-003")).toBe(true);
     expect(RULE_ID_RE.test("br-EVTO-015-1")).toBe(true);
+    expect(RULE_ID_RE.test("br-ACCESS_CONTROL-001")).toBe(true);
   });
 
   it("matches a migrated rule id: 6-digit sequence plus a userid suffix (Rules-of-Rules.md §3/§20)", () => {

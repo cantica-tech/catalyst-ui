@@ -27,19 +27,28 @@ export function buildChainModel(parseResult: ParseResult): ChainModel {
   const edges = new Map<string, Set<string>>();
   const reverseEdges = new Map<string, Set<string>>();
 
+  const addEdge = (from: string, to: string) => {
+    if (from === to) return;
+    if (!nodes.has(from) || !nodes.has(to)) return;
+    if (!edges.has(from)) edges.set(from, new Set());
+    edges.get(from)!.add(to);
+    if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
+    reverseEdges.get(to)!.add(from);
+  };
+
   for (const node of nodes.values()) {
     for (const ref of node.references) {
-      // A node's own `**ID**` field is backtick-quoted like any other
-      // citation, so the generic reference scan picks up self-citations —
-      // never a real edge (a node is never its own upstream/downstream).
-      if (ref === node.id) continue;
-      if (!nodes.has(ref)) continue;
-
-      if (!edges.has(node.id)) edges.set(node.id, new Set());
-      edges.get(node.id)!.add(ref);
-
-      if (!reverseEdges.has(ref)) reverseEdges.set(ref, new Set());
-      reverseEdges.get(ref)!.add(node.id);
+      addEdge(node.id, ref);
+    }
+    if (node.kind === "rule" && node.domain) {
+      addEdge(node.id, node.domain);
+    }
+    if (node.kind === "dev-artifact") {
+      if (node.feature) addEdge(node.id, node.feature);
+      for (const t of node.targets) addEdge(node.id, t);
+    }
+    if (node.kind === "roadmap" && node.linked) {
+      addEdge(node.id, node.linked);
     }
   }
 

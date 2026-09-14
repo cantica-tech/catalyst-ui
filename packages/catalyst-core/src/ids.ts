@@ -22,7 +22,7 @@ import type { DevArtifactType } from "./types.js";
  */
 export const USERID_SUFFIX_PATTERN =
   "(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?![a-zA-Z0-9]))?";
-export const RULE_ID_PATTERN = "[a-z]+-[A-Z]+-\\d{3,6}(?:-[a-zA-Z0-9]+)*";
+export const RULE_ID_PATTERN = "[a-z]+-[A-Z0-9_]+-\\d{3,6}(?:-[a-zA-Z0-9]+)*";
 export const DEV_ARTIFACT_ID_PATTERN = `(?:BUG|REQ|HK)-\\d{6}${USERID_SUFFIX_PATTERN}`;
 export const FEATURE_ID_PATTERN = `FEAT-\\d{6}${USERID_SUFFIX_PATTERN}`;
 export const ROADMAP_ID_PATTERN = `RM-\\d{6}${USERID_SUFFIX_PATTERN}`;

@@ -53,9 +53,11 @@ function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
 function SignedOffByDetails({ node }: { node: ChainNode }) {
   if (node.kind === "roadmap") return null;
   if ("signedOffBy" in node && node.signedOffBy) {
+    const clean = node.signedOffBy.replace(/^_+|_+$/g, "");
+    if (!clean) return null;
     return (
       <p>
-        Signed off by: <em>{node.signedOffBy}</em>
+        Signed off by: <em>{clean}</em>
       </p>
     );
   }
@@ -64,6 +66,9 @@ function SignedOffByDetails({ node }: { node: ChainNode }) {
 
 function RoadmapDetails({ node }: { node: ChainNode }) {
   if (node.kind !== "roadmap") return null;
+  const clean = node.signedOffBy
+    ? node.signedOffBy.replace(/^_+|_+$/g, "")
+    : "";
   return (
     <section>
       <h2>Roadmap</h2>
@@ -71,9 +76,11 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
         {node.roadmapName}
         {node.roadmapRetired ? " (retired)" : ""}
       </p>
-      <p>
-        Signed off by: <em>{node.signedOffBy}</em>
-      </p>
+      {clean ? (
+        <p>
+          Signed off by: <em>{clean}</em>
+        </p>
+      ) : null}
       {node.notes ? <p>{node.notes}</p> : null}
     </section>
   );

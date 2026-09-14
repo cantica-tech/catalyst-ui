@@ -1,13 +1,14 @@
 import type { ChainModel, ChainNode } from "catalyst-core";
 
 export function getNodeUser(node: ChainNode): string | undefined {
+  let user: string | undefined;
   if (node.kind === "dev-artifact" || node.kind === "feature") {
-    return node.signedOffBy || undefined;
+    user = node.signedOffBy || undefined;
+  } else if (node.kind === "roadmap") {
+    user = node.signedOffBy || undefined;
   }
-  if (node.kind === "roadmap") {
-    return node.signedOffBy || undefined;
-  }
-  return undefined;
+  if (!user) return undefined;
+  return user.replace(/^_+|_+$/g, "") || undefined;
 }
 
 export function formatNodeLabel(node: ChainNode): string {
