@@ -127,7 +127,9 @@ export function parseDomainsIndex(
     if (!match) return;
     const docPath = join(domainsDir, match[2]);
     const hasDoc = existsSync(docPath);
-    const docText = hasDoc ? readFileSync(docPath, "utf8") : "";
+    const { fields, text: docText } = hasDoc
+      ? parseFieldTable(docPath)
+      : { fields: new Map<string, string>(), text: "" };
     nodes.push({
       id: match[1],
       kind: "domain",
