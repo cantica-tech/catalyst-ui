@@ -66,6 +66,7 @@ export function parseRuleDocument(
       id: current.id,
       kind: "rule",
       title: current.title,
+      name: current.title,
       location: { file: filePath, line: current.startLine },
       docPrefix,
       domain: current.domain,
@@ -88,9 +89,11 @@ export function parseRuleDocument(
     const headingMatch = line.match(RULE_HEADING_RE);
     if (headingMatch) {
       flush();
+      const rawTitle = headingMatch[3].trim();
+      const slugMatch = headingMatch[2].match(/^.+?-[A-Z0-9_]+-\d+(?:-[a-z0-9-]+)?-(?:[a-z0-9-]+)$/);
       current = {
         id: headingMatch[2],
-        title: headingMatch[3].trim(),
+        title: rawTitle,
         startLine: i + 1,
         domain: currentDomain,
       };
@@ -129,6 +132,7 @@ export function parseDomainsIndex(
       id: match[1],
       kind: "domain",
       title: match[1],
+      name: fields.get("Name") ?? match[1],
       location: { file: indexPath, line: i + 1 },
       code: match[1],
       hasDoc,
@@ -260,11 +264,13 @@ function buildDevArtifactNode(
     id,
     kind: "dev-artifact",
     title: registered?.title ?? fields.get("ID") ?? id,
+    name: fields.get("Name") ?? registered?.title ?? fields.get("ID") ?? id,
     location: { file: filePath, line: 1 },
     artifactType,
     status: fields.get("Status") ?? registered?.status ?? "",
     targets,
     feature: featureIds[0],
+    signedOffBy: fields.get("Signed-off-by"),
     registered: registered !== undefined,
     fileExists: true,
     references: collectIdReferences(text),
@@ -299,6 +305,7 @@ function parseDevArtifactCollection(
         id,
         kind: "dev-artifact",
         title: registeredRow.title,
+        name: registeredRow.title,
         location: { file: indexPath, line: registeredRow.line },
         artifactType: devArtifactType(id),
         status: registeredRow.status,
@@ -331,8 +338,10 @@ function buildFeatureNode(
     id,
     kind: "feature",
     title: registered?.title ?? fields.get("ID") ?? id,
+    name: fields.get("Name") ?? registered?.title ?? fields.get("ID") ?? id,
     location: { file: filePath, line: 1 },
     status: fields.get("Status") ?? registered?.status ?? "",
+    signedOffBy: fields.get("Signed-off-by"),
     registered: registered !== undefined,
     fileExists: true,
     references: collectIdReferences(text),
@@ -367,6 +376,7 @@ function parseFeatureCollection(
         id,
         kind: "feature",
         title: registeredRow.title,
+        name: registeredRow.title,
         location: { file: indexPath, line: registeredRow.line },
         status: registeredRow.status,
         registered: true,
@@ -424,6 +434,7 @@ function parseRoadmapFile(
       id: match[1],
       kind: "roadmap",
       title: title || match[1],
+      name: title || match[1],
       location: { file: filePath, line: i + 1 },
       roadmapName,
       roadmapRetired,

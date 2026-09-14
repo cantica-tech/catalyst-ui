@@ -102,7 +102,18 @@
           "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
         }
       }
-    }
+    },
+    "languages": [
+      {
+        "id": "catalyst",
+        "aliases": ["Catalyst File", "catalyst"],
+        "extensions": [".catalyst"],
+        "icon": {
+          "light": "./resources/light/catalyst.svg",
+          "dark": "./resources/dark/catalyst.svg"
+        }
+      }
+    ]
   },
   "scripts": {
     "build": "tsc --build --force",
