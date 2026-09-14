@@ -7,6 +7,7 @@ import {
   DEV_ARTIFACT_ID_PATTERN,
   FEATURE_ID_PATTERN,
   ROADMAP_ID_PATTERN,
+  RULE_ID_PATTERN,
   collectIdReferences,
   devArtifactType,
   extractIds,
@@ -25,8 +26,13 @@ import type {
 } from "./types.js";
 
 const DOMAIN_LINE_RE = /^>\s*\*\*Domain:\*\*\s*`([A-Z0-9_]+)`/;
-const RULE_HEADING_RE =
-  /^(#{2,3})\s+(?:\d+\.\s+)?`([a-z]+-[A-Z]+-\d{3}(?:-[a-zA-Z0-9]+)*)`\s+(.*)$/;
+// Built from the shared RULE_ID_PATTERN rather than a hand-duplicated
+// literal, so a 3-digit legacy id and a 6-digit-plus-userid migrated id
+// (Rules-of-Rules.md §3/§20) are both recognized without this regex
+// drifting out of sync with ids.ts again.
+const RULE_HEADING_RE = new RegExp(
+  `^(#{2,3})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s+(.*)$`,
+);
 const ANY_HEADING_RE = /^#{1,6}\s+/;
 const STATUS_GLYPH_RE = /(✅|❌|🗑|⚠️)/;
 const ROADMAP_ROW_RE = new RegExp(

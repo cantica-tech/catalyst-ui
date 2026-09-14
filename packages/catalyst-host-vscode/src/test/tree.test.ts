@@ -125,6 +125,22 @@ describe("buildTreeSections", () => {
     );
   });
 
+  it("sorts by numeric sequence even once every id carries a userid suffix (Rules-of-Rules.md §20)", () => {
+    const model = modelOf([
+      node({ id: "REQ-000002-Zz9kM2wT", kind: "dev-artifact" }),
+      node({ id: "REQ-000001-Ab3xR9pQ", kind: "dev-artifact" }),
+    ]);
+
+    const { devArtifacts } = buildTreeSections(model);
+    const section = devArtifacts.sections.find(
+      (s) => s.kind === "requirement",
+    )!;
+    assert.deepStrictEqual(
+      section.nodes.map((n) => n.id),
+      ["REQ-000001-Ab3xR9pQ", "REQ-000002-Zz9kM2wT"],
+    );
+  });
+
   it("excludes roadmap nodes from every section — they get their own Roadmaps section instead", () => {
     const model = modelOf([
       node({

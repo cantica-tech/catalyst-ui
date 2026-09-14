@@ -18,6 +18,12 @@ describe("id patterns", () => {
     expect(RULE_ID_RE.test("br-EVTO-015-1")).toBe(true);
   });
 
+  it("matches a migrated rule id: 6-digit sequence plus a userid suffix (Rules-of-Rules.md §3/§20)", () => {
+    expect(RULE_ID_RE.test("rr-META-000003")).toBe(true);
+    expect(RULE_ID_RE.test("rr-META-000003-Ab3xR9pQ")).toBe(true);
+    expect(RULE_ID_RE.test("br-EVTO-000015-1-Ab3xR9pQ")).toBe(true);
+  });
+
   it("does not match dev-artifact or feature ids as rule ids", () => {
     expect(RULE_ID_RE.test("REQ-000001")).toBe(false);
     expect(RULE_ID_RE.test("FEAT-000001")).toBe(false);
@@ -30,13 +36,27 @@ describe("id patterns", () => {
     expect(DEV_ARTIFACT_ID_RE.test("env-RUNTIME-001")).toBe(false);
   });
 
-  it("matches well-formed feature ids", () => {
+  it("matches a dev-artifact id carrying its signer's userid suffix (Rules-of-Rules.md §20)", () => {
+    expect(DEV_ARTIFACT_ID_RE.test("REQ-000001-Ab3xR9pQ")).toBe(true);
+    expect(DEV_ARTIFACT_ID_RE.test("BUG-000042-Ab3xR9pQ")).toBe(true);
+  });
+
+  it("does not mistake an all-lowercase 8-letter summary word for a userid suffix", () => {
+    // Every generated userid contains an uppercase letter (rr-META-011) —
+    // an old-style, unsuffixed id followed by a lowercase 8-letter word
+    // must never be misread as if that word were the suffix.
+    expect(DEV_ARTIFACT_ID_RE.test("REQ-000001-database")).toBe(false);
+  });
+
+  it("matches well-formed feature ids, with or without a userid suffix", () => {
     expect(FEATURE_ID_RE.test("FEAT-000001")).toBe(true);
+    expect(FEATURE_ID_RE.test("FEAT-000001-Ab3xR9pQ")).toBe(true);
     expect(FEATURE_ID_RE.test("REQ-000001")).toBe(false);
   });
 
-  it("matches well-formed roadmap ids", () => {
+  it("matches well-formed roadmap ids, with or without a userid suffix", () => {
     expect(ROADMAP_ID_RE.test("RM-000001")).toBe(true);
+    expect(ROADMAP_ID_RE.test("RM-000001-Ab3xR9pQ")).toBe(true);
     expect(ROADMAP_ID_RE.test("REQ-000001")).toBe(false);
     expect(ROADMAP_ID_RE.test("FEAT-000001")).toBe(false);
   });
