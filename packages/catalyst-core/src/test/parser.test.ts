@@ -1,3 +1,6 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { afterEach, describe, expect, it } from "vitest";
 
 import { parseCorpus } from "../parser.js";
@@ -164,6 +167,61 @@ describe("parseCorpus", () => {
     expect(bug.content).toContain("Traced to auth.ts:42.");
     expect(bug.content).toContain("**Targets**");
     expect(bug.content).toContain("## Notes");
+  });
+
+  it("resolves a userid-suffixed id (Rules-of-Rules.md §20) as one coherent entry, not truncated", () => {
+    root = createFixtureCorpus({
+      requirements: [
+        {
+          id: "REQ-000001-Ab3xR9pQ",
+          title: "Implement core",
+          description: "Ship the typed chain model end to end.",
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    // Exactly one entry for the full suffixed id — not a separate
+    // truncated "REQ-000001" entry from a filename/index key mismatch.
+    expect(allNodes.filter((n) => n.id.startsWith("REQ-000001")).length).toBe(
+      1,
+    );
+    const req = allNodes.find(
+      (n) => n.id === "REQ-000001-Ab3xR9pQ",
+    ) as DevArtifactNode;
+    expect(req).toBeDefined();
+    expect(req.registered).toBe(true);
+    expect(req.fileExists).toBe(true);
+    expect(req.description).toBe("Ship the typed chain model end to end.");
+  });
+
+  it("does not truncate an old-style bare id whose filename summary starts with a lowercase 8-letter word", () => {
+    root = createFixtureCorpus({
+      requirements: [
+        {
+          id: "REQ-000002",
+          title: "Database migration plan",
+          createFile: false,
+        },
+      ],
+    });
+    // The generic fixture helper always names files "<id>-file.md" — this
+    // regression needs the exact shape a real deployment would produce
+    // (id + a descriptive slug that happens to start with an 8-letter,
+    // all-lowercase word), so it's written directly rather than through
+    // createFixtureCorpus's own naming convention.
+    writeFileSync(
+      join(root, "requirements", "REQ-000002-database-migration-plan.md"),
+      "# `REQ-000002` — Database migration plan\n\n" +
+        "| Field | Value |\n|---|---|\n| **ID** | `REQ-000002` |\n" +
+        "| **Status** | in-progress |\n",
+    );
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const req = allNodes.find((n) => n.id === "REQ-000002") as DevArtifactNode;
+    expect(req).toBeDefined();
+    expect(req.registered).toBe(true);
+    expect(req.fileExists).toBe(true);
   });
 
   it("marks an artifact registered in the index but missing its file", () => {
