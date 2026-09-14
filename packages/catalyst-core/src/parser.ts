@@ -84,7 +84,10 @@ export function parseRuleDocument(
   const flush = () => {
     if (!current) return;
     const text = body.join("\n");
-    const statusMatch = text.match(STATUS_GLYPH_RE);
+    const statusLineMatch = text.match(/(✅|❌|🗑|⚠️)[^\n]*/);
+    const rawStatus = statusLineMatch
+      ? statusLineMatch[0].trim()
+      : (fileFields.get("Status") ?? "");
     const domain = currentDomain || current.domain;
     const prefix = current.id.split("-")[0] || docPrefix;
     const cleanTitle = cleanRuleTitle(current.title);
@@ -96,7 +99,7 @@ export function parseRuleDocument(
       location: { file: filePath, line: current.startLine },
       docPrefix: prefix,
       domain,
-      status: statusMatch ? statusMatch[1] : (fileFields.get("Status") ?? ""),
+      status: rawStatus,
       signedOffBy: fileFields.get("Signed-off-by"),
       registeredInRulesIndex:
         prefix === "rr" || registeredRuleIds.has(current.id),

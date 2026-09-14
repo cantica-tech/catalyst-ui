@@ -17,23 +17,31 @@ export function getNodeUser(node: ChainNode): string | undefined {
 
 export function getNodeStatusGlyph(node: ChainNode): string {
   if ("status" in node && typeof node.status === "string" && node.status) {
-    const match = node.status.match(/(✅|❌|🗑|⚠️)/);
-    if (match) return `${match[1]} `;
+    if (node.status.includes("❌")) return "❌ ";
+    if (node.status.includes("🗑")) return "🗑 ";
     const s = node.status.toLowerCase();
     if (
       s.includes("not implemented") ||
       s.includes("unimplemented") ||
+      s.includes("not-implemented") ||
+      s.includes("incomplete") ||
+      s.includes("buggy") ||
+      s.includes("partially fixed") ||
+      s.includes("untested") ||
       s.includes("broken") ||
       s.includes("failed")
     ) {
       return "❌ ";
     }
+    const match = node.status.match(/(✅|❌|🗑|⚠️)/);
+    if (match) return `${match[1]} `;
   }
   return "";
 }
 
 export function formatNodeLabel(node: ChainNode): string {
-  const displayName = node.name ?? node.title;
+  let displayName = node.name ?? node.title;
+  displayName = displayName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
   // Strip 8-character userid suffix (e.g. -yCNjAMXO) if present
   const idWithoutUserid = node.id.replace(
     /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,

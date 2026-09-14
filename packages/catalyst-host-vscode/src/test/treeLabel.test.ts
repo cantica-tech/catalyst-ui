@@ -63,4 +63,17 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(formatNodeLabel(n), "❌ Redis replay [br-REDIS-016]");
   });
+
+  it("removes dashes from name in formatNodeLabel", () => {
+    const n = node({
+      id: "ui-BOOT-001",
+      kind: "rule",
+      name: "Splash-first boot-flow",
+      status: "✅",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ Splash first boot flow [ui-BOOT-001]",
+    );
+  });
 });
