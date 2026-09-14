@@ -106,8 +106,13 @@
     "languages": [
       {
         "id": "catalyst",
-        "aliases": ["Catalyst File", "catalyst"],
-        "extensions": [".catalyst"],
+        "aliases": [
+          "Catalyst File",
+          "catalyst"
+        ],
+        "extensions": [
+          ".catalyst"
+        ],
         "icon": {
           "light": "./resources/light/catalyst.svg",
           "dark": "./resources/dark/catalyst.svg"

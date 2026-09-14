@@ -35,10 +35,7 @@ describe("formatNodeLabel", () => {
       kind: "dev-artifact",
       name: "Password Reset Flow",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "Password Reset Flow [REQ-000001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "Password Reset Flow [REQ-000001]");
   });
 
   it("falls back to title when name is missing, stripping the userid from ID", () => {

@@ -90,7 +90,6 @@ export function parseRuleDocument(
     if (headingMatch) {
       flush();
       const rawTitle = headingMatch[3].trim();
-      const slugMatch = headingMatch[2].match(/^.+?-[A-Z0-9_]+-\d+(?:-[a-z0-9-]+)?-(?:[a-z0-9-]+)$/);
       current = {
         id: headingMatch[2],
         title: rawTitle,
