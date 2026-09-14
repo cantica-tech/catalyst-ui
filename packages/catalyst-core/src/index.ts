@@ -1,4 +1,4 @@
-export const VERSION = "0.18.0";
+export const VERSION = "0.18.1";
 
 export * from "./types.js";
 export {
