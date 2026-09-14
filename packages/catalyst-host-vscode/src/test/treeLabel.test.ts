@@ -2,7 +2,7 @@ import * as assert from "assert";
 
 import type { ChainNode } from "catalyst-core";
 
-import { formatNodeLabel } from "../tree.js";
+import { formatNodeLabel, getNodeUser } from "../tree.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
@@ -23,10 +23,8 @@ describe("formatNodeLabel", () => {
       name: "Password Reset Flow",
       signedOffBy: "Olivier Steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "Password Reset Flow [REQ-000001 - _Olivier Steck_]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "Password Reset Flow [REQ-000001]");
+    assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
 
   it("formats a node with name but no username, stripping the userid from ID", () => {
@@ -36,6 +34,7 @@ describe("formatNodeLabel", () => {
       name: "Password Reset Flow",
     });
     assert.strictEqual(formatNodeLabel(n), "Password Reset Flow [REQ-000001]");
+    assert.strictEqual(getNodeUser(n), undefined);
   });
 
   it("falls back to title when name is missing, stripping the userid from ID", () => {
@@ -47,7 +46,8 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "Password Reset Flow Title [REQ-000001 - _Olivier Steck_]",
+      "Password Reset Flow Title [REQ-000001]",
     );
+    assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
 });

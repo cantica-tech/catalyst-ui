@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -114,8 +114,8 @@
           ".catalyst"
         ],
         "icon": {
-          "light": "./resources/light/catalyst.svg",
-          "dark": "./resources/dark/catalyst.svg"
+          "light": "./resources/catalyst.svg",
+          "dark": "./resources/catalyst.svg"
         }
       }
     ]
@@ -130,7 +130,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.20.0"
+    "catalyst-core": "^0.20.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

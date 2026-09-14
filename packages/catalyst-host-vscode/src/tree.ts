@@ -1,5 +1,15 @@
 import type { ChainModel, ChainNode } from "catalyst-core";
 
+export function getNodeUser(node: ChainNode): string | undefined {
+  if (node.kind === "dev-artifact" || node.kind === "feature") {
+    return node.signedOffBy || undefined;
+  }
+  if (node.kind === "roadmap") {
+    return node.signedOffBy || undefined;
+  }
+  return undefined;
+}
+
 export function formatNodeLabel(node: ChainNode): string {
   const displayName = node.name ?? node.title;
   // Strip 8-character userid suffix (e.g. -yCNjAMXO) if present
@@ -7,14 +17,7 @@ export function formatNodeLabel(node: ChainNode): string {
     /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,
     "",
   );
-  let user = "";
-  if (node.kind === "dev-artifact" || node.kind === "feature") {
-    user = node.signedOffBy ?? "";
-  } else if (node.kind === "roadmap") {
-    user = node.signedOffBy;
-  }
-  const userSuffix = user ? ` - _${user}_` : "";
-  return `${displayName} [${idWithoutUserid}${userSuffix}]`;
+  return `${displayName} [${idWithoutUserid}]`;
 }
 
 /**

@@ -50,6 +50,18 @@ function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
   );
 }
 
+function SignedOffByDetails({ node }: { node: ChainNode }) {
+  if (node.kind === "roadmap") return null;
+  if ("signedOffBy" in node && node.signedOffBy) {
+    return (
+      <p>
+        Signed off by: <em>{node.signedOffBy}</em>
+      </p>
+    );
+  }
+  return null;
+}
+
 function RoadmapDetails({ node }: { node: ChainNode }) {
   if (node.kind !== "roadmap") return null;
   return (
@@ -59,7 +71,9 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
         {node.roadmapName}
         {node.roadmapRetired ? " (retired)" : ""}
       </p>
-      <p>Signed off by: {node.signedOffBy}</p>
+      <p>
+        Signed off by: <em>{node.signedOffBy}</em>
+      </p>
       {node.notes ? <p>{node.notes}</p> : null}
     </section>
   );
@@ -127,6 +141,7 @@ export function NodeDetail({
         {node.kind} — {node.title}
       </p>
       {status ? <p>Status: {status}</p> : null}
+      <SignedOffByDetails node={node} />
       <RoadmapDetails node={node} />
       <DetailsSection node={node} />
       <ProposalList proposals={openProposals} />
