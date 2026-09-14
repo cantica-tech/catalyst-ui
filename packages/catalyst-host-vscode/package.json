@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -102,7 +102,18 @@
           "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
         }
       }
-    }
+    },
+    "languages": [
+      {
+        "id": "catalyst",
+        "aliases": ["Catalyst File", "catalyst"],
+        "extensions": [".catalyst"],
+        "icon": {
+          "light": "./resources/light/catalyst.svg",
+          "dark": "./resources/dark/catalyst.svg"
+        }
+      }
+    ]
   },
   "scripts": {
     "build": "tsc --build --force",
@@ -114,7 +125,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.19.0"
+    "catalyst-core": "^0.20.0"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
