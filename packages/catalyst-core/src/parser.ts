@@ -71,6 +71,7 @@ export function parseRuleDocument(
       // never meant to resolve — same self-governing exemption as the
       // unbacked-rule check above, applied here to avoid false dangling refs.
       references: docPrefix === "rr" ? [] : collectIdReferences(text),
+      description: text.trim(),
     });
   };
 
@@ -116,13 +117,17 @@ export function parseDomainsIndex(
     const match = line.match(rowRe);
     if (!match) return;
     const docPath = join(domainsDir, match[2]);
+    const hasDoc = existsSync(docPath);
     nodes.push({
       id: match[1],
       kind: "domain",
       title: match[1],
       location: { file: indexPath, line: i + 1 },
       code: match[1],
-      hasDoc: existsSync(docPath),
+      hasDoc,
+      description: hasDoc
+        ? sectionLines(readFileSync(docPath, "utf8"), "Scope").join(" ")
+        : "",
       references: [],
     });
   });
@@ -237,19 +242,27 @@ function buildDevArtifactNode(
     fields.get("Feature") ?? "",
     BACKTICK_FEATURE_ID_RE,
   );
+  const artifactType = devArtifactType(id);
+  // A requirement's document has no `## Description` heading of its own —
+  // its equivalent is `## Summary` (see requirements.template.md); bug/
+  // house-keeping both use `## Description` (bug.template.md,
+  // house-keeping.template.md).
+  const descriptionHeading =
+    artifactType === "requirement" ? "Summary" : "Description";
 
   return {
     id,
     kind: "dev-artifact",
     title: registered?.title ?? fields.get("ID") ?? id,
     location: { file: filePath, line: 1 },
-    artifactType: devArtifactType(id),
+    artifactType,
     status: fields.get("Status") ?? registered?.status ?? "",
     targets,
     feature: featureIds[0],
     registered: registered !== undefined,
     fileExists: true,
     references: collectIdReferences(text),
+    description: sectionLines(text, descriptionHeading).join(" "),
   };
 }
 
@@ -287,6 +300,7 @@ function parseDevArtifactCollection(
         registered: true,
         fileExists: false,
         references: [],
+        description: "",
       });
     }
   }
@@ -314,6 +328,7 @@ function buildFeatureNode(
     registered: registered !== undefined,
     fileExists: true,
     references: collectIdReferences(text),
+    description: sectionLines(text, "Description").join(" "),
   };
 }
 
@@ -348,6 +363,7 @@ function parseFeatureCollection(
         registered: true,
         fileExists: false,
         references: [],
+        description: "",
       });
     }
   }

@@ -2,6 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { devArtifactType } from "../ids.js";
+
 /** Builds small, real-shaped `.criterion` corpora on disk for tests — never used by product code. */
 
 export interface FixtureRule {
@@ -22,6 +24,7 @@ export interface FixtureDomain {
   code: string;
   filename?: string;
   skipDoc?: boolean;
+  scope?: string;
 }
 
 export interface FixtureArtifact {
@@ -33,6 +36,8 @@ export interface FixtureArtifact {
   registerInIndex?: boolean;
   createFile?: boolean;
   extraBody?: string;
+  /** Rendered under `## Summary` for a requirement, `## Description` otherwise. */
+  description?: string;
 }
 
 export interface FixtureFeature {
@@ -41,6 +46,7 @@ export interface FixtureFeature {
   status?: string;
   registerInIndex?: boolean;
   createFile?: boolean;
+  description?: string;
 }
 
 export interface FixtureProposal {
@@ -195,11 +201,19 @@ function renderDevArtifactFile(artifact: FixtureArtifact): string {
   if (artifact.targets?.length)
     fields.Targets = artifact.targets.map((t) => `\`${t}\``).join(", ");
   if (artifact.feature) fields.Feature = `\`${artifact.feature}\``;
-  return `# \`${artifact.id}\` — ${artifact.title}\n\n${renderFieldTable(fields)}\n## Notes\n\n${artifact.extraBody ?? "None."}\n`;
+  const descriptionHeading =
+    devArtifactType(artifact.id) === "requirement" ? "Summary" : "Description";
+  const description = artifact.description
+    ? `## ${descriptionHeading}\n\n${artifact.description}\n\n`
+    : "";
+  return `# \`${artifact.id}\` — ${artifact.title}\n\n${renderFieldTable(fields)}\n${description}## Notes\n\n${artifact.extraBody ?? "None."}\n`;
 }
 
 function renderFeatureFile(feature: FixtureFeature): string {
-  return `# \`${feature.id}\` — ${feature.title}\n\n${renderFieldTable({ ID: `\`${feature.id}\``, Status: feature.status ?? "in-development" })}\n`;
+  const description = feature.description
+    ? `## Description\n\n${feature.description}\n\n`
+    : "";
+  return `# \`${feature.id}\` — ${feature.title}\n\n${renderFieldTable({ ID: `\`${feature.id}\``, Status: feature.status ?? "in-development" })}\n${description}`;
 }
 
 function renderProposalFile(proposal: FixtureProposal): string {
@@ -362,9 +376,10 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
   writeFileSync(join(domainsDir, "domains.md"), renderDomainsIndex(domains));
   for (const domain of domains) {
     if (domain.skipDoc) continue;
+    const scope = domain.scope ? `\n## Scope\n\n${domain.scope}\n` : "";
     writeFileSync(
       join(domainsDir, domain.filename ?? `${domain.code}.md`),
-      `# ${domain.code}\n`,
+      `# ${domain.code}\n${scope}`,
     );
   }
 
