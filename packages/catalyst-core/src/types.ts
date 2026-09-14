@@ -43,6 +43,8 @@ export interface DevArtifactNode extends ChainNodeBase {
   registered: boolean;
   /** Backing .md file exists on disk. */
   fileExists: boolean;
+  /** The document's own `## Description` section (`## Summary` for a requirement) — empty when index-only (no file) or the section is missing. */
+  description: string;
 }
 
 export interface RuleNode extends ChainNodeBase {
@@ -53,6 +55,8 @@ export interface RuleNode extends ChainNodeBase {
   status: string;
   /** Listed in the global rules/rules.md "Rule IDs" index. Always true for `rr` (self-governing). */
   registeredInRulesIndex: boolean;
+  /** The rule's own text, as written between its heading and the next. */
+  description: string;
 }
 
 export interface DomainNode extends ChainNodeBase {
@@ -60,6 +64,8 @@ export interface DomainNode extends ChainNodeBase {
   code: string;
   /** The domain's own doc file (rules/domains/<file>) exists on disk. */
   hasDoc: boolean;
+  /** The domain doc's own `## Scope` section — empty when it has no doc file or no Scope section. */
+  description: string;
 }
 
 export interface FeatureNode extends ChainNodeBase {
@@ -67,6 +73,8 @@ export interface FeatureNode extends ChainNodeBase {
   status: string;
   registered: boolean;
   fileExists: boolean;
+  /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
+  description: string;
 }
 
 export type RoadmapStatus = "Not triaged" | "Triaged" | "In progress" | "Done";

@@ -1,4 +1,4 @@
-import type { ChainNode, RuleNode } from "catalyst-core";
+import type { ChainNode, RoadmapNode, RuleNode } from "catalyst-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -13,6 +13,23 @@ function rule(overrides: Partial<RuleNode> & { id: string }): ChainNode {
     domain: "RUNTIME",
     status: "",
     registeredInRulesIndex: true,
+    description: "",
+    references: [],
+    ...overrides,
+  } as ChainNode;
+}
+
+function roadmap(overrides: Partial<RoadmapNode> & { id: string }): ChainNode {
+  return {
+    kind: "roadmap",
+    title: overrides.id,
+    location: { file: "f.md", line: 1 },
+    roadmapName: "product",
+    roadmapRetired: false,
+    description: "",
+    status: "Not triaged",
+    signedOffBy: "alice",
+    notes: "",
     references: [],
     ...overrides,
   } as ChainNode;
@@ -99,5 +116,63 @@ describe("NodeDetail", () => {
       }),
     );
     expect(withoutProposal).not.toContain("Open proposals");
+  });
+
+  it("renders a node's own description when present, for any entity kind", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: rule({
+          id: "env-RUNTIME-001",
+          description: "Runtime must pin an exact Node version.",
+        }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).toContain("Runtime must pin an exact Node version.");
+  });
+
+  it("renders nothing extra when a node has no description", () => {
+    const withDescription = renderToStaticMarkup(
+      NodeDetail({
+        node: rule({ id: "env-RUNTIME-001", description: "Some text." }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+    const withoutDescription = renderToStaticMarkup(
+      NodeDetail({
+        node: rule({ id: "env-RUNTIME-001", description: "" }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    const paragraphDelta =
+      withDescription.split("<p>").length -
+      withoutDescription.split("<p>").length;
+    expect(paragraphDelta).toBe(1);
+    expect(withoutDescription).not.toContain("Some text.");
+  });
+
+  it("renders a roadmap node's description exactly once, not duplicated by RoadmapDetails", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: roadmap({
+          id: "RM-000001",
+          description: "A longer summary of this idea.",
+        }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    const occurrences = html.split("A longer summary of this idea.").length - 1;
+    expect(occurrences).toBe(1);
   });
 });

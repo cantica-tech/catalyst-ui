@@ -11,6 +11,12 @@ function statusOf(node: ChainNode): string | undefined {
   return "status" in node ? node.status : undefined;
 }
 
+function descriptionOf(node: ChainNode): string | undefined {
+  return "description" in node && node.description
+    ? node.description
+    : undefined;
+}
+
 function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
   return (
     <section>
@@ -39,7 +45,6 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
         {node.roadmapName}
         {node.roadmapRetired ? " (retired)" : ""}
       </p>
-      {node.description ? <p>{node.description}</p> : null}
       <p>Signed off by: {node.signedOffBy}</p>
       {node.notes ? <p>{node.notes}</p> : null}
     </section>
@@ -75,6 +80,7 @@ export function NodeDetail({
   openProposals,
 }: NodeDetailProps) {
   const status = statusOf(node);
+  const description = descriptionOf(node);
   return (
     <div>
       <h1>
@@ -84,6 +90,7 @@ export function NodeDetail({
         {node.kind} — {node.title}
       </p>
       {status ? <p>Status: {status}</p> : null}
+      {description ? <p>{description}</p> : null}
       <RoadmapDetails node={node} />
       <ProposalList proposals={openProposals} />
       <NodeList title="Justified by (upstream)" nodes={upstream} />
