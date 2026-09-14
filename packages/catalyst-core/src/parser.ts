@@ -62,9 +62,8 @@ export function parseRuleDocument(
 ): RuleNode[] {
   const lines = readFileSync(filePath, "utf8").split("\n");
   const nodesMap = new Map<string, RuleNode>();
-  const { fields: fileFields } = existsSync(filePath)
-    ? parseFieldTable(filePath)
-    : { fields: new Map<string, string>() };
+  const fileFields = new Map<string, string>();
+  const fieldRowRe = /^\|\s*\*\*([A-Za-z-]+)\*\*\s*\|\s*(.*?)\s*\|\s*$/;
 
   let currentDomain = docPrefix === "rr" ? "META" : "";
   let current: {
@@ -111,6 +110,9 @@ export function parseRuleDocument(
   };
 
   lines.forEach((line, i) => {
+    const fieldMatch = line.match(fieldRowRe);
+    if (fieldMatch) fileFields.set(fieldMatch[1], fieldMatch[2]);
+
     const domainMatch = line.match(DOMAIN_LINE_RE);
     if (domainMatch) currentDomain = domainMatch[1];
 
@@ -132,7 +134,7 @@ export function parseRuleDocument(
       return;
     }
 
-    if (line.startsWith("|") && !line.includes("---")) {
+    if (line.startsWith("|") && !line.includes("---") && line.includes("`")) {
       const cells = line
         .split("|")
         .map((c) => c.trim())
@@ -660,11 +662,13 @@ export function parseCorpus(
             scanRulesDir(fullPath);
           }
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
-          const text = readFileSync(fullPath, "utf8");
-          for (const match of text.matchAll(
-            /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/g,
-          )) {
-            registeredRuleIds.add(match[1]);
+          if (entry.name.endsWith("-rules.md") || entry.name === "rules.md") {
+            const text = readFileSync(fullPath, "utf8");
+            for (const match of text.matchAll(
+              /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/g,
+            )) {
+              registeredRuleIds.add(match[1]);
+            }
           }
           if (!ruleDocs.some((d) => d.path === fullPath)) {
             const prefix =

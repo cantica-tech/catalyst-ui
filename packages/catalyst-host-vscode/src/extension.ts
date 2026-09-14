@@ -74,7 +74,6 @@ import {
 import {
   buildTreeSections,
   formatNodeLabel,
-  getNodeUser,
   type DevArtifactGroup,
   type RuleGroup,
   type RuleTypeSection,
@@ -540,8 +539,6 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       `${pendingMark}${formatNodeLabel(element.node)}`,
       vscode.TreeItemCollapsibleState.None,
     );
-    const user = getNodeUser(element.node);
-    if (user) item.description = user;
     item.command = {
       command: SHOW_DETAIL_COMMAND,
       title: "Show detail",

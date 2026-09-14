@@ -23,7 +23,10 @@ describe("formatNodeLabel", () => {
       name: "Password Reset Flow",
       signedOffBy: "Olivier Steck",
     });
-    assert.strictEqual(formatNodeLabel(n), "Password Reset Flow [REQ-000001]");
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "Password Reset Flow [REQ-000001 - Olivier Steck]",
+    );
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
 
@@ -46,8 +49,18 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "Password Reset Flow Title [REQ-000001]",
+      "Password Reset Flow Title [REQ-000001 - Olivier Steck]",
     );
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
+  });
+
+  it("includes status glyph when status is non-working or broken", () => {
+    const n = node({
+      id: "br-REDIS-016",
+      kind: "rule",
+      title: "Redis replay",
+      status: "❌",
+    });
+    assert.strictEqual(formatNodeLabel(n), "❌ Redis replay [br-REDIS-016]");
   });
 });

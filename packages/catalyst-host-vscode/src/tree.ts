@@ -15,6 +15,23 @@ export function getNodeUser(node: ChainNode): string | undefined {
   return user.replace(/^_+|_+$/g, "") || undefined;
 }
 
+export function getNodeStatusGlyph(node: ChainNode): string {
+  if ("status" in node && typeof node.status === "string" && node.status) {
+    const match = node.status.match(/(✅|❌|🗑|⚠️)/);
+    if (match) return `${match[1]} `;
+    const s = node.status.toLowerCase();
+    if (
+      s.includes("not implemented") ||
+      s.includes("unimplemented") ||
+      s.includes("broken") ||
+      s.includes("failed")
+    ) {
+      return "❌ ";
+    }
+  }
+  return "";
+}
+
 export function formatNodeLabel(node: ChainNode): string {
   const displayName = node.name ?? node.title;
   // Strip 8-character userid suffix (e.g. -yCNjAMXO) if present
@@ -22,7 +39,10 @@ export function formatNodeLabel(node: ChainNode): string {
     /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,
     "",
   );
-  return `${displayName} [${idWithoutUserid}]`;
+  const user = getNodeUser(node);
+  const userSuffix = user ? ` - ${user}` : "";
+  const statusPrefix = getNodeStatusGlyph(node);
+  return `${statusPrefix}${displayName} [${idWithoutUserid}${userSuffix}]`;
 }
 
 /**
