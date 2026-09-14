@@ -1,4 +1,9 @@
-import type { ChainNode, RoadmapNode, RuleNode } from "catalyst-core";
+import type {
+  ChainNode,
+  DevArtifactNode,
+  RoadmapNode,
+  RuleNode,
+} from "catalyst-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -14,6 +19,23 @@ function rule(overrides: Partial<RuleNode> & { id: string }): ChainNode {
     status: "",
     registeredInRulesIndex: true,
     description: "",
+    references: [],
+    ...overrides,
+  } as ChainNode;
+}
+
+function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
+  return {
+    kind: "dev-artifact",
+    artifactType: "bug",
+    title: overrides.id,
+    location: { file: "f.md", line: 1 },
+    status: "open",
+    targets: [],
+    registered: true,
+    fileExists: true,
+    description: "",
+    content: "",
     references: [],
     ...overrides,
   } as ChainNode;
@@ -174,5 +196,59 @@ describe("NodeDetail", () => {
 
     const occurrences = html.split("A longer summary of this idea.").length - 1;
     expect(occurrences).toBe(1);
+  });
+
+  it("renders the full backing document's content, not just the short description, as formatted HTML", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({
+          id: "BUG-000001",
+          description: "Login silently fails on an expired token.",
+          content:
+            "# `BUG-000001` — Broken login\n\n## Description\n\nLogin silently fails on an expired token.\n\n## Reproduction\n\n- Sign in\n- Wait for the token to expire\n- Refresh the page\n\n## Root cause\n\n`auth.ts:42`",
+        }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).toContain("Details");
+    expect(html).toContain("<h2>Reproduction</h2>");
+    expect(html).toContain("<li>Sign in</li>");
+    expect(html).toContain("<h2>Root cause</h2>");
+    expect(html).toContain("<code>auth.ts:42</code>");
+  });
+
+  it("prefers the full content over the short description when both are present", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({
+          id: "BUG-000001",
+          description: "Short summary.",
+          content:
+            "## Description\n\nShort summary.\n\n## Fix plan\n\nRevert the change.",
+        }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).toContain("Fix plan");
+    expect(html).toContain("Revert the change.");
+  });
+
+  it("shows no Details section when a node has neither content nor description", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({ id: "BUG-000001", description: "", content: "" }),
+        upstream: [],
+        downstream: [],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).not.toContain("Details");
   });
 });
