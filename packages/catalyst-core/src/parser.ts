@@ -155,7 +155,9 @@ export function parseRuleDocument(
     const resolvedTitle =
       cleanTitle || slugName || idWithoutUserid || current.id;
     const rawFieldName = fileFields.get("Name");
-    const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+    const cleanFieldName = rawFieldName
+      ? cleanRuleTitle(rawFieldName)
+      : undefined;
     const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
 
     addNode(
@@ -270,7 +272,9 @@ export function parseRuleDocument(
           const resolvedTitle =
             cleanTitle || slugName || idWithoutUserid || ruleId;
           const rawFieldName = fileFields.get("Name");
-          const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+          const cleanFieldName = rawFieldName
+            ? cleanRuleTitle(rawFieldName)
+            : undefined;
           const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
           addNode(
             {
