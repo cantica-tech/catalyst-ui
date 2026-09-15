@@ -16,6 +16,32 @@ export function getNodeUser(node: ChainNode): string | undefined {
 }
 
 export function getNodeStatusGlyph(node: ChainNode): string {
+  const isBug =
+    (node.kind === "dev-artifact" && node.artifactType === "bug") ||
+    node.id.startsWith("BUG-");
+
+  if (isBug) {
+    const s = (
+      "status" in node && typeof node.status === "string" ? node.status : ""
+    )
+      .toLowerCase()
+      .trim();
+    const isClosed =
+      s.includes("fixed") ||
+      s.includes("closed") ||
+      s.includes("wontfix") ||
+      s.includes("won't fix") ||
+      s.includes("duplicate") ||
+      s.includes("resolved") ||
+      s.includes("done") ||
+      s.includes("✅") ||
+      s.includes("🗑");
+
+    if (!isClosed) {
+      return "🐛 ";
+    }
+  }
+
   if ("status" in node && typeof node.status === "string" && node.status) {
     if (node.status.includes("❌")) return "❌ ";
     if (node.status.includes("🗑")) return "🗑 ";

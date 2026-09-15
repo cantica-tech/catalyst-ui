@@ -55,7 +55,7 @@ export function cleanRuleTitle(raw: string): string {
   if (!raw) return "";
   let s = raw.trim();
   s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-  s = s.replace(/(?:✅|❌|🗑|⚠️)/g, "");
+  s = s.replace(/(?:✅|❌|🗑|⚠️|🐛)/g, "");
   s = s
     .replace(
       /\b(?:partially fixed|fixed|working|not implemented|not-implemented|unimplemented|implemented|untested|buggy|incomplete|behavioural|non-working)\b/gi,
