@@ -141,10 +141,7 @@ export function formatNodeLabel(node: ChainNode): string {
     }
   }
 
-  const displayName = rawName
-    .replace(/-/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const displayName = rawName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
 
   const user = getNodeUser(node);
   const userSuffix = user ? ` - ${user}` : "";
