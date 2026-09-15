@@ -73,7 +73,33 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "✅ Splash first boot flow [ui-BOOT-001]",
+      "✅  Splash first boot flow [ui-BOOT-001]",
+    );
+  });
+
+  it("formats working rule with embedded userid and slug suffix correctly", () => {
+    const n = node({
+      id: "env-CI-000001-z6qEx1Kf-github-actions-on-push",
+      kind: "rule",
+      status: "✅",
+      signedOffBy: "olivier steck",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅  github actions on push [env-CI-000001 - olivier steck]",
+    );
+  });
+
+  it("formats not implemented rule with embedded userid and slug suffix correctly", () => {
+    const n = node({
+      id: "cor-CORE-000001-z6qEx1Kf-telemetry-log-correlation",
+      kind: "rule",
+      status: "❌",
+      signedOffBy: "olivier steck",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "❌ telemetry log correlation [cor-CORE-000001 - olivier steck]",
     );
   });
 });

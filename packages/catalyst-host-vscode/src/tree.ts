@@ -19,6 +19,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
   if ("status" in node && typeof node.status === "string" && node.status) {
     if (node.status.includes("❌")) return "❌ ";
     if (node.status.includes("🗑")) return "🗑 ";
+    if (node.status.includes("⚠️")) return "⚠️ ";
     const s = node.status.toLowerCase();
     if (
       s.includes("not implemented") ||
@@ -33,20 +34,50 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     ) {
       return "❌ ";
     }
-    const match = node.status.match(/(✅|❌|🗑|⚠️)/);
-    if (match) return `${match[1]} `;
+    if (node.status.includes("✅")) return "✅  ";
+  }
+  if (node.kind === "rule") {
+    return "✅  ";
   }
   return "";
 }
 
 export function formatNodeLabel(node: ChainNode): string {
-  let displayName = node.name ?? node.title;
-  displayName = displayName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
-  // Strip 8-character userid suffix (e.g. -yCNjAMXO) if present
-  const idWithoutUserid = node.id.replace(
-    /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,
-    "",
-  );
+  const idRegex =
+    /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?|[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
+  const match = node.id.match(idRegex);
+
+  let idWithoutUserid = node.id;
+  let slugFromId: string | undefined;
+
+  if (match) {
+    idWithoutUserid = match[1];
+    slugFromId = match[2];
+  } else {
+    idWithoutUserid = node.id.replace(
+      /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,
+      "",
+    );
+  }
+
+  let rawName = node.name ?? node.title;
+  if (!rawName || rawName === node.id || rawName.startsWith(node.id)) {
+    rawName = slugFromId ?? rawName ?? idWithoutUserid;
+  }
+  if (match && slugFromId) {
+    const fullPrefix = node.id.slice(0, node.id.length - slugFromId.length - 1);
+    if (rawName.startsWith(fullPrefix + "-")) {
+      rawName = rawName.slice(fullPrefix.length + 1);
+    } else if (rawName.startsWith(idWithoutUserid + "-")) {
+      rawName = rawName.slice(idWithoutUserid.length + 1);
+    }
+  }
+
+  const displayName = rawName
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   const user = getNodeUser(node);
   const userSuffix = user ? ` - ${user}` : "";
   const statusPrefix = getNodeStatusGlyph(node);
