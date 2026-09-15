@@ -34,10 +34,34 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     ) {
       return "❌ ";
     }
-    if (node.status.includes("✅")) return "✅  ";
+    if (
+      s.includes("working") ||
+      s.includes("implemented") ||
+      s.includes("fixed") ||
+      node.status.includes("✅")
+    ) {
+      return "✅ ";
+    }
   }
+
+  const titleLower = (
+    (node.name ?? "") +
+    " " +
+    (node.title ?? "")
+  ).toLowerCase();
+  if (
+    titleLower.includes("not implemented") ||
+    titleLower.includes("unimplemented") ||
+    titleLower.includes("not-implemented") ||
+    titleLower.includes("incomplete") ||
+    titleLower.includes("buggy") ||
+    titleLower.includes("untested")
+  ) {
+    return "❌ ";
+  }
+
   if (node.kind === "rule") {
-    return "✅  ";
+    return "✅ ";
   }
   return "";
 }
@@ -61,9 +85,17 @@ export function formatNodeLabel(node: ChainNode): string {
   }
 
   let rawName = node.name ?? node.title;
-  if (!rawName || rawName === node.id || rawName.startsWith(node.id)) {
-    rawName = slugFromId ?? rawName ?? idWithoutUserid;
+  if (
+    !rawName ||
+    rawName === node.id ||
+    rawName.startsWith(node.id) ||
+    /^(?:working|not implemented|unimplemented|implemented|fixed)$/i.test(
+      rawName.trim(),
+    )
+  ) {
+    rawName = slugFromId ? slugFromId.replace(/-/g, " ") : idWithoutUserid;
   }
+
   if (match && slugFromId) {
     const fullPrefix = node.id.slice(0, node.id.length - slugFromId.length - 1);
     if (rawName.startsWith(fullPrefix + "-")) {

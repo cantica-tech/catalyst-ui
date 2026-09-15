@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { parseCorpus } from "../parser.js";
+import {
+  cleanRuleTitle,
+  detectRuleStatus,
+  extractSlugFromRuleId,
+  parseCorpus,
+} from "../parser.js";
 import type {
   DevArtifactNode,
   DomainNode,
@@ -375,5 +380,32 @@ describe("parseCorpus", () => {
     expect(item2.roadmapRetired).toBe(true);
     expect(item2.status).toBe("Not triaged");
     expect(item2.linked).toBeUndefined();
+  });
+});
+
+describe("extractSlugFromRuleId and cleanRuleTitle", () => {
+  it("extracts clean human-readable slug from 6-digit rule id with userid", () => {
+    expect(
+      extractSlugFromRuleId("env-CI-000001-z6qEx1Kf-github-actions-on-push"),
+    ).toBe("github actions on push");
+    expect(
+      extractSlugFromRuleId(
+        "cor-CORE-000001-z6qEx1Kf-telemetry-log-correlation",
+      ),
+    ).toBe("telemetry log correlation");
+    expect(extractSlugFromRuleId("br-REDIS-016")).toBeUndefined();
+  });
+
+  it("cleans rule title by removing status words and glyphs", () => {
+    expect(cleanRuleTitle("working")).toBe("");
+    expect(cleanRuleTitle("not implemented")).toBe("");
+    expect(cleanRuleTitle("✅ working")).toBe("");
+    expect(cleanRuleTitle("Typed chain model")).toBe("Typed chain model");
+  });
+
+  it("detects rule status from text or title", () => {
+    expect(detectRuleStatus("", "not implemented")).toBe("❌ not implemented");
+    expect(detectRuleStatus("", "working")).toBe("✅ working");
+    expect(detectRuleStatus("✅ working.", "working")).toBe("✅ working.");
   });
 });

@@ -73,7 +73,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "✅  Splash first boot flow [ui-BOOT-001]",
+      "✅ Splash first boot flow [ui-BOOT-001]",
     );
   });
 
@@ -86,7 +86,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "✅  github actions on push [env-CI-000001 - olivier steck]",
+      "✅ github actions on push [env-CI-000001 - olivier steck]",
     );
   });
 
