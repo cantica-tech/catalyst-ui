@@ -1,4 +1,4 @@
-import type { ChainModel, ChainNode } from "catalyst-core";
+import { cleanRuleTitle, type ChainModel, type ChainNode } from "catalyst-core";
 
 export function getNodeUser(node: ChainNode): string | undefined {
   let user: string | undefined;
@@ -85,15 +85,25 @@ export function formatNodeLabel(node: ChainNode): string {
   }
 
   let rawName = node.name ?? node.title;
+  const cleanedName = cleanRuleTitle(rawName);
+
   if (
     !rawName ||
+    !cleanedName ||
     rawName === node.id ||
     rawName.startsWith(node.id) ||
-    /^(?:working|not implemented|unimplemented|implemented|fixed)$/i.test(
+    cleanedName === node.id ||
+    cleanedName.startsWith(node.id) ||
+    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(
       rawName.trim(),
+    ) ||
+    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(
+      cleanedName.trim(),
     )
   ) {
     rawName = slugFromId ? slugFromId.replace(/-/g, " ") : idWithoutUserid;
+  } else {
+    rawName = cleanedName;
   }
 
   if (match && slugFromId) {
