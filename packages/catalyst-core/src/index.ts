@@ -32,7 +32,7 @@ export {
 } from "./ids.js";
 export { parseIamUsers, parseIamRoles } from "./iam.js";
 export { parseJournal, queryJournal } from "./journal.js";
-export { parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
+export { cleanRuleTitle, extractSlugFromRuleId, parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
 export {
   parseProposals,
   nextProposalId,

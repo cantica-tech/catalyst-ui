@@ -76,4 +76,59 @@ describe("formatNodeLabel", () => {
       "✅ Splash first boot flow [ui-BOOT-001]",
     );
   });
+
+  it("formats working rule with embedded userid and slug suffix correctly", () => {
+    const n = node({
+      id: "env-CI-000001-z6qEx1Kf-github-actions-on-push",
+      kind: "rule",
+      status: "✅",
+      signedOffBy: "olivier steck",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ github actions on push [env-CI-000001 - olivier steck]",
+    );
+  });
+
+  it("formats not implemented rule with embedded userid and slug suffix correctly", () => {
+    const n = node({
+      id: "cor-CORE-000001-z6qEx1Kf-telemetry-log-correlation",
+      kind: "rule",
+      status: "❌",
+      signedOffBy: "olivier steck",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "❌ telemetry log correlation [cor-CORE-000001 - olivier steck]",
+    );
+  });
+
+  it("cleans dirty status strings like '✅ working' from node name and falls back to slug", () => {
+    const n = node({
+      id: "env-CI-000001-z6qEx1Kf-github-actions-on-push",
+      kind: "rule",
+      name: "✅ working",
+      title: "✅ working",
+      status: "✅ working",
+      signedOffBy: "olivier steck",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ github actions on push [env-CI-000001 - olivier steck]",
+    );
+  });
+
+  it("strips status prefix from name when name contains both status and descriptive title", () => {
+    const n = node({
+      id: "env-CI-000001-z6qEx1Kf-github-actions-on-push",
+      kind: "rule",
+      name: "✅ working github actions on push",
+      title: "✅ working github actions on push",
+      status: "✅ working",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ github actions on push [env-CI-000001]",
+    );
+  });
 });

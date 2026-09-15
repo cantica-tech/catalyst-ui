@@ -40,18 +40,66 @@ const ROADMAP_ROW_RE = new RegExp(
 );
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
+export function extractSlugFromRuleId(ruleId: string): string | undefined {
+  const re =
+    /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
+  const match = ruleId.match(re);
+  if (match && match[2]) {
+    const slug = match[2].replace(/-/g, " ").replace(/\s+/g, " ").trim();
+    if (slug) return slug;
+  }
+  return undefined;
+}
+
 export function cleanRuleTitle(raw: string): string {
   if (!raw) return "";
   let s = raw.trim();
   s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
-  s = s.replace(/^(?:✅|❌|🗑|⚠️)\s*/g, "");
+  s = s.replace(/(?:✅|❌|🗑|⚠️)/g, "");
   s = s
     .replace(
-      /^(?:partially fixed|fixed|working|implemented|untested|buggy|incomplete|behavioural|\d{4}-\d{2}-\d{2}|[\u2014\u2013/.:,\s])+/gi,
+      /\b(?:partially fixed|fixed|working|not implemented|not-implemented|unimplemented|implemented|untested|buggy|incomplete|behavioural|non-working)\b/gi,
       "",
     )
+    .replace(/^\d{4}-\d{2}-\d{2}/, "")
+    .replace(/^[\u2014\u2013/.:,\s-]+|[\u2014\u2013/.:,\s-]+$/g, "")
     .trim();
-  return s || raw.trim();
+  return s;
+}
+
+export function detectRuleStatus(
+  text: string,
+  rawTitle: string,
+  fileFieldStatus?: string,
+): string {
+  const statusLineMatch = text.match(/(✅|❌|🗑|⚠️)[^\n]*/);
+  if (statusLineMatch) return statusLineMatch[0].trim();
+  if (fileFieldStatus) return fileFieldStatus.trim();
+
+  const combined = (rawTitle + " " + text.slice(0, 200)).toLowerCase();
+  if (
+    combined.includes("❌") ||
+    combined.includes("not implemented") ||
+    combined.includes("unimplemented") ||
+    combined.includes("not-implemented") ||
+    combined.includes("incomplete") ||
+    combined.includes("buggy") ||
+    combined.includes("partially fixed") ||
+    combined.includes("untested") ||
+    combined.includes("broken") ||
+    combined.includes("failed")
+  ) {
+    return "❌ not implemented";
+  }
+  if (
+    combined.includes("✅") ||
+    combined.includes("working") ||
+    combined.includes("implemented") ||
+    combined.includes("fixed")
+  ) {
+    return "✅ working";
+  }
+  return "✅ working";
 }
 
 /** Rule bullets in one rule document (`### id Title` or `## N. id Title`), plus index tables. */
@@ -75,41 +123,63 @@ export function parseRuleDocument(
   } | null = null;
   let body: string[] = [];
 
-  const addNode = (node: RuleNode) => {
-    if (!nodesMap.has(node.id)) {
+  const addNode = (node: RuleNode, isHeadingNode = false) => {
+    const existing = nodesMap.get(node.id);
+    if (!existing) {
       nodesMap.set(node.id, node);
+    } else if (isHeadingNode) {
+      nodesMap.set(node.id, {
+        ...node,
+        domain: node.domain || existing.domain,
+        status: node.status || existing.status,
+      });
     }
   };
 
   const flush = () => {
     if (!current) return;
     const text = body.join("\n");
-    const statusLineMatch = text.match(/(✅|❌|🗑|⚠️)[^\n]*/);
-    const rawStatus = statusLineMatch
-      ? statusLineMatch[0].trim()
-      : (fileFields.get("Status") ?? "");
+    const rawStatus = detectRuleStatus(
+      text,
+      current.title,
+      fileFields.get("Status"),
+    );
     const domain = currentDomain || current.domain;
     const prefix = current.id.split("-")[0] || docPrefix;
     const cleanTitle = cleanRuleTitle(current.title);
-    addNode({
-      id: current.id,
-      kind: "rule",
-      title: current.title,
-      name: fileFields.get("Name") ?? cleanTitle,
-      location: { file: filePath, line: current.startLine },
-      docPrefix: prefix,
-      domain,
-      status: rawStatus,
-      signedOffBy: fileFields.get("Signed-off-by"),
-      registeredInRulesIndex:
-        prefix === "rr" || registeredRuleIds.has(current.id),
-      // `rr` (Rules-of-Rules.md) documents the id scheme itself and cites
-      // illustrative example ids (e.g. `br-AUTH-003-login-flow`) that were
-      // never meant to resolve — same self-governing exemption as the
-      // unbacked-rule check above, applied here to avoid false dangling refs.
-      references: prefix === "rr" ? [] : collectIdReferences(text),
-      description: text.trim(),
-    });
+    const slugName = extractSlugFromRuleId(current.id);
+    const idWithoutUserid = current.id.replace(
+      /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
+      "",
+    );
+    const resolvedTitle =
+      cleanTitle || slugName || idWithoutUserid || current.id;
+    const rawFieldName = fileFields.get("Name");
+    const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+    const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
+
+    addNode(
+      {
+        id: current.id,
+        kind: "rule",
+        title: resolvedTitle,
+        name: resolvedName,
+        location: { file: filePath, line: current.startLine },
+        docPrefix: prefix,
+        domain,
+        status: rawStatus,
+        signedOffBy: fileFields.get("Signed-off-by"),
+        registeredInRulesIndex:
+          prefix === "rr" || registeredRuleIds.has(current.id),
+        // `rr` (Rules-of-Rules.md) documents the id scheme itself and cites
+        // illustrative example ids (e.g. `br-AUTH-003-login-flow`) that were
+        // never meant to resolve — same self-governing exemption as the
+        // unbacked-rule check above, applied here to avoid false dangling refs.
+        references: prefix === "rr" ? [] : collectIdReferences(text),
+        description: text.trim(),
+      },
+      true,
+    );
   };
 
   lines.forEach((line, i) => {
@@ -153,12 +223,24 @@ export function parseRuleDocument(
           cells[0].match(/\b([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)\b/);
         if (idMatch) {
           ruleId = idMatch[1];
-          title = cells[1]
-            ? cells[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
-            : ruleId;
-          status = cells[2]
-            ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
-            : "";
+          if (
+            STATUS_GLYPH_RE.test(cells[1]) ||
+            /^(?:working|implemented|not implemented|unimplemented|buggy|incomplete|fixed)/i.test(
+              cells[1],
+            )
+          ) {
+            status = cells[1].match(STATUS_GLYPH_RE)?.[1] || cells[1];
+            title = cells[2]
+              ? cells[2].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
+              : ruleId;
+          } else {
+            title = cells[1]
+              ? cells[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
+              : ruleId;
+            status = cells[2]
+              ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
+              : "";
+          }
         } else if (cells.length >= 4) {
           const fileIdMatch =
             cells[0].match(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/) ||
@@ -180,21 +262,34 @@ export function parseRuleDocument(
         if (ruleId && RULE_ID_RE.test(ruleId)) {
           const prefix = ruleId.split("-")[0];
           const cleanTitle = cleanRuleTitle(title);
-          addNode({
-            id: ruleId,
-            kind: "rule",
-            title,
-            name: fileFields.get("Name") ?? cleanTitle,
-            location: { file: filePath, line: i + 1 },
-            docPrefix: prefix,
-            domain: rowDomain,
-            status,
-            signedOffBy: fileFields.get("Signed-off-by"),
-            registeredInRulesIndex:
-              prefix === "rr" || registeredRuleIds.has(ruleId),
-            references: [],
-            description: title,
-          });
+          const slugName = extractSlugFromRuleId(ruleId);
+          const idWithoutUserid = ruleId.replace(
+            /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
+            "",
+          );
+          const resolvedTitle =
+            cleanTitle || slugName || idWithoutUserid || ruleId;
+          const rawFieldName = fileFields.get("Name");
+          const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+          const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
+          addNode(
+            {
+              id: ruleId,
+              kind: "rule",
+              title: resolvedTitle,
+              name: resolvedName,
+              location: { file: filePath, line: i + 1 },
+              docPrefix: prefix,
+              domain: rowDomain,
+              status,
+              signedOffBy: fileFields.get("Signed-off-by"),
+              registeredInRulesIndex:
+                prefix === "rr" || registeredRuleIds.has(ruleId),
+              references: [],
+              description: title,
+            },
+            false,
+          );
         }
       }
     }
