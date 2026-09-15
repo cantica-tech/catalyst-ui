@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.20.8",
+  "version": "0.20.9",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -130,7 +130,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.20.8"
+    "catalyst-core": "^0.20.9"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
