@@ -131,4 +131,46 @@ describe("formatNodeLabel", () => {
       "✅ github actions on push [env-CI-000001]",
     );
   });
+
+  it("formats an open bug with 🐛 preceding its name and id", () => {
+    const n = node({
+      id: "BUG-000001-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "bug",
+      name: "Fluent Bit TCP output format raw unrecognized",
+      status: "open",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "🐛 Fluent Bit TCP output format raw unrecognized [BUG-000001]",
+    );
+  });
+
+  it("formats an in-progress bug with 🐛 preceding its name and id", () => {
+    const n = node({
+      id: "BUG-000002-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "bug",
+      name: "Catalog missing column migration",
+      status: "in-progress",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "🐛 Catalog missing column migration [BUG-000002]",
+    );
+  });
+
+  it("formats a fixed bug with ✅ status glyph rather than 🐛", () => {
+    const n = node({
+      id: "BUG-000003-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "bug",
+      name: "Childless root sump not correlatable",
+      status: "fixed",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ Childless root sump not correlatable [BUG-000003]",
+    );
+  });
 });
