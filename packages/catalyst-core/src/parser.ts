@@ -58,7 +58,7 @@ export function cleanRuleTitle(raw: string): string {
   s = s.replace(/(?:✅|❌|🗑|⚠️)/g, "");
   s = s
     .replace(
-      /\b(?:partially fixed|fixed|working|not implemented|unimplemented|implemented|untested|buggy|incomplete|behavioural)\b/gi,
+      /\b(?:partially fixed|fixed|working|not implemented|not-implemented|unimplemented|implemented|untested|buggy|incomplete|behavioural|non-working)\b/gi,
       "",
     )
     .replace(/^\d{4}-\d{2}-\d{2}/, "")
@@ -148,9 +148,15 @@ export function parseRuleDocument(
     const prefix = current.id.split("-")[0] || docPrefix;
     const cleanTitle = cleanRuleTitle(current.title);
     const slugName = extractSlugFromRuleId(current.id);
+    const idWithoutUserid = current.id.replace(
+      /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
+      "",
+    );
     const resolvedTitle =
-      cleanTitle || slugName || current.title || current.id;
-    const resolvedName = fileFields.get("Name") ?? resolvedTitle;
+      cleanTitle || slugName || idWithoutUserid || current.id;
+    const rawFieldName = fileFields.get("Name");
+    const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+    const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
 
     addNode(
       {
@@ -257,8 +263,15 @@ export function parseRuleDocument(
           const prefix = ruleId.split("-")[0];
           const cleanTitle = cleanRuleTitle(title);
           const slugName = extractSlugFromRuleId(ruleId);
-          const resolvedTitle = cleanTitle || slugName || title || ruleId;
-          const resolvedName = fileFields.get("Name") ?? resolvedTitle;
+          const idWithoutUserid = ruleId.replace(
+            /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
+            "",
+          );
+          const resolvedTitle =
+            cleanTitle || slugName || idWithoutUserid || ruleId;
+          const rawFieldName = fileFields.get("Name");
+          const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
+          const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
           addNode(
             {
               id: ruleId,
