@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  hasCatalystPointer,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
@@ -114,6 +115,32 @@ describe("readCatalystPointer", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(join(projectRoot, "broken.catalyst"), "{not json");
     expect(readCatalystPointer(projectRoot)).toBeNull();
+  });
+});
+
+describe("hasCatalystPointer", () => {
+  it("is true when a well-formed *.catalyst pointer file exists", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({ project_name: "my-project", "agent-source": "/tmp" }),
+    );
+    expect(hasCatalystPointer(projectRoot)).toBe(true);
+  });
+
+  it("is false when no *.catalyst pointer file exists, even if a legacy in-project .criterion is present", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    mkdirSync(join(projectRoot, ".criterion"), { recursive: true });
+    expect(hasCatalystPointer(projectRoot)).toBe(false);
+    // resolveCorpusRoot's richer fallback chain still finds it — that's a
+    // separate concern from "should an install be offered."
+    expect(resolveCorpusRoot(projectRoot)).toBe(join(projectRoot, ".criterion"));
+  });
+
+  it("is false when the pointer file is malformed JSON", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    writeFileSync(join(projectRoot, "broken.catalyst"), "{not json");
+    expect(hasCatalystPointer(projectRoot)).toBe(false);
   });
 });
 

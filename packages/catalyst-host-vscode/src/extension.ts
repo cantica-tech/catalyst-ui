@@ -19,9 +19,13 @@ import type {
   WebviewPayload,
 } from "catalyst-core";
 import {
+  AGENT_PRESETS,
   compareVersions,
+  defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
+  hasCatalystPointer,
+  joinCriterionRepo,
   nextProposalId,
   openProposalsByTarget,
   parseChatAgents,
@@ -35,7 +39,11 @@ import {
 } from "catalyst-core";
 import * as vscode from "vscode";
 
-import { resolveAndInvoke } from "./agent-bridge.js";
+import {
+  invokeChatParticipant,
+  resolveAndInvoke,
+  scanAvailableAgents,
+} from "./agent-bridge.js";
 import {
   buildAuthoringProposalContent,
   type ComposableArtifactType,
@@ -864,12 +872,33 @@ async function writeProposal(
 }
 
 /**
- * A workspace folder with no resolvable `*.catalyst` gets an actionable
- * offer rather than silence. Catalyst's own instantiation is agent-driven
- * (`BOOTSTRAP.md` is written to be followed by a reasoning coding agent,
- * not run as a script), so this never executes anything itself — it only
- * copies a ready prompt to the clipboard, for whichever agent the user
- * runs it through.
+ * The chat participant for a known, detected coding-agent extension —
+ * looked up by scanning installed extensions (`scanAvailableAgents`),
+ * never by reading a `*.catalyst` pointer's `agent` field, since the
+ * whole point here is resolving one for a project that has no pointer
+ * yet. `null` when nothing in `AGENT_PRESETS` is actually installed.
+ */
+function detectDefaultAgentBinding(): { id: string; participant: string } | null {
+  const detected = scanAvailableAgents();
+  for (const [id, preset] of Object.entries(AGENT_PRESETS)) {
+    if (detected.some((d) => d.extensionId === preset.extensionId)) {
+      return { id, participant: preset.participant };
+    }
+  }
+  return null;
+}
+
+/**
+ * A workspace folder with no `*.catalyst` pointer file gets an actionable
+ * offer rather than silence — gated purely on that file's existence
+ * (`hasCatalystPointer`, checked by the caller), not on whether a working
+ * copy can actually be located, since that's a different question with
+ * its own richer fallback chain (`resolveCorpusRoot`). The two paths this
+ * offers reflect the only two ways a project's catalyst-existence
+ * question ever resolves: it's already backed by a repo somewhere
+ * (`connectExistingCriterionRepo`, fully code-driven), or it genuinely
+ * needs a first-time install (`offerAgentDrivenInstantiation`, which still
+ * needs a reasoning agent for BOOTSTRAP.md's judgment calls).
  */
 async function offerToInstall(
   context: vscode.ExtensionContext,
@@ -880,7 +909,7 @@ async function offerToInstall(
 
   const choice = await vscode.window.showInformationMessage(
     `No catalyst deployment found in "${folder.name}".`,
-    "Install catalyst…",
+    "Set up catalyst…",
     "Don't ask again",
   );
 
@@ -888,8 +917,98 @@ async function offerToInstall(
     await context.workspaceState.update(dismissKey, true);
     return;
   }
-  if (choice !== "Install catalyst…") return;
+  if (choice !== "Set up catalyst…") return;
 
+  const pick = await vscode.window.showQuickPick(
+    [
+      {
+        label: "Connect to an existing criterion repo",
+        detail:
+          "Clone an already-repoed deployment's branch — a git clone and a pointer file, no agent involved.",
+        action: "connect" as const,
+      },
+      {
+        label: "Create a brand new deployment",
+        detail:
+          "First-time instantiation — needs a reasoning agent to follow BOOTSTRAP.md.",
+        action: "create" as const,
+      },
+    ],
+    { placeHolder: `How should catalyst be set up for "${folder.name}"?` },
+  );
+  if (!pick) return;
+
+  if (pick.action === "connect") {
+    await connectExistingCriterionRepo(folder);
+  } else {
+    await offerAgentDrivenInstantiation(folder);
+  }
+}
+
+/**
+ * `/criterion get`'s mechanical half, done in code rather than handed to
+ * an agent: cloning a branch and writing a pointer file needs no judgment
+ * calls. Deliberately skips that command's identity-migration half
+ * (rewriting existing artifacts' `Signed-off-by` fields) — a project with
+ * no deployment a moment ago has no local artifacts to migrate.
+ */
+async function connectExistingCriterionRepo(
+  folder: vscode.WorkspaceFolder,
+): Promise<void> {
+  const repoUrl = await vscode.window.showInputBox({
+    title: "Criterion repo",
+    prompt: "Git URL of the existing criterion repo",
+    placeHolder: "git@github.com:org/criterion.git",
+    ignoreFocusOut: true,
+  });
+  if (!repoUrl) return;
+
+  const branch = await vscode.window.showInputBox({
+    title: "Branch to check out",
+    prompt:
+      'Your own "<name>.criterion" branch, or "criterion" itself for single-maintainer mode',
+    value: "criterion",
+    ignoreFocusOut: true,
+  });
+  if (!branch) return;
+
+  const agentSource = defaultAgentSource(folder.uri.fsPath);
+  const agentBinding = detectDefaultAgentBinding();
+
+  try {
+    await joinCriterionRepo({
+      projectRoot: folder.uri.fsPath,
+      repoUrl,
+      branch,
+      agentSource,
+      agentId: agentBinding?.id,
+    });
+    void vscode.window.showInformationMessage(
+      `Connected "${folder.name}" to ${repoUrl} (${branch}).`,
+    );
+  } catch (err) {
+    void vscode.window.showErrorMessage(
+      `Couldn't connect to the criterion repo: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
+}
+
+/**
+ * A brand-new deployment still needs a reasoning agent: BOOTSTRAP.md's
+ * install procedure has judgment calls (retrofit vs. greenfield,
+ * bootstrapping rules from existing code evidence) that aren't
+ * mechanically scriptable. What's code-driven now is the dispatch itself:
+ * a detected agent extension is picked and invoked directly
+ * (`invokeChatParticipant`) instead of copying a prompt to the clipboard
+ * and asking the user to paste it in themselves. Clipboard-copy remains
+ * only as the last-resort fallback when no known agent extension is
+ * detected at all — there's nothing to dispatch to.
+ */
+async function offerAgentDrivenInstantiation(
+  folder: vscode.WorkspaceFolder,
+): Promise<void> {
   const frameworkPath =
     findSiblingFrameworkRepo(folder.uri.fsPath) ??
     vscode.workspace.getConfiguration("catalyst").get<string>("frameworkPath");
@@ -908,11 +1027,23 @@ async function offerToInstall(
     return;
   }
 
-  await vscode.env.clipboard.writeText(
-    buildInstantiationPrompt(frameworkPath, folder.uri.fsPath),
+  const instruction = buildInstantiationPrompt(
+    frameworkPath,
+    folder.uri.fsPath,
   );
+  const agentBinding = detectDefaultAgentBinding();
+
+  if (!agentBinding) {
+    await vscode.env.clipboard.writeText(instruction);
+    void vscode.window.showInformationMessage(
+      "No known coding-agent extension detected — instantiation prompt copied to the clipboard instead. Paste it into your agent.",
+    );
+    return;
+  }
+
+  await invokeChatParticipant(agentBinding.participant, "", instruction);
   void vscode.window.showInformationMessage(
-    "Instantiation prompt copied — paste it into your coding agent.",
+    `Sent the instantiation instruction to ${agentBinding.participant}.`,
   );
 }
 
@@ -1192,11 +1323,12 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(agentBridgeOutputChannel);
 
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
-    const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
-    if (!corpusRoot) {
+    if (!hasCatalystPointer(folder.uri.fsPath)) {
       void offerToInstall(context, folder);
       return;
     }
+    const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
+    if (!corpusRoot) return;
     if (registeredDeployments.has(corpusRoot)) return;
     registeredDeployments.set(
       corpusRoot,
