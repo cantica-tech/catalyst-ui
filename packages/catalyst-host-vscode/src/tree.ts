@@ -42,6 +42,40 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     }
   }
 
+  const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
+  if (isRoadmap) {
+    const s = (
+      "status" in node && typeof node.status === "string" ? node.status : ""
+    )
+      .toLowerCase()
+      .trim();
+
+    const isDone =
+      s.includes("done") ||
+      s.includes("finished") ||
+      s.includes("completed") ||
+      s.includes("closed") ||
+      s.includes("fixed") ||
+      s.includes("✅");
+
+    if (isDone) {
+      return "✅ ";
+    }
+
+    const isInProgress =
+      s.includes("in progress") ||
+      s.includes("in-progress") ||
+      s.includes("in_progress") ||
+      s.includes("progress") ||
+      s.includes("⏳");
+
+    if (isInProgress) {
+      return "⏳ ";
+    }
+
+    return "∅ ";
+  }
+
   if ("status" in node && typeof node.status === "string" && node.status) {
     if (node.status.includes("❌")) return "❌ ";
     if (node.status.includes("🗑")) return "🗑 ";
