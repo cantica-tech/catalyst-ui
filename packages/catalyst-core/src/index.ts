@@ -19,6 +19,8 @@ export {
 export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
 export { buildChainModel } from "./graph.js";
 export {
+  claudeCodeStoragePath,
+  hasCatalystPointer,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
@@ -31,6 +33,13 @@ export {
   BACKTICK_ROADMAP_ID_RE,
 } from "./ids.js";
 export { parseIamUsers, parseIamRoles } from "./iam.js";
+export {
+  defaultAgentSource,
+  joinCriterionRepo,
+  repoNameFromUrl,
+  writeCatalystPointer,
+  type JoinCriterionOptions,
+} from "./join-criterion.js";
 export { parseJournal, queryJournal } from "./journal.js";
 export {
   cleanRuleTitle,
