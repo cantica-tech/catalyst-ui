@@ -878,7 +878,10 @@ async function writeProposal(
  * whole point here is resolving one for a project that has no pointer
  * yet. `null` when nothing in `AGENT_PRESETS` is actually installed.
  */
-function detectDefaultAgentBinding(): { id: string; participant: string } | null {
+function detectDefaultAgentBinding(): {
+  id: string;
+  participant: string;
+} | null {
   const detected = scanAvailableAgents();
   for (const [id, preset] of Object.entries(AGENT_PRESETS)) {
     if (detected.some((d) => d.extensionId === preset.extensionId)) {

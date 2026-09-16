@@ -134,7 +134,9 @@ describe("hasCatalystPointer", () => {
     expect(hasCatalystPointer(projectRoot)).toBe(false);
     // resolveCorpusRoot's richer fallback chain still finds it — that's a
     // separate concern from "should an install be offered."
-    expect(resolveCorpusRoot(projectRoot)).toBe(join(projectRoot, ".criterion"));
+    expect(resolveCorpusRoot(projectRoot)).toBe(
+      join(projectRoot, ".criterion"),
+    );
   });
 
   it("is false when the pointer file is malformed JSON", () => {

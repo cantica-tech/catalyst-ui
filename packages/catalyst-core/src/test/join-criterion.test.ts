@@ -93,10 +93,7 @@ describe("writeCatalystPointer", () => {
       "agent-source": "/tmp/somewhere",
     });
 
-    const raw = readFileSync(
-      join(projectRoot, "my-project.catalyst"),
-      "utf8",
-    );
+    const raw = readFileSync(join(projectRoot, "my-project.catalyst"), "utf8");
     expect(raw.endsWith("\n")).toBe(true);
     expect(JSON.parse(raw)).toEqual({
       project_name: "my-project",
@@ -109,7 +106,11 @@ describe("joinCriterionRepo", () => {
   it("clones the given branch into agentSource and writes a matching pointer file", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(tempDir("catalyst-core-join-target-"), "nested", ".criterion");
+    const agentSource = join(
+      tempDir("catalyst-core-join-target-"),
+      "nested",
+      ".criterion",
+    );
 
     const pointer = await joinCriterionRepo({
       projectRoot,
@@ -141,7 +142,10 @@ describe("joinCriterionRepo", () => {
   it("clones a contributor's own <name>.criterion branch, not just criterion itself", async () => {
     const repoUrl = await createBareCriterionRepo("olivier-steck.criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(tempDir("catalyst-core-join-target-"), ".criterion");
+    const agentSource = join(
+      tempDir("catalyst-core-join-target-"),
+      ".criterion",
+    );
 
     const pointer = await joinCriterionRepo({
       projectRoot,
@@ -161,14 +165,22 @@ describe("joinCriterionRepo", () => {
     writeFileSync(join(agentSource, "already-here.txt"), "content");
 
     await expect(
-      joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion", agentSource }),
+      joinCriterionRepo({
+        projectRoot,
+        repoUrl,
+        branch: "criterion",
+        agentSource,
+      }),
     ).rejects.toThrow(/already exists and is not empty/);
   });
 
   it("rejects when the branch doesn't exist on the remote", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(tempDir("catalyst-core-join-target-"), ".criterion");
+    const agentSource = join(
+      tempDir("catalyst-core-join-target-"),
+      ".criterion",
+    );
 
     await expect(
       joinCriterionRepo({
