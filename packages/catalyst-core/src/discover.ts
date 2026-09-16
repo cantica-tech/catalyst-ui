@@ -83,6 +83,20 @@ function findCorpusRootFromMemory(projectRoot: string): string | null {
 }
 
 /**
+ * Claude Code's per-project data directory convention for a fresh
+ * deployment's working copy: `~/.claude/projects/<slug>/.criterion`, where
+ * `<slug>` is the project's absolute path with `/` and `:` collapsed to
+ * `-`. Shared by `resolveCorpusRoot`'s fallback 2 (an existing deployment
+ * that predates its own pointer) and by a brand-new deployment's default
+ * `agent-source` (`join-criterion.ts`) — both need the exact same
+ * convention or the two would disagree about where the working copy lives.
+ */
+export function claudeCodeStoragePath(projectRoot: string): string {
+  const slug = projectRoot.replace(/[/:]/g, "-");
+  return join(homedir(), ".claude", "projects", slug, ".criterion");
+}
+
+/**
  * Resolves which catalyst deployment to inspect for an opened project, the
  * same way catalyst's own scripts/check_deployment.py's find_deploy_root
  * does: a `*.catalyst` pointer file at the project root, whose
@@ -103,8 +117,7 @@ export function resolveCorpusRoot(projectRoot: string): string | null {
   if (existsSync(inProject)) return inProject;
 
   // Fallback 2: Claude Code per-project storage (~/.claude/projects/<slug>/.criterion)
-  const slug = projectRoot.replace(/[/:]/g, "-");
-  const claudeCode = join(homedir(), ".claude", "projects", slug, ".criterion");
+  const claudeCode = claudeCodeStoragePath(projectRoot);
   if (existsSync(claudeCode)) return claudeCode;
 
   // Fallback 3: Thoroughly explore persistent memory for recorded deployment targets
@@ -124,6 +137,22 @@ export function readCatalystPointer(
   projectRoot: string,
 ): CatalystPointer | null {
   return readPointerFile(projectRoot);
+}
+
+/**
+ * Whether a catalyst deployment is already declared for this project — the
+ * one, deliberately simple existence check an install-offer should gate
+ * on: does a well-formed `*.catalyst` pointer file exist at the project
+ * root? Never the richer `resolveCorpusRoot` fallback chain (in-project
+ * `.criterion`, Claude Code storage guesses, memory-note text scanning) —
+ * those exist to *locate* an already-declared deployment's working copy,
+ * not to decide whether one was ever declared in the first place. A
+ * project with none of those fallbacks resolving but a real pointer file
+ * still counts as "has catalyst" here — it just needs its pointer fixed,
+ * not a fresh install offered on top.
+ */
+export function hasCatalystPointer(projectRoot: string): boolean {
+  return readPointerFile(projectRoot) !== null;
 }
 
 /**
