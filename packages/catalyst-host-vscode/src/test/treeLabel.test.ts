@@ -173,4 +173,34 @@ describe("formatNodeLabel", () => {
       "✅ Childless root sump not correlatable [BUG-000003]",
     );
   });
+
+  it("formats a finished roadmap item with ✅ status glyph", () => {
+    const n = node({
+      id: "RM-000001-z6qEx1Kf",
+      kind: "roadmap",
+      name: "Bulk export",
+      status: "Done",
+    });
+    assert.strictEqual(formatNodeLabel(n), "✅ Bulk export [RM-000001]");
+  });
+
+  it("formats an in-progress roadmap item with ⏳ status glyph", () => {
+    const n = node({
+      id: "RM-000002-z6qEx1Kf",
+      kind: "roadmap",
+      name: "Import dataset",
+      status: "In progress",
+    });
+    assert.strictEqual(formatNodeLabel(n), "⏳ Import dataset [RM-000002]");
+  });
+
+  it("formats a not done roadmap item with ∅ status glyph", () => {
+    const n = node({
+      id: "RM-000003-z6qEx1Kf",
+      kind: "roadmap",
+      name: "Realtime updates",
+      status: "Not triaged",
+    });
+    assert.strictEqual(formatNodeLabel(n), "∅ Realtime updates [RM-000003]");
+  });
 });
