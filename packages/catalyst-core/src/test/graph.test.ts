@@ -219,4 +219,37 @@ describe("buildChainModel", () => {
     expect(model.edges.has("REQ-000001")).toBe(false);
     expect(model.reverseEdges.has("REQ-000001")).toBe(false);
   });
+
+  it("resolves a step's requirement into forward and reverse edges", () => {
+    const req = node({
+      id: "REQ-000001",
+      kind: "dev-artifact",
+      artifactType: "requirement",
+      status: "in-progress",
+      targets: [],
+      registered: true,
+      fileExists: true,
+    });
+    const step = node({
+      id: "STEP-000001",
+      kind: "step",
+      requirement: "REQ-000001",
+      status: "done",
+      registered: true,
+      fileExists: true,
+      references: ["REQ-000001"],
+    });
+
+    const model = buildChainModel(
+      parseResult([
+        { file: "req.md", mtimeMs: 0, nodes: [req] },
+        { file: "step.md", mtimeMs: 0, nodes: [step] },
+      ]),
+    );
+
+    expect(model.edges.get("STEP-000001")).toEqual(new Set(["REQ-000001"]));
+    expect(model.reverseEdges.get("REQ-000001")).toEqual(
+      new Set(["STEP-000001"]),
+    );
+  });
 });

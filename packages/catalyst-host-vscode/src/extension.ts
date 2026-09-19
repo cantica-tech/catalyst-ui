@@ -165,6 +165,7 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   "house-keeping": "house-keeping",
   domain: "domain",
   feature: "features",
+  step: "step",
 };
 
 /**
@@ -179,6 +180,7 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   "house-keeping": ["house-keeping"],
   domain: ["domain"],
   feature: ["feature"],
+  step: ["step"],
 };
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -188,6 +190,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   rule: "Rule",
   domain: "Domain",
   feature: "Feature",
+  step: "Step",
   roadmap: "Roadmap",
   user: "User",
   role: "Role",
@@ -238,6 +241,8 @@ function nodeIconName(node: ChainNode): string | undefined {
       return "features";
     case "roadmap":
       return "roadmap";
+    case "step":
+      return "step";
     default:
       return undefined;
   }
@@ -545,7 +550,9 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     const pendingMark = element.pending ? "⏳ " : "";
     const item = new vscode.TreeItem(
       `${pendingMark}${formatNodeLabel(element.node)}`,
-      vscode.TreeItemCollapsibleState.None,
+      this.hasStepChildren(element.corpusRoot, element.node)
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None,
     );
     item.command = {
       command: SHOW_DETAIL_COMMAND,
@@ -555,6 +562,43 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     const iconName = nodeIconName(element.node);
     if (iconName) item.iconPath = this.iconUris(iconName);
     return item;
+  }
+
+  /** True for a requirement node with at least one STEP- pointing at it (`Rules-of-Rules.md` §21). */
+  private hasStepChildren(corpusRoot: string, node: ChainNode): boolean {
+    if (node.kind !== "dev-artifact" || node.artifactType !== "requirement") {
+      return false;
+    }
+    const model = this.getModel(corpusRoot);
+    const reverse = model?.reverseEdges.get(node.id);
+    if (!reverse) return false;
+    for (const id of reverse) {
+      if (model!.nodes.get(id)?.kind === "step") return true;
+    }
+    return false;
+  }
+
+  /** A requirement's own steps, resolved via the chain model's reverse edges — sorted by id. */
+  private stepChildrenFor(
+    corpusRoot: string,
+    node: ChainNode,
+  ): InspectorTreeItem[] {
+    if (node.kind !== "dev-artifact" || node.artifactType !== "requirement") {
+      return [];
+    }
+    const model = this.getModel(corpusRoot);
+    const reverse = model?.reverseEdges.get(node.id);
+    if (!model || !reverse) return [];
+    return [...reverse]
+      .map((id) => model.nodes.get(id))
+      .filter((n): n is ChainNode => n !== undefined && n.kind === "step")
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((stepNode) => ({
+        type: "node" as const,
+        corpusRoot,
+        node: stepNode,
+        pending: false,
+      }));
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
@@ -714,6 +758,9 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         corpusRoot: element.corpusRoot,
         role,
       }));
+    }
+    if (element.type === "node") {
+      return this.stepChildrenFor(element.corpusRoot, element.node);
     }
     return [];
   }

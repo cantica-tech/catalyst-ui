@@ -6,7 +6,13 @@
  */
 
 export type NodeKind =
-  "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap";
+  | "work-item"
+  | "dev-artifact"
+  | "rule"
+  | "domain"
+  | "feature"
+  | "roadmap"
+  | "step";
 
 export type DevArtifactType = "bug" | "requirement" | "house-keeping";
 
@@ -88,6 +94,29 @@ export interface FeatureNode extends ChainNodeBase {
   content: string;
 }
 
+export type StepStatus = "planned" | "in-progress" | "done" | "abandoned";
+
+/**
+ * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, framework 0.29.0) — one concrete
+ * unit of implementation work performed toward a specific requirement.
+ * Never rule-linked (no `targets`/`domain` of its own — it inherits its
+ * parent requirement's); `requirement` is the one required cross-reference.
+ */
+export interface StepNode extends ChainNodeBase {
+  kind: "step";
+  requirement: string;
+  status: StepStatus;
+  signedOffBy?: string;
+  /** Listed in `steps/steps.md`. */
+  registered: boolean;
+  /** Backing .md file exists on disk. */
+  fileExists: boolean;
+  /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
+  description: string;
+  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
+  content: string;
+}
+
 export type RoadmapStatus = "Not triaged" | "Triaged" | "In progress" | "Done";
 
 /**
@@ -116,7 +145,8 @@ export type ChainNode =
   | RuleNode
   | DomainNode
   | FeatureNode
-  | RoadmapNode;
+  | RoadmapNode
+  | StepNode;
 
 export interface ChainModel {
   nodes: Map<string, ChainNode>;

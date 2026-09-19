@@ -38,9 +38,35 @@ describe("buildTreeSections", () => {
     assert.strictEqual(rules.sections.length, 0);
     assert.deepStrictEqual(
       sections.map((s) => s.kind),
-      ["domain", "feature"],
+      ["domain", "feature", "step"],
     );
     assert.ok(sections.every((s) => s.nodes.length === 0));
+  });
+
+  it("groups step nodes into their own Steps section", () => {
+    const stepNode: ChainNode = {
+      id: "STEP-000001",
+      kind: "step",
+      title: "STEP-000001",
+      location: { file: "f.md", line: 1 },
+      references: [],
+      requirement: "REQ-000001",
+      status: "done",
+      registered: true,
+      fileExists: true,
+      description: "",
+      content: "",
+    } as ChainNode;
+
+    const { sections } = buildTreeSections(
+      modelOf([stepNode, node({ id: "REQ-000001" })]),
+    );
+    const stepSection = sections.find((s) => s.kind === "step")!;
+    assert.strictEqual(stepSection.label, "Steps");
+    assert.deepStrictEqual(
+      stepSection.nodes.map((n) => n.id),
+      ["STEP-000001"],
+    );
   });
 
   it("splits dev-artifact nodes into separate sub-sections by their artifactType", () => {

@@ -5,7 +5,8 @@ export function getNodeUser(node: ChainNode): string | undefined {
   if (
     node.kind === "dev-artifact" ||
     node.kind === "feature" ||
-    node.kind === "rule"
+    node.kind === "rule" ||
+    node.kind === "step"
   ) {
     user = node.signedOffBy || undefined;
   } else if (node.kind === "roadmap") {
@@ -74,6 +75,19 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     }
 
     return "∅ ";
+  }
+
+  if (node.kind === "step") {
+    switch (node.status) {
+      case "done":
+        return "✅ ";
+      case "in-progress":
+        return "⏳ ";
+      case "abandoned":
+        return "🗑 ";
+      default:
+        return "∅ ";
+    }
   }
 
   if ("status" in node && typeof node.status === "string" && node.status) {
@@ -196,7 +210,8 @@ export function formatNodeLabel(node: ChainNode): string {
  * deployment, so the model never has any.
  */
 export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping";
-export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
+export type TreeSectionKind =
+  DevArtifactSectionKind | "domain" | "feature" | "step";
 
 export interface TreeSection {
   kind: TreeSectionKind;
@@ -234,6 +249,7 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   "house-keeping": "House-keeping",
   domain: "Domains",
   feature: "Features",
+  step: "Steps",
 };
 
 const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
@@ -242,7 +258,7 @@ const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "house-keeping",
 ];
 
-const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature"];
+const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature", "step"];
 
 export function ruleTypeLabel(prefix: string): string {
   const p = prefix.toLowerCase();
@@ -272,7 +288,11 @@ export function buildTreeSections(model: ChainModel): TreeSections {
       const list = rulesByPrefix.get(prefix) ?? [];
       list.push(node);
       rulesByPrefix.set(prefix, list);
-    } else if (node.kind === "domain" || node.kind === "feature") {
+    } else if (
+      node.kind === "domain" ||
+      node.kind === "feature" ||
+      node.kind === "step"
+    ) {
       const list = otherByKind.get(node.kind) ?? [];
       list.push(node);
       otherByKind.set(node.kind, list);

@@ -26,11 +26,13 @@ export const RULE_ID_PATTERN = "[a-z]+-[A-Z0-9_]+-\\d{3,6}(?:-[a-zA-Z0-9]+)*";
 export const DEV_ARTIFACT_ID_PATTERN = `(?:BUG|REQ|HK)-\\d{6}${USERID_SUFFIX_PATTERN}`;
 export const FEATURE_ID_PATTERN = `FEAT-\\d{6}${USERID_SUFFIX_PATTERN}`;
 export const ROADMAP_ID_PATTERN = `RM-\\d{6}${USERID_SUFFIX_PATTERN}`;
+export const STEP_ID_PATTERN = `STEP-\\d{6}${USERID_SUFFIX_PATTERN}`;
 
 export const RULE_ID_RE = new RegExp(`^${RULE_ID_PATTERN}$`);
 export const DEV_ARTIFACT_ID_RE = new RegExp(`^${DEV_ARTIFACT_ID_PATTERN}$`);
 export const FEATURE_ID_RE = new RegExp(`^${FEATURE_ID_PATTERN}$`);
 export const ROADMAP_ID_RE = new RegExp(`^${ROADMAP_ID_PATTERN}$`);
+export const STEP_ID_RE = new RegExp(`^${STEP_ID_PATTERN}$`);
 
 export const BACKTICK_RULE_ID_RE = new RegExp(`\`(${RULE_ID_PATTERN})\``, "g");
 export const BACKTICK_DEV_ARTIFACT_ID_RE = new RegExp(
@@ -45,8 +47,9 @@ export const BACKTICK_ROADMAP_ID_RE = new RegExp(
   `\`(${ROADMAP_ID_PATTERN})\``,
   "g",
 );
+export const BACKTICK_STEP_ID_RE = new RegExp(`\`(${STEP_ID_PATTERN})\``, "g");
 
-/** Every backtick-quoted rule/dev-artifact/feature/roadmap id token found in `text`, deduped. */
+/** Every backtick-quoted rule/dev-artifact/feature/roadmap/step id token found in `text`, deduped. */
 export function collectIdReferences(text: string): string[] {
   const found = new Set<string>();
   for (const re of [
@@ -54,6 +57,7 @@ export function collectIdReferences(text: string): string[] {
     BACKTICK_DEV_ARTIFACT_ID_RE,
     BACKTICK_FEATURE_ID_RE,
     BACKTICK_ROADMAP_ID_RE,
+    BACKTICK_STEP_ID_RE,
   ]) {
     re.lastIndex = 0;
     let match: RegExpExecArray | null;
