@@ -108,6 +108,44 @@ describe("buildNodeDetail", () => {
     const detail = buildNodeDetail(model, req.id, byTarget)!;
     assert.deepStrictEqual(detail.openProposals, [proposal]);
   });
+
+  it("includes a requirement's steps in its downstream, resolved from reverseEdges", () => {
+    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const step: ChainNode = {
+      id: "STEP-000001",
+      kind: "step",
+      title: "STEP-000001",
+      location: { file: "f.md", line: 1 },
+      references: [],
+      requirement: "REQ-000001",
+      status: "done",
+      registered: true,
+      fileExists: true,
+      description: "",
+      content: "",
+    } as ChainNode;
+    const model: ChainModel = {
+      nodes: new Map([
+        [req.id, req],
+        [step.id, step],
+      ]),
+      edges: new Map([[step.id, new Set([req.id])]]),
+      reverseEdges: new Map([[req.id, new Set([step.id])]]),
+      definitionsById: new Map(),
+    };
+
+    const reqDetail = buildNodeDetail(model, req.id, noProposals)!;
+    assert.deepStrictEqual(
+      reqDetail.downstream.map((n) => n.id),
+      ["STEP-000001"],
+    );
+
+    const stepDetail = buildNodeDetail(model, step.id, noProposals)!;
+    assert.deepStrictEqual(
+      stepDetail.upstream.map((n) => n.id),
+      ["REQ-000001"],
+    );
+  });
 });
 
 describe("buildIamUserDetail", () => {

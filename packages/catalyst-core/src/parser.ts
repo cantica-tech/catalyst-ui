@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import {
+  BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
   BACKTICK_RULE_ID_RE,
   DEV_ARTIFACT_ID_PATTERN,
@@ -9,6 +10,7 @@ import {
   ROADMAP_ID_PATTERN,
   RULE_ID_PATTERN,
   RULE_ID_RE,
+  STEP_ID_PATTERN,
   collectIdReferences,
   devArtifactType,
   extractIds,
@@ -24,6 +26,8 @@ import type {
   RoadmapNode,
   RoadmapStatus,
   RuleNode,
+  StepNode,
+  StepStatus,
 } from "./types.js";
 
 const DOMAIN_LINE_RE = /^>\s*\*\*Domain:\*\*\s*`([A-Z0-9_]+)`/;
@@ -659,6 +663,83 @@ function parseFeatureCollection(
   return files;
 }
 
+function isStepStatus(value: string | undefined): value is StepStatus {
+  return (
+    value === "planned" ||
+    value === "in-progress" ||
+    value === "done" ||
+    value === "abandoned"
+  );
+}
+
+function buildStepNode(
+  id: string,
+  filePath: string,
+  registered: IndexRow | undefined,
+): StepNode {
+  const { fields, text } = parseFieldTable(filePath);
+  const status = fields.get("Status") ?? registered?.status ?? "";
+  return {
+    id,
+    kind: "step",
+    title: registered?.title ?? fields.get("ID") ?? id,
+    name: fields.get("Name") ?? registered?.title ?? fields.get("ID") ?? id,
+    location: { file: filePath, line: 1 },
+    requirement: extractIds(fields.get("Requirement") ?? "", BACKTICK_DEV_ARTIFACT_ID_RE)[0] ?? "",
+    status: isStepStatus(status) ? status : "planned",
+    signedOffBy: fields.get("Signed-off-by"),
+    registered: registered !== undefined,
+    fileExists: true,
+    references: collectIdReferences(text),
+    description: sectionLines(text, "Description").join(" "),
+    content: text,
+  };
+}
+
+/** steps/ — each step names exactly one parent requirement (`Rules-of-Rules.md` §21); never rule-linked itself. */
+function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
+  const index = parseIndexTable(indexPath, STEP_ID_PATTERN);
+  const idFromFilenameRe = new RegExp(`^(${STEP_ID_PATTERN})-`);
+  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe);
+
+  const files: ParsedFile[] = [];
+  const indexOnlyNodes: ChainNode[] = [];
+
+  for (const id of new Set([...index.keys(), ...onDisk.keys()])) {
+    const registeredRow = index.get(id);
+    const filePath = onDisk.get(id);
+    if (filePath) {
+      files.push({
+        file: filePath,
+        mtimeMs: statSync(filePath).mtimeMs,
+        nodes: [buildStepNode(id, filePath, registeredRow)],
+      });
+    } else if (registeredRow) {
+      indexOnlyNodes.push({
+        id,
+        kind: "step",
+        title: registeredRow.title,
+        name: registeredRow.title,
+        location: { file: indexPath, line: registeredRow.line },
+        requirement: "",
+        status: isStepStatus(registeredRow.status) ? registeredRow.status : "planned",
+        registered: true,
+        fileExists: false,
+        references: [],
+        description: "",
+        content: "",
+      });
+    }
+  }
+
+  files.push({
+    file: indexPath,
+    mtimeMs: statSync(indexPath).mtimeMs,
+    nodes: indexOnlyNodes,
+  });
+  return files;
+}
+
 function isRoadmapStatus(value: string | undefined): value is RoadmapStatus {
   return (
     value === "Not triaged" ||
@@ -831,6 +912,12 @@ export function parseCorpus(
     files.push(
       ...parseFeatureCollection(featuresIndexPath, join(root, "features")),
     );
+  }
+
+  if (!shouldContinue()) return null;
+  const stepsIndexPath = join(root, "steps", "steps.md");
+  if (existsSync(stepsIndexPath)) {
+    files.push(...parseStepCollection(stepsIndexPath, join(root, "steps")));
   }
 
   if (!shouldContinue()) return null;

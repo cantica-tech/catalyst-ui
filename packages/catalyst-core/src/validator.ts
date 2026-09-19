@@ -9,6 +9,9 @@ import type { ChainModel, ValidationIssue, ValidationReport } from "./types.js";
  * 1. orphaned-artifact — a dev-artifact registered in its index but its file
  *    is missing (or the reverse), or a dev-artifact with no Targets rule at
  *    all (Rules-of-Rules.md §1: no development without a targeted rule).
+ *    Same registered/fileExists check applies to a step, plus a step with
+ *    no Requirement field (Rules-of-Rules.md §21: always names exactly one
+ *    parent requirement).
  * 2. unbacked-rule — a rule not listed in the global rules/rules.md, or
  *    whose domain isn't registered (with an existing doc file) in
  *    rules/domains/domains.md (§5/§7). `rr-META-*` rules are exempt — they
@@ -48,6 +51,37 @@ export function validate(model: ChainModel): ValidationReport {
         severity: "error",
         nodeId: node.id,
         message: `${node.id} has no Targets rule (no development without a targeted rule)`,
+        location: node.location,
+      });
+    }
+  }
+
+  for (const node of model.nodes.values()) {
+    if (node.kind !== "step") continue;
+    if (!node.registered) {
+      issues.push({
+        kind: "orphaned-artifact",
+        severity: "error",
+        nodeId: node.id,
+        message: `${node.id} has a file on disk but is not registered in steps/steps.md`,
+        location: node.location,
+      });
+    }
+    if (!node.fileExists) {
+      issues.push({
+        kind: "orphaned-artifact",
+        severity: "error",
+        nodeId: node.id,
+        message: `${node.id} is registered in steps/steps.md but its file is missing`,
+        location: node.location,
+      });
+    }
+    if (node.fileExists && !node.requirement) {
+      issues.push({
+        kind: "orphaned-artifact",
+        severity: "error",
+        nodeId: node.id,
+        message: `${node.id} has no Requirement field (a step always names exactly one parent requirement)`,
         location: node.location,
       });
     }

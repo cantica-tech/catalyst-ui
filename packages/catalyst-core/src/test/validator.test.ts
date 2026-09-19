@@ -47,6 +47,20 @@ function domain(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   } as ChainNode;
 }
 
+function step(overrides: Partial<ChainNode> & { id: string }): ChainNode {
+  return {
+    kind: "step",
+    title: overrides.id,
+    location: { file: "f.md", line: 1 },
+    requirement: "REQ-000001",
+    status: "in-progress",
+    registered: true,
+    fileExists: true,
+    references: [],
+    ...overrides,
+  } as ChainNode;
+}
+
 function modelOf(nodes: ChainNode[]): ReturnType<typeof buildChainModel> {
   const result: ParseResult = {
     root: "/fixture",
@@ -119,6 +133,69 @@ describe("validate — orphaned artifacts", () => {
     expect(report.issues.filter((i) => i.kind === "orphaned-artifact")).toEqual(
       [],
     );
+  });
+});
+
+describe("validate — steps", () => {
+  it("flags a step with no Requirement field", () => {
+    const report = validate(modelOf([step({ id: "STEP-000001", requirement: "" })]));
+    expect(
+      report.issues.some(
+        (i) =>
+          i.kind === "orphaned-artifact" &&
+          i.message.includes("no Requirement field"),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a step registered in the index but missing its file", () => {
+    const report = validate(
+      modelOf([step({ id: "STEP-000001", fileExists: false })]),
+    );
+    expect(
+      report.issues.some(
+        (i) => i.kind === "orphaned-artifact" && i.message.includes("file is missing"),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a step file on disk but not registered in the index", () => {
+    const report = validate(
+      modelOf([step({ id: "STEP-000001", registered: false })]),
+    );
+    expect(
+      report.issues.some(
+        (i) => i.kind === "orphaned-artifact" && i.message.includes("not registered"),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a dangling reference when a step's Requirement doesn't resolve to a real node", () => {
+    const report = validate(
+      modelOf([
+        {
+          ...step({ id: "STEP-000001", requirement: "REQ-000099" }),
+          references: ["REQ-000099"],
+        } as ChainNode,
+      ]),
+    );
+    expect(
+      report.issues.some(
+        (i) => i.kind === "dangling-reference" && i.nodeId === "STEP-000001",
+      ),
+    ).toBe(true);
+  });
+
+  it("passes a well-formed step targeting a real requirement clean", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({ id: "REQ-000001", targets: ["env-RUNTIME-001"] }),
+        rule({ id: "env-RUNTIME-001" }),
+        domain({ id: "RUNTIME" }),
+        { ...step({ id: "STEP-000001" }), references: ["REQ-000001"] } as ChainNode,
+      ]),
+    );
+    expect(report.issues.filter((i) => i.nodeId === "STEP-000001")).toEqual([]);
   });
 });
 
