@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.20.15",
+  "version": "0.20.16",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
