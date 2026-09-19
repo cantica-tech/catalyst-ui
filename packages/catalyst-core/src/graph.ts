@@ -50,6 +50,9 @@ export function buildChainModel(parseResult: ParseResult): ChainModel {
     if (node.kind === "roadmap" && node.linked) {
       addEdge(node.id, node.linked);
     }
+    if (node.kind === "step" && node.requirement) {
+      addEdge(node.id, node.requirement);
+    }
   }
 
   return { nodes, edges, reverseEdges, definitionsById };

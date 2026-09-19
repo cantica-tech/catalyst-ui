@@ -15,6 +15,7 @@ import type {
   FeatureNode,
   RoadmapNode,
   RuleNode,
+  StepNode,
 } from "../types.js";
 import {
   createFixtureCorpus,
@@ -380,6 +381,72 @@ describe("parseCorpus", () => {
     expect(item2.roadmapRetired).toBe(true);
     expect(item2.status).toBe("Not triaged");
     expect(item2.linked).toBeUndefined();
+  });
+
+  it("parses a step and links it to its parent requirement", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Core parser" }],
+      steps: [
+        {
+          id: "STEP-000001",
+          title: "Wire up the tokenizer",
+          requirement: "REQ-000001",
+          status: "done",
+          description: "Implemented the tokenizer for the corpus parser.",
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
+    expect(step).toBeDefined();
+    expect(step.kind).toBe("step");
+    expect(step.requirement).toBe("REQ-000001");
+    expect(step.status).toBe("done");
+    expect(step.registered).toBe(true);
+    expect(step.fileExists).toBe(true);
+    expect(step.description).toBe(
+      "Implemented the tokenizer for the corpus parser.",
+    );
+    expect(step.references).toContain("REQ-000001");
+  });
+
+  it("marks a step registered in the index but missing its file", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Core parser" }],
+      steps: [
+        {
+          id: "STEP-000001",
+          title: "Ghost step",
+          requirement: "REQ-000001",
+          createFile: false,
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
+    expect(step.registered).toBe(true);
+    expect(step.fileExists).toBe(false);
+  });
+
+  it("marks a step file on disk but missing from the index", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Core parser" }],
+      steps: [
+        {
+          id: "STEP-000001",
+          title: "Unregistered step",
+          requirement: "REQ-000001",
+          registerInIndex: false,
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
+    expect(step.registered).toBe(false);
+    expect(step.fileExists).toBe(true);
   });
 });
 

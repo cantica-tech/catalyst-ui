@@ -3,6 +3,7 @@ import type {
   DevArtifactNode,
   RoadmapNode,
   RuleNode,
+  StepNode,
 } from "catalyst-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -32,6 +33,22 @@ function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
     location: { file: "f.md", line: 1 },
     status: "open",
     targets: [],
+    registered: true,
+    fileExists: true,
+    description: "",
+    content: "",
+    references: [],
+    ...overrides,
+  } as ChainNode;
+}
+
+function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
+  return {
+    kind: "step",
+    title: overrides.id,
+    location: { file: "f.md", line: 1 },
+    requirement: "REQ-000001",
+    status: "in-progress",
     registered: true,
     fileExists: true,
     description: "",
@@ -91,6 +108,26 @@ describe("NodeDetail", () => {
     expect(html).toContain("rr-META-003");
     expect(html).toContain("Produces");
     expect(html).toContain("env-RUNTIME-002");
+  });
+
+  it("lists a requirement's steps in its downstream (Produces) section", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({
+          id: "REQ-000001",
+          artifactType: "requirement",
+          title: "Core parser",
+        }),
+        upstream: [],
+        downstream: [
+          step({ id: "STEP-000001", title: "Wire up the tokenizer" }),
+        ],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).toContain("Produces");
+    expect(html).toContain("STEP-000001");
   });
 
   it("renders 'None.' for empty upstream/downstream lists", () => {

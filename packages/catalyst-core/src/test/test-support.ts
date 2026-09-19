@@ -49,6 +49,16 @@ export interface FixtureFeature {
   description?: string;
 }
 
+export interface FixtureStep {
+  id: string;
+  title: string;
+  requirement: string;
+  status?: string;
+  registerInIndex?: boolean;
+  createFile?: boolean;
+  description?: string;
+}
+
 export interface FixtureProposal {
   id: string;
   status?: string;
@@ -116,6 +126,7 @@ export interface FixtureSpec {
   bugs?: FixtureArtifact[];
   houseKeeping?: FixtureArtifact[];
   features?: FixtureFeature[];
+  steps?: FixtureStep[];
   proposals?: FixtureProposal[];
   runs?: FixtureRun[];
   roadmaps?: FixtureRoadmap[];
@@ -214,6 +225,18 @@ function renderFeatureFile(feature: FixtureFeature): string {
     ? `## Description\n\n${feature.description}\n\n`
     : "";
   return `# \`${feature.id}\` — ${feature.title}\n\n${renderFieldTable({ ID: `\`${feature.id}\``, Status: feature.status ?? "in-development" })}\n${description}`;
+}
+
+function renderStepFile(step: FixtureStep): string {
+  const description = step.description
+    ? `## Description\n\n${step.description}\n\n`
+    : "";
+  const fields = renderFieldTable({
+    ID: `\`${step.id}\``,
+    Requirement: `\`${step.requirement}\``,
+    Status: step.status ?? "in-progress",
+  });
+  return `# \`${step.id}\` — ${step.title}\n\n${fields}\n${description}`;
 }
 
 function renderProposalFile(proposal: FixtureProposal): string {
@@ -419,6 +442,25 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
       join(featuresDir, `${feature.id}-file.md`),
       renderFeatureFile(feature),
     );
+  }
+
+  const stepsDir = join(root, "steps");
+  mkdirSync(stepsDir, { recursive: true });
+  const steps = spec.steps ?? [];
+  const stepRows = steps
+    .filter((s) => s.registerInIndex !== false)
+    .map((s) => ({
+      id: s.id,
+      filename: `${s.id}-file.md`,
+      cells: [s.title, s.requirement, s.status ?? "in-progress"],
+    }));
+  writeFileSync(
+    join(stepsDir, "steps.md"),
+    renderArtifactIndex(["Title", "Requirement", "Status"], stepRows),
+  );
+  for (const step of steps) {
+    if (step.createFile === false) continue;
+    writeFileSync(join(stepsDir, `${step.id}-file.md`), renderStepFile(step));
   }
 
   const proposals = spec.proposals ?? [];
