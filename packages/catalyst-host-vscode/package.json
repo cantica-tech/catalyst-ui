@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.20.17",
+  "version": "0.20.18",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
