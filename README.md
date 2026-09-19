@@ -9,21 +9,28 @@ desktop app, sharing one core and one UI package.
 
 ## Status
 
-Pre-alpha. No product code yet — this repository currently holds only
-its dev-environment scaffold (tooling, lint, test, CI), established via
-catalyst's own greenfield instantiation path before any application
-code was written. See the roadmap for what's planned and in what order.
+Shipping. All seven phases of the original roadmap are done — chain
+inspector, health board, proposal loop, authoring composer, Electron
+host, and run monitor — plus multi-root workspace support and an agent
+window for running catalyst slash commands from either host. The VS
+Code extension is published on the
+[Marketplace](https://marketplace.visualstudio.com/items?itemName=CanticaTech.catalyst-host-vscode)
+as **Catalyst framework**.
 
 ## Packages
 
 - `packages/catalyst-core` — TypeScript, no DOM. Parses the corpus,
-  builds the typed chain model, runs global validation, watches files.
-- `packages/catalyst-ui` — React. All four surfaces (chain inspector,
-  health board, proposal queue, run monitor), mounted unchanged by both
-  hosts.
-- `packages/catalyst-host-vscode` / `packages/catalyst-host-electron` —
-  thin adapters implementing the core↔UI protocol over postMessage and
-  IPC respectively.
+  builds the typed chain model, runs global validation, watches files,
+  and parses proposals and live agent runs.
+- `packages/catalyst-ui` — React. All UI surfaces (chain inspector,
+  health board, proposal/authoring composer, run monitor), mounted
+  unchanged by both hosts.
+- `packages/catalyst-host-vscode` — the published VS Code extension:
+  thin adapter over the core↔UI protocol via `postMessage`, plus
+  diagnostics, CodeLens, and code actions native to VS Code.
+- `packages/catalyst-host-electron` — the standalone desktop app: the
+  same adapter pattern over IPC, plus multi-project tracking and a
+  graph view.
 
 ## Development
 
@@ -39,7 +46,7 @@ Or via [Task](https://taskfile.dev): `task --list` shows every available
 task, including one per catalyst slash command (`task check-rules`,
 `task show-backlog`, ...) from the deployed `Taskfile.common.yml`.
 
-This project is itself governed by catalyst — see
-`.criterion`-equivalent state (agent-owned, not in this repo) for the
-current dev-environment rules and, once real application work starts,
-the product rule documents and requirements each change traces to.
+This project is itself governed by catalyst — see its `.criterion`
+working copy (agent-owned, not in this repo) for the dev-environment
+rules, the four product rule documents (`core`/`vscode`/`electron`/
+`env`), and every requirement each change traces to.
