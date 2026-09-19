@@ -6,7 +6,13 @@
  */
 
 export type NodeKind =
-  "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap" | "step";
+  | "work-item"
+  | "dev-artifact"
+  | "rule"
+  | "domain"
+  | "feature"
+  | "roadmap"
+  | "step";
 
 export type DevArtifactType = "bug" | "requirement" | "house-keeping";
 

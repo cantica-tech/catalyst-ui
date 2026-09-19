@@ -211,10 +211,7 @@ export function formatNodeLabel(node: ChainNode): string {
  */
 export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping";
 export type TreeSectionKind =
-  | DevArtifactSectionKind
-  | "domain"
-  | "feature"
-  | "step";
+  DevArtifactSectionKind | "domain" | "feature" | "step";
 
 export interface TreeSection {
   kind: TreeSectionKind;

@@ -685,7 +685,11 @@ function buildStepNode(
     title: registered?.title ?? fields.get("ID") ?? id,
     name: fields.get("Name") ?? registered?.title ?? fields.get("ID") ?? id,
     location: { file: filePath, line: 1 },
-    requirement: extractIds(fields.get("Requirement") ?? "", BACKTICK_DEV_ARTIFACT_ID_RE)[0] ?? "",
+    requirement:
+      extractIds(
+        fields.get("Requirement") ?? "",
+        BACKTICK_DEV_ARTIFACT_ID_RE,
+      )[0] ?? "",
     status: isStepStatus(status) ? status : "planned",
     signedOffBy: fields.get("Signed-off-by"),
     registered: registered !== undefined,
@@ -722,7 +726,9 @@ function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
         name: registeredRow.title,
         location: { file: indexPath, line: registeredRow.line },
         requirement: "",
-        status: isStepStatus(registeredRow.status) ? registeredRow.status : "planned",
+        status: isStepStatus(registeredRow.status)
+          ? registeredRow.status
+          : "planned",
         registered: true,
         fileExists: false,
         references: [],

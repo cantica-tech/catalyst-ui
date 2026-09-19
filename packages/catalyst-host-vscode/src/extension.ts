@@ -579,7 +579,10 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   }
 
   /** A requirement's own steps, resolved via the chain model's reverse edges — sorted by id. */
-  private stepChildrenFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
+  private stepChildrenFor(
+    corpusRoot: string,
+    node: ChainNode,
+  ): InspectorTreeItem[] {
     if (node.kind !== "dev-artifact" || node.artifactType !== "requirement") {
       return [];
     }

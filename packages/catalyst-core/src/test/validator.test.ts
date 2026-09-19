@@ -138,7 +138,9 @@ describe("validate — orphaned artifacts", () => {
 
 describe("validate — steps", () => {
   it("flags a step with no Requirement field", () => {
-    const report = validate(modelOf([step({ id: "STEP-000001", requirement: "" })]));
+    const report = validate(
+      modelOf([step({ id: "STEP-000001", requirement: "" })]),
+    );
     expect(
       report.issues.some(
         (i) =>
@@ -154,7 +156,9 @@ describe("validate — steps", () => {
     );
     expect(
       report.issues.some(
-        (i) => i.kind === "orphaned-artifact" && i.message.includes("file is missing"),
+        (i) =>
+          i.kind === "orphaned-artifact" &&
+          i.message.includes("file is missing"),
       ),
     ).toBe(true);
   });
@@ -165,7 +169,9 @@ describe("validate — steps", () => {
     );
     expect(
       report.issues.some(
-        (i) => i.kind === "orphaned-artifact" && i.message.includes("not registered"),
+        (i) =>
+          i.kind === "orphaned-artifact" &&
+          i.message.includes("not registered"),
       ),
     ).toBe(true);
   });
@@ -192,7 +198,10 @@ describe("validate — steps", () => {
         devArtifact({ id: "REQ-000001", targets: ["env-RUNTIME-001"] }),
         rule({ id: "env-RUNTIME-001" }),
         domain({ id: "RUNTIME" }),
-        { ...step({ id: "STEP-000001" }), references: ["REQ-000001"] } as ChainNode,
+        {
+          ...step({ id: "STEP-000001" }),
+          references: ["REQ-000001"],
+        } as ChainNode,
       ]),
     );
     expect(report.issues.filter((i) => i.nodeId === "STEP-000001")).toEqual([]);
