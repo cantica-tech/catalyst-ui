@@ -1,11 +1,24 @@
 {
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
-  "version": "0.20.16",
+  "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
+  "version": "0.20.17",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
   "icon": "resources/icon.png",
+  "categories": [
+    "Other",
+    "Visualization",
+    "Linters"
+  ],
+  "keywords": [
+    "catalyst",
+    "traceability",
+    "governance",
+    "requirements",
+    "rules"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/oliben67/catalyst-ui.git"
