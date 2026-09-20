@@ -43,6 +43,21 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     }
   }
 
+  const isTest =
+    (node.kind === "dev-artifact" && node.artifactType === "test") ||
+    node.id.startsWith("TEST-");
+  if (isTest) {
+    const s = (
+      "status" in node && typeof node.status === "string" ? node.status : ""
+    )
+      .toLowerCase()
+      .trim();
+    if (s.includes("passing")) return "✅ ";
+    if (s.includes("failing")) return "❌ ";
+    if (s.includes("blocked")) return "⚠️ ";
+    return "∅ "; // proposed, or unrecognized
+  }
+
   const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
   if (isRoadmap) {
     const s = (
@@ -204,12 +219,13 @@ export function formatNodeLabel(node: ChainNode): string {
  * calls it out as its own tree section, so it's split out here for
  * display only. Dev-artifact nodes are grouped under one "Dev Artifacts"
  * parent folder, itself split by the node's own `artifactType`
- * (`requirement`/`bug`/`house-keeping`) into three sub-sections, each
+ * (`requirement`/`bug`/`house-keeping`/`test`) into four sub-sections, each
  * getting its own entity-type identity (icon, tooltip). Work items are
  * omitted entirely: no project-management plugin is active in this
  * deployment, so the model never has any.
  */
-export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping";
+export type DevArtifactSectionKind =
+  "requirement" | "bug" | "house-keeping" | "test";
 export type TreeSectionKind =
   DevArtifactSectionKind | "domain" | "feature" | "step";
 
@@ -247,6 +263,7 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   requirement: "Requirements",
   bug: "Bugs",
   "house-keeping": "House-keeping",
+  test: "Tests",
   domain: "Domains",
   feature: "Features",
   step: "Steps",
@@ -256,6 +273,7 @@ const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "requirement",
   "bug",
   "house-keeping",
+  "test",
 ];
 
 const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature", "step"];

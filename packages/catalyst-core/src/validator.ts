@@ -10,8 +10,8 @@ import type { ChainModel, ValidationIssue, ValidationReport } from "./types.js";
  *    is missing (or the reverse), or a dev-artifact with no Targets rule at
  *    all (Rules-of-Rules.md §1: no development without a targeted rule).
  *    Same registered/fileExists check applies to a step, plus a step with
- *    no Requirement field (Rules-of-Rules.md §21: always names exactly one
- *    parent requirement).
+ *    no Parent field (Rules-of-Rules.md §21: always names exactly one
+ *    parent — a requirement or a bug).
  * 2. unbacked-rule — a rule not listed in the global rules/rules.md, or
  *    whose domain isn't registered (with an existing doc file) in
  *    rules/domains/domains.md (§5/§7). `rr-META-*` rules are exempt — they
@@ -76,12 +76,12 @@ export function validate(model: ChainModel): ValidationReport {
         location: node.location,
       });
     }
-    if (node.fileExists && !node.requirement) {
+    if (node.fileExists && !node.parent) {
       issues.push({
         kind: "orphaned-artifact",
         severity: "error",
         nodeId: node.id,
-        message: `${node.id} has no Requirement field (a step always names exactly one parent requirement)`,
+        message: `${node.id} has no Parent field (a step always names exactly one parent — a requirement or a bug)`,
         location: node.location,
       });
     }

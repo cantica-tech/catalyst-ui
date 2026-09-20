@@ -390,7 +390,7 @@ describe("parseCorpus", () => {
         {
           id: "STEP-000001",
           title: "Wire up the tokenizer",
-          requirement: "REQ-000001",
+          parent: "REQ-000001",
           status: "done",
           description: "Implemented the tokenizer for the corpus parser.",
         },
@@ -401,7 +401,7 @@ describe("parseCorpus", () => {
     const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
     expect(step).toBeDefined();
     expect(step.kind).toBe("step");
-    expect(step.requirement).toBe("REQ-000001");
+    expect(step.parent).toBe("REQ-000001");
     expect(step.status).toBe("done");
     expect(step.registered).toBe(true);
     expect(step.fileExists).toBe(true);
@@ -411,6 +411,46 @@ describe("parseCorpus", () => {
     expect(step.references).toContain("REQ-000001");
   });
 
+  it("parses a step whose parent is a bug (Rules-of-Rules.md §21, widened 0.31.0)", () => {
+    root = createFixtureCorpus({
+      bugs: [{ id: "BUG-000001", title: "Login form validation" }],
+      steps: [
+        {
+          id: "STEP-000001",
+          title: "Add missing null check",
+          parent: "BUG-000001",
+          status: "done",
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
+    expect(step.parent).toBe("BUG-000001");
+  });
+
+  it("falls back to a legacy `Requirement` field for a corpus that hasn't run the 0.31.0 Parent rename", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Core parser" }],
+      steps: [
+        { id: "STEP-000001", title: "Legacy step", parent: "REQ-000001" },
+      ],
+    });
+    // Overwrite with the pre-0.31.0 field name to simulate an unmigrated file.
+    writeFileSync(
+      join(root, "steps", "STEP-000001-file.md"),
+      "# `STEP-000001` — Legacy step\n\n" +
+        "| Field | Value |\n|---|---|\n" +
+        "| **ID** | `STEP-000001` |\n" +
+        "| **Requirement** | `REQ-000001` |\n" +
+        "| **Status** | done |\n",
+    );
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
+    expect(step.parent).toBe("REQ-000001");
+  });
+
   it("marks a step registered in the index but missing its file", () => {
     root = createFixtureCorpus({
       requirements: [{ id: "REQ-000001", title: "Core parser" }],
@@ -418,7 +458,7 @@ describe("parseCorpus", () => {
         {
           id: "STEP-000001",
           title: "Ghost step",
-          requirement: "REQ-000001",
+          parent: "REQ-000001",
           createFile: false,
         },
       ],
@@ -437,7 +477,7 @@ describe("parseCorpus", () => {
         {
           id: "STEP-000001",
           title: "Unregistered step",
-          requirement: "REQ-000001",
+          parent: "REQ-000001",
           registerInIndex: false,
         },
       ],
@@ -447,6 +487,80 @@ describe("parseCorpus", () => {
     const step = allNodes.find((n) => n.id === "STEP-000001") as StepNode;
     expect(step.registered).toBe(false);
     expect(step.fileExists).toBe(true);
+  });
+
+  it("parses a test as a fourth dev-artifact type, with its own Requirements/Steps links", () => {
+    root = createFixtureCorpus({
+      requirements: [{ id: "REQ-000001", title: "Core parser" }],
+      steps: [
+        {
+          id: "STEP-000001",
+          title: "Wire up the tokenizer",
+          parent: "REQ-000001",
+        },
+      ],
+      tests: [
+        {
+          id: "TEST-000001",
+          title: "Parser round-trip",
+          targets: ["env-RUNTIME-001"],
+          requirements: ["REQ-000001"],
+          steps: ["STEP-000001"],
+          status: "passing",
+          description: "Round-trips a fixture corpus through the parser.",
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const test = allNodes.find(
+      (n) => n.id === "TEST-000001",
+    ) as DevArtifactNode;
+    expect(test).toBeDefined();
+    expect(test.kind).toBe("dev-artifact");
+    expect(test.artifactType).toBe("test");
+    expect(test.targets).toEqual(["env-RUNTIME-001"]);
+    expect(test.requirements).toEqual(["REQ-000001"]);
+    expect(test.steps).toEqual(["STEP-000001"]);
+    expect(test.status).toBe("passing");
+    expect(test.registered).toBe(true);
+    expect(test.fileExists).toBe(true);
+    expect(test.description).toBe(
+      "Round-trips a fixture corpus through the parser.",
+    );
+  });
+
+  it("leaves a test's Requirements/Steps empty when it names neither (both are optional)", () => {
+    root = createFixtureCorpus({
+      tests: [
+        {
+          id: "TEST-000001",
+          title: "Standalone smoke test",
+          targets: ["env-RUNTIME-001"],
+        },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const test = allNodes.find(
+      (n) => n.id === "TEST-000001",
+    ) as DevArtifactNode;
+    expect(test.requirements).toEqual([]);
+    expect(test.steps).toEqual([]);
+  });
+
+  it("never reads a requirement's own Steps field into `requirements`/`steps` (only a test's do)", () => {
+    root = createFixtureCorpus({
+      requirements: [
+        { id: "REQ-000001", title: "Core parser", steps: ["STEP-000001"] },
+      ],
+    });
+
+    const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const req = allNodes.find((n) => n.id === "REQ-000001") as DevArtifactNode;
+    expect(req.artifactType).toBe("requirement");
+    expect(req.requirements).toBeUndefined();
+    expect(req.steps).toBeUndefined();
   });
 });
 
