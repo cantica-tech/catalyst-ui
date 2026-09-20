@@ -31,7 +31,7 @@ describe("buildTreeSections", () => {
     assert.strictEqual(devArtifacts.label, "Dev Artifacts");
     assert.deepStrictEqual(
       devArtifacts.sections.map((s) => s.kind),
-      ["requirement", "bug", "house-keeping"],
+      ["requirement", "bug", "house-keeping", "test"],
     );
     assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
     assert.strictEqual(rules.label, "Rules");
@@ -50,7 +50,7 @@ describe("buildTreeSections", () => {
       title: "STEP-000001",
       location: { file: "f.md", line: 1 },
       references: [],
-      requirement: "REQ-000001",
+      parent: "REQ-000001",
       status: "done",
       registered: true,
       fileExists: true,
@@ -104,6 +104,25 @@ describe("buildTreeSections", () => {
     assert.deepStrictEqual(
       houseKeeping.nodes.map((n) => n.id),
       ["HK-000001"],
+    );
+  });
+
+  it("splits a test into its own Tests sub-section, alongside requirement/bug/house-keeping", () => {
+    const model = modelOf([
+      node({
+        id: "REQ-000001",
+        kind: "dev-artifact",
+        artifactType: "requirement",
+      }),
+      node({ id: "TEST-000001", kind: "dev-artifact", artifactType: "test" }),
+    ]);
+
+    const { devArtifacts } = buildTreeSections(model);
+    const tests = devArtifacts.sections.find((s) => s.kind === "test")!;
+    assert.strictEqual(tests.label, "Tests");
+    assert.deepStrictEqual(
+      tests.nodes.map((n) => n.id),
+      ["TEST-000001"],
     );
   });
 

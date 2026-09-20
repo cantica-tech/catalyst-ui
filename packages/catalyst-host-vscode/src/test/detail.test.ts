@@ -117,7 +117,7 @@ describe("buildNodeDetail", () => {
       title: "STEP-000001",
       location: { file: "f.md", line: 1 },
       references: [],
-      requirement: "REQ-000001",
+      parent: "REQ-000001",
       status: "done",
       registered: true,
       fileExists: true,
@@ -144,6 +144,67 @@ describe("buildNodeDetail", () => {
     assert.deepStrictEqual(
       stepDetail.upstream.map((n) => n.id),
       ["REQ-000001"],
+    );
+  });
+
+  it("includes a requirement's and a step's tests in their downstream, resolved from reverseEdges", () => {
+    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const step: ChainNode = {
+      id: "STEP-000001",
+      kind: "step",
+      title: "STEP-000001",
+      location: { file: "f.md", line: 1 },
+      references: [],
+      parent: "REQ-000001",
+      status: "done",
+      registered: true,
+      fileExists: true,
+      description: "",
+      content: "",
+    } as ChainNode;
+    const test = node({
+      id: "TEST-000001",
+      kind: "dev-artifact",
+      artifactType: "test",
+      status: "passing",
+      targets: ["env-RUNTIME-001"],
+      requirements: ["REQ-000001"],
+      steps: ["STEP-000001"],
+      registered: true,
+      fileExists: true,
+      description: "",
+      content: "",
+    });
+    const model: ChainModel = {
+      nodes: new Map([
+        [req.id, req],
+        [step.id, step],
+        [test.id, test],
+      ]),
+      edges: new Map([[test.id, new Set([req.id, step.id])]]),
+      reverseEdges: new Map([
+        [req.id, new Set([test.id])],
+        [step.id, new Set([test.id])],
+      ]),
+      definitionsById: new Map(),
+    };
+
+    const reqDetail = buildNodeDetail(model, req.id, noProposals)!;
+    assert.deepStrictEqual(
+      reqDetail.downstream.map((n) => n.id),
+      ["TEST-000001"],
+    );
+
+    const stepDetail = buildNodeDetail(model, step.id, noProposals)!;
+    assert.deepStrictEqual(
+      stepDetail.downstream.map((n) => n.id),
+      ["TEST-000001"],
+    );
+
+    const testDetail = buildNodeDetail(model, test.id, noProposals)!;
+    assert.deepStrictEqual(
+      testDetail.upstream.map((n) => n.id),
+      ["REQ-000001", "STEP-000001"],
     );
   });
 });

@@ -46,12 +46,14 @@ export function buildChainModel(parseResult: ParseResult): ChainModel {
     if (node.kind === "dev-artifact") {
       if (node.feature) addEdge(node.id, node.feature);
       for (const t of node.targets) addEdge(node.id, t);
+      for (const r of node.requirements ?? []) addEdge(node.id, r);
+      for (const s of node.steps ?? []) addEdge(node.id, s);
     }
     if (node.kind === "roadmap" && node.linked) {
       addEdge(node.id, node.linked);
     }
-    if (node.kind === "step" && node.requirement) {
-      addEdge(node.id, node.requirement);
+    if (node.kind === "step" && node.parent) {
+      addEdge(node.id, node.parent);
     }
   }
 

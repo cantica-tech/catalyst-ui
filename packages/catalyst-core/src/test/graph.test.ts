@@ -233,7 +233,7 @@ describe("buildChainModel", () => {
     const step = node({
       id: "STEP-000001",
       kind: "step",
-      requirement: "REQ-000001",
+      parent: "REQ-000001",
       status: "done",
       registered: true,
       fileExists: true,
@@ -250,6 +250,66 @@ describe("buildChainModel", () => {
     expect(model.edges.get("STEP-000001")).toEqual(new Set(["REQ-000001"]));
     expect(model.reverseEdges.get("REQ-000001")).toEqual(
       new Set(["STEP-000001"]),
+    );
+  });
+
+  it("resolves a test's Requirements/Steps links into forward and reverse edges, on top of its Targets", () => {
+    const req = node({
+      id: "REQ-000001",
+      kind: "dev-artifact",
+      artifactType: "requirement",
+      status: "in-progress",
+      targets: [],
+      registered: true,
+      fileExists: true,
+    });
+    const step = node({
+      id: "STEP-000001",
+      kind: "step",
+      parent: "REQ-000001",
+      status: "done",
+      registered: true,
+      fileExists: true,
+    });
+    const rule = node({
+      id: "env-RUNTIME-001",
+      kind: "rule",
+      docPrefix: "env",
+      domain: "RUNTIME",
+      status: "",
+      registeredInRulesIndex: true,
+    });
+    const test = node({
+      id: "TEST-000001",
+      kind: "dev-artifact",
+      artifactType: "test",
+      status: "passing",
+      targets: ["env-RUNTIME-001"],
+      requirements: ["REQ-000001"],
+      steps: ["STEP-000001"],
+      registered: true,
+      fileExists: true,
+    });
+
+    const model = buildChainModel(
+      parseResult([
+        { file: "req.md", mtimeMs: 0, nodes: [req] },
+        { file: "step.md", mtimeMs: 0, nodes: [step] },
+        { file: "rule.md", mtimeMs: 0, nodes: [rule] },
+        { file: "test.md", mtimeMs: 0, nodes: [test] },
+      ]),
+    );
+
+    expect(model.edges.get("TEST-000001")).toEqual(
+      new Set(["env-RUNTIME-001", "REQ-000001", "STEP-000001"]),
+    );
+    // REQ-000001 also has STEP-000001 as a reverse edge (the step's own
+    // `requirement` link) — this test only asserts the test's contribution.
+    expect(model.reverseEdges.get("REQ-000001")).toEqual(
+      new Set(["STEP-000001", "TEST-000001"]),
+    );
+    expect(model.reverseEdges.get("STEP-000001")).toEqual(
+      new Set(["TEST-000001"]),
     );
   });
 });

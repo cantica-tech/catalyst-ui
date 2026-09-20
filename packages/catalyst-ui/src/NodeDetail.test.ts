@@ -47,7 +47,7 @@ function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
     kind: "step",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
-    requirement: "REQ-000001",
+    parent: "REQ-000001",
     status: "in-progress",
     registered: true,
     fileExists: true,
@@ -128,6 +128,31 @@ describe("NodeDetail", () => {
 
     expect(html).toContain("Produces");
     expect(html).toContain("STEP-000001");
+  });
+
+  it("lists a requirement's tests in its downstream (Produces) section", () => {
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({
+          id: "REQ-000001",
+          artifactType: "requirement",
+          title: "Core parser",
+        }),
+        upstream: [],
+        downstream: [
+          bug({
+            id: "TEST-000001",
+            artifactType: "test",
+            status: "passing",
+            title: "Parser round trip",
+          }),
+        ],
+        openProposals: [],
+      }),
+    );
+
+    expect(html).toContain("Produces");
+    expect(html).toContain("TEST-000001");
   });
 
   it("renders 'None.' for empty upstream/downstream lists", () => {
