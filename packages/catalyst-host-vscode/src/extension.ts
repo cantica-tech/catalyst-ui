@@ -571,12 +571,13 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   /**
    * Which reverse-edge node kinds nest under a given node in the tree, for
-   * discoverability on top of that kind's own flat top-level section — a
-   * requirement's or bug's steps (`Rules-of-Rules.md` §21, single required
-   * parent, so a step only ever nests under the one requirement or bug it
-   * names) and both a requirement's/bug's and a step's tests
-   * (`Rules-of-Rules.md` §22, `(0,n)` many-to-many, so the same test can
-   * legitimately nest under more than one parent, or under none).
+   * discoverability on top of that kind's own flat section under "Dev
+   * Artifacts" — a requirement's or bug's steps (`Rules-of-Rules.md` §21,
+   * single required parent, so a step only ever nests under the one
+   * requirement or bug it names) and both a requirement's/bug's and a
+   * step's tests (`Rules-of-Rules.md` §22, `(0,n)` many-to-many, so the
+   * same test can legitimately nest under more than one parent, or under
+   * none).
    */
   private childKindsFor(node: ChainNode): Array<"step" | "test"> {
     if (
