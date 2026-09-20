@@ -5,6 +5,7 @@ import {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
   BACKTICK_RULE_ID_RE,
+  BACKTICK_STEP_ID_RE,
   DEV_ARTIFACT_ID_PATTERN,
   FEATURE_ID_PATTERN,
   ROADMAP_ID_PATTERN,
@@ -522,10 +523,25 @@ function buildDevArtifactNode(
   const artifactType = devArtifactType(id);
   // A requirement's document has no `## Description` heading of its own —
   // its equivalent is `## Summary` (see requirements.template.md); bug/
-  // house-keeping both use `## Description` (bug.template.md,
-  // house-keeping.template.md).
+  // house-keeping/test all use `## Description` (bug.template.md,
+  // house-keeping.template.md, test.template.md).
   const descriptionHeading =
     artifactType === "requirement" ? "Summary" : "Description";
+  // Only a test carries these two fields (`Rules-of-Rules.md` §22) — a
+  // requirement's own `Steps` field means something entirely different
+  // (steps opened against it, already derivable via reverse edges from
+  // `StepNode.requirement`), so it's deliberately never read here.
+  const requirements =
+    artifactType === "test"
+      ? extractIds(
+          fields.get("Requirements") ?? "",
+          BACKTICK_DEV_ARTIFACT_ID_RE,
+        )
+      : undefined;
+  const steps =
+    artifactType === "test"
+      ? extractIds(fields.get("Steps") ?? "", BACKTICK_STEP_ID_RE)
+      : undefined;
 
   return {
     id,
@@ -537,6 +553,8 @@ function buildDevArtifactNode(
     status: fields.get("Status") ?? registered?.status ?? "",
     targets,
     feature: featureIds[0],
+    requirements,
+    steps,
     signedOffBy: fields.get("Signed-off-by"),
     registered: registered !== undefined,
     fileExists: true,
@@ -685,9 +703,14 @@ function buildStepNode(
     title: registered?.title ?? fields.get("ID") ?? id,
     name: fields.get("Name") ?? registered?.title ?? fields.get("ID") ?? id,
     location: { file: filePath, line: 1 },
-    requirement:
+    // `Parent` is the current field name (0.31.0, `Rules-of-Rules.md`
+    // §21); `Requirement` is read as a fallback for a corpus that
+    // hasn't run that migration yet. Either way the value is a single
+    // `REQ-NNNNNN` or `BUG-NNNNNN`, both already matched by the generic
+    // dev-artifact id pattern.
+    parent:
       extractIds(
-        fields.get("Requirement") ?? "",
+        fields.get("Parent") ?? fields.get("Requirement") ?? "",
         BACKTICK_DEV_ARTIFACT_ID_RE,
       )[0] ?? "",
     status: isStepStatus(status) ? status : "planned",
@@ -700,7 +723,7 @@ function buildStepNode(
   };
 }
 
-/** steps/ — each step names exactly one parent requirement (`Rules-of-Rules.md` §21); never rule-linked itself. */
+/** steps/ — each step names exactly one parent, a requirement or a bug (`Rules-of-Rules.md` §21); never rule-linked itself. */
 function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
   const index = parseIndexTable(indexPath, STEP_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${STEP_ID_PATTERN})-`);
@@ -725,7 +748,7 @@ function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
         title: registeredRow.title,
         name: registeredRow.title,
         location: { file: indexPath, line: registeredRow.line },
-        requirement: "",
+        parent: "",
         status: isStepStatus(registeredRow.status)
           ? registeredRow.status
           : "planned",
@@ -904,6 +927,10 @@ export function parseCorpus(
     {
       index: join(root, "development", "house-keeping", "house-keeping.md"),
       dir: join(root, "development", "house-keeping"),
+    },
+    {
+      index: join(root, "tests", "tests.md"),
+      dir: join(root, "tests"),
     },
   ];
   for (const collection of devArtifactCollections) {

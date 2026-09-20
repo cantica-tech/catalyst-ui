@@ -33,6 +33,10 @@ export interface FixtureArtifact {
   status?: string;
   targets?: string[];
   feature?: string;
+  /** `TEST-` only: rendered as the `Requirements` field. */
+  requirements?: string[];
+  /** `TEST-` only: rendered as the `Steps` field. */
+  steps?: string[];
   registerInIndex?: boolean;
   createFile?: boolean;
   extraBody?: string;
@@ -52,7 +56,8 @@ export interface FixtureFeature {
 export interface FixtureStep {
   id: string;
   title: string;
-  requirement: string;
+  /** A `REQ-NNNNNN` or `BUG-NNNNNN` id — rendered as the `Parent` field. */
+  parent: string;
   status?: string;
   registerInIndex?: boolean;
   createFile?: boolean;
@@ -125,6 +130,7 @@ export interface FixtureSpec {
   requirements?: FixtureArtifact[];
   bugs?: FixtureArtifact[];
   houseKeeping?: FixtureArtifact[];
+  tests?: FixtureArtifact[];
   features?: FixtureFeature[];
   steps?: FixtureStep[];
   proposals?: FixtureProposal[];
@@ -212,6 +218,12 @@ function renderDevArtifactFile(artifact: FixtureArtifact): string {
   if (artifact.targets?.length)
     fields.Targets = artifact.targets.map((t) => `\`${t}\``).join(", ");
   if (artifact.feature) fields.Feature = `\`${artifact.feature}\``;
+  if (artifact.requirements?.length)
+    fields.Requirements = artifact.requirements
+      .map((r) => `\`${r}\``)
+      .join(", ");
+  if (artifact.steps?.length)
+    fields.Steps = artifact.steps.map((s) => `\`${s}\``).join(", ");
   const descriptionHeading =
     devArtifactType(artifact.id) === "requirement" ? "Summary" : "Description";
   const description = artifact.description
@@ -233,7 +245,7 @@ function renderStepFile(step: FixtureStep): string {
     : "";
   const fields = renderFieldTable({
     ID: `\`${step.id}\``,
-    Requirement: `\`${step.requirement}\``,
+    Parent: `\`${step.parent}\``,
     Status: step.status ?? "in-progress",
   });
   return `# \`${step.id}\` — ${step.title}\n\n${fields}\n${description}`;
@@ -421,6 +433,11 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
     join(root, "development", "house-keeping", "house-keeping.md"),
     spec.houseKeeping ?? [],
   );
+  writeArtifactCollection(
+    join(root, "tests"),
+    join(root, "tests", "tests.md"),
+    spec.tests ?? [],
+  );
 
   const featuresDir = join(root, "features");
   mkdirSync(featuresDir, { recursive: true });
@@ -452,11 +469,11 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
     .map((s) => ({
       id: s.id,
       filename: `${s.id}-file.md`,
-      cells: [s.title, s.requirement, s.status ?? "in-progress"],
+      cells: [s.title, s.parent, s.status ?? "in-progress"],
     }));
   writeFileSync(
     join(stepsDir, "steps.md"),
-    renderArtifactIndex(["Title", "Requirement", "Status"], stepRows),
+    renderArtifactIndex(["Title", "Parent", "Status"], stepRows),
   );
   for (const step of steps) {
     if (step.createFile === false) continue;

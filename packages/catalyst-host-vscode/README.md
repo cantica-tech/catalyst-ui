@@ -11,11 +11,13 @@ goes through the governing agent, never straight from the UI.
 ## What it does
 
 - **Chain Inspector** — a sidebar tree of the full traceability chain
-  (rules → requirements/bugs/house-keeping → features/roadmap → steps →
-  proposals and live runs) for every catalyst deployment open in your
-  workspace. Multi-root aware: each deployment gets its own section. A
-  requirement with recorded implementation steps expands to show them
-  inline. Click any node for full detail in a webview.
+  (rules → requirements/bugs/house-keeping/tests → features/roadmap →
+  steps → proposals and live runs) for every catalyst deployment open in
+  your workspace. Multi-root aware: each deployment gets its own
+  section. A requirement or bug with recorded implementation steps
+  expands to show them inline, and a requirement, bug, or step verified
+  by one or more tests expands to show those too. Click any node for
+  full detail in a webview.
 - **Health board** — diagnostics, gutter marks, and CodeLens surface
   drift (orphaned artifacts, missing rule targets, dangling references)
   directly in the editor, with click-to-jump from a problem straight to

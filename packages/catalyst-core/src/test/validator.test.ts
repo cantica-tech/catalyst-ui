@@ -52,7 +52,7 @@ function step(overrides: Partial<ChainNode> & { id: string }): ChainNode {
     kind: "step",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
-    requirement: "REQ-000001",
+    parent: "REQ-000001",
     status: "in-progress",
     registered: true,
     fileExists: true,
@@ -137,15 +137,13 @@ describe("validate — orphaned artifacts", () => {
 });
 
 describe("validate — steps", () => {
-  it("flags a step with no Requirement field", () => {
-    const report = validate(
-      modelOf([step({ id: "STEP-000001", requirement: "" })]),
-    );
+  it("flags a step with no Parent field", () => {
+    const report = validate(modelOf([step({ id: "STEP-000001", parent: "" })]));
     expect(
       report.issues.some(
         (i) =>
           i.kind === "orphaned-artifact" &&
-          i.message.includes("no Requirement field"),
+          i.message.includes("no Parent field"),
       ),
     ).toBe(true);
   });
@@ -176,11 +174,11 @@ describe("validate — steps", () => {
     ).toBe(true);
   });
 
-  it("flags a dangling reference when a step's Requirement doesn't resolve to a real node", () => {
+  it("flags a dangling reference when a step's Parent doesn't resolve to a real node", () => {
     const report = validate(
       modelOf([
         {
-          ...step({ id: "STEP-000001", requirement: "REQ-000099" }),
+          ...step({ id: "STEP-000001", parent: "REQ-000099" }),
           references: ["REQ-000099"],
         } as ChainNode,
       ]),
@@ -205,6 +203,101 @@ describe("validate — steps", () => {
       ]),
     );
     expect(report.issues.filter((i) => i.nodeId === "STEP-000001")).toEqual([]);
+  });
+
+  it("passes a well-formed step targeting a real bug clean (Rules-of-Rules.md §21, widened 0.31.0)", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({
+          id: "BUG-000001",
+          artifactType: "bug",
+          targets: ["env-RUNTIME-001"],
+        }),
+        rule({ id: "env-RUNTIME-001" }),
+        domain({ id: "RUNTIME" }),
+        {
+          ...step({ id: "STEP-000001", parent: "BUG-000001" }),
+          references: ["BUG-000001"],
+        } as ChainNode,
+      ]),
+    );
+    expect(report.issues.filter((i) => i.nodeId === "STEP-000001")).toEqual([]);
+  });
+});
+
+describe("validate — tests", () => {
+  it("flags a test with no Targets rule, the same as a bug or requirement (not exempt, Rules-of-Rules.md §22)", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({ id: "TEST-000001", artifactType: "test", targets: [] }),
+      ]),
+    );
+    expect(
+      report.issues.some(
+        (i) =>
+          i.kind === "orphaned-artifact" &&
+          i.nodeId === "TEST-000001" &&
+          i.message.includes("no Targets rule"),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a dangling reference when a test's Requirements/Steps name an id that doesn't resolve", () => {
+    const report = validate(
+      modelOf([
+        {
+          ...devArtifact({
+            id: "TEST-000001",
+            artifactType: "test",
+            targets: ["env-RUNTIME-001"],
+            requirements: ["REQ-000099"],
+          }),
+          references: ["REQ-000099"],
+        } as ChainNode,
+      ]),
+    );
+    expect(
+      report.issues.some(
+        (i) => i.kind === "dangling-reference" && i.nodeId === "TEST-000001",
+      ),
+    ).toBe(true);
+  });
+
+  it("passes a well-formed test naming a real requirement and step, clean", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({ id: "REQ-000001", targets: ["env-RUNTIME-001"] }),
+        step({ id: "STEP-000001" }),
+        rule({ id: "env-RUNTIME-001" }),
+        domain({ id: "RUNTIME" }),
+        {
+          ...devArtifact({
+            id: "TEST-000001",
+            artifactType: "test",
+            targets: ["env-RUNTIME-001"],
+            requirements: ["REQ-000001"],
+            steps: ["STEP-000001"],
+          }),
+          references: ["env-RUNTIME-001", "REQ-000001", "STEP-000001"],
+        } as ChainNode,
+      ]),
+    );
+    expect(report.issues.filter((i) => i.nodeId === "TEST-000001")).toEqual([]);
+  });
+
+  it("is valid with no Requirements/Steps at all — both are optional", () => {
+    const report = validate(
+      modelOf([
+        devArtifact({
+          id: "TEST-000001",
+          artifactType: "test",
+          targets: ["env-RUNTIME-001"],
+        }),
+        rule({ id: "env-RUNTIME-001" }),
+        domain({ id: "RUNTIME" }),
+      ]),
+    );
+    expect(report.issues.filter((i) => i.nodeId === "TEST-000001")).toEqual([]);
   });
 });
 

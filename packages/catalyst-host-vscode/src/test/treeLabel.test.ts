@@ -203,4 +203,60 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(formatNodeLabel(n), "∅ Realtime updates [RM-000003]");
   });
+
+  it("formats a passing test with ✅ status glyph", () => {
+    const n = node({
+      id: "TEST-000001-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "test",
+      name: "Parser round trip",
+      status: "passing",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "✅ Parser round trip [TEST-000001]",
+    );
+  });
+
+  it("formats a failing test with ❌ status glyph", () => {
+    const n = node({
+      id: "TEST-000002-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "test",
+      name: "Auth token expiry",
+      status: "failing",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "❌ Auth token expiry [TEST-000002]",
+    );
+  });
+
+  it("formats a blocked test with ⚠️ status glyph", () => {
+    const n = node({
+      id: "TEST-000003-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "test",
+      name: "Migration rollback",
+      status: "blocked",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "⚠️ Migration rollback [TEST-000003]",
+    );
+  });
+
+  it("formats a proposed test with ∅ status glyph", () => {
+    const n = node({
+      id: "TEST-000004-z6qEx1Kf",
+      kind: "dev-artifact",
+      artifactType: "test",
+      name: "Exploratory smoke test",
+      status: "proposed",
+    });
+    assert.strictEqual(
+      formatNodeLabel(n),
+      "∅ Exploratory smoke test [TEST-000004]",
+    );
+  });
 });

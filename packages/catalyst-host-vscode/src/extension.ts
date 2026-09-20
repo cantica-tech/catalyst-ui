@@ -111,7 +111,7 @@ const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
  * should never tell a deployment to sync past what it's actually been
  * checked against.
  */
-const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.25.0";
+const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.31.0";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
   "rule",
   "requirement",
@@ -163,6 +163,7 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   requirement: "requirements",
   bug: "bug",
   "house-keeping": "house-keeping",
+  test: "test",
   domain: "domain",
   feature: "features",
   step: "step",
@@ -178,6 +179,7 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   requirement: ["requirement"],
   bug: ["bug"],
   "house-keeping": ["house-keeping"],
+  test: ["test"],
   domain: ["domain"],
   feature: ["feature"],
   step: ["step"],
@@ -187,6 +189,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   bug: "Bug",
   requirement: "Requirement",
   "house-keeping": "House-keeping",
+  test: "Test",
   rule: "Rule",
   domain: "Domain",
   feature: "Feature",
@@ -231,6 +234,8 @@ function nodeIconName(node: ChainNode): string | undefined {
           return "requirements";
         case "house-keeping":
           return "house-keeping";
+        case "test":
+          return "test";
       }
       return undefined;
     case "rule":
@@ -550,7 +555,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     const pendingMark = element.pending ? "⏳ " : "";
     const item = new vscode.TreeItem(
       `${pendingMark}${formatNodeLabel(element.node)}`,
-      this.hasStepChildren(element.corpusRoot, element.node)
+      this.hasChildNodes(element.corpusRoot, element.node)
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
     );
@@ -564,39 +569,70 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     return item;
   }
 
-  /** True for a requirement node with at least one STEP- pointing at it (`Rules-of-Rules.md` §21). */
-  private hasStepChildren(corpusRoot: string, node: ChainNode): boolean {
-    if (node.kind !== "dev-artifact" || node.artifactType !== "requirement") {
-      return false;
+  /**
+   * Which reverse-edge node kinds nest under a given node in the tree, for
+   * discoverability on top of that kind's own flat top-level section — a
+   * requirement's or bug's steps (`Rules-of-Rules.md` §21, single required
+   * parent, so a step only ever nests under the one requirement or bug it
+   * names) and both a requirement's/bug's and a step's tests
+   * (`Rules-of-Rules.md` §22, `(0,n)` many-to-many, so the same test can
+   * legitimately nest under more than one parent, or under none).
+   */
+  private childKindsFor(node: ChainNode): Array<"step" | "test"> {
+    if (
+      node.kind === "dev-artifact" &&
+      (node.artifactType === "requirement" || node.artifactType === "bug")
+    ) {
+      return ["step", "test"];
     }
+    if (node.kind === "step") return ["test"];
+    return [];
+  }
+
+  private isChildOfKind(candidate: ChainNode, kind: "step" | "test"): boolean {
+    if (kind === "step") return candidate.kind === "step";
+    return (
+      candidate.kind === "dev-artifact" && candidate.artifactType === "test"
+    );
+  }
+
+  /** True when `node` has at least one child of a kind `childKindsFor` names, resolved via reverse edges. */
+  private hasChildNodes(corpusRoot: string, node: ChainNode): boolean {
+    const kinds = this.childKindsFor(node);
+    if (kinds.length === 0) return false;
     const model = this.getModel(corpusRoot);
     const reverse = model?.reverseEdges.get(node.id);
-    if (!reverse) return false;
+    if (!model || !reverse) return false;
     for (const id of reverse) {
-      if (model!.nodes.get(id)?.kind === "step") return true;
+      const candidate = model.nodes.get(id);
+      if (candidate && kinds.some((k) => this.isChildOfKind(candidate, k))) {
+        return true;
+      }
     }
     return false;
   }
 
-  /** A requirement's own steps, resolved via the chain model's reverse edges — sorted by id. */
-  private stepChildrenFor(
+  /** `node`'s own steps and/or tests, resolved via the chain model's reverse edges — sorted by id. */
+  private childNodesFor(
     corpusRoot: string,
     node: ChainNode,
   ): InspectorTreeItem[] {
-    if (node.kind !== "dev-artifact" || node.artifactType !== "requirement") {
-      return [];
-    }
+    const kinds = this.childKindsFor(node);
+    if (kinds.length === 0) return [];
     const model = this.getModel(corpusRoot);
     const reverse = model?.reverseEdges.get(node.id);
     if (!model || !reverse) return [];
     return [...reverse]
       .map((id) => model.nodes.get(id))
-      .filter((n): n is ChainNode => n !== undefined && n.kind === "step")
+      .filter(
+        (n): n is ChainNode =>
+          n !== undefined && kinds.some((k) => this.isChildOfKind(n, k)),
+      )
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map((stepNode) => ({
+      .map((childNode) => ({
         type: "node" as const,
         corpusRoot,
-        node: stepNode,
+        node: childNode,
         pending: false,
       }));
   }
@@ -760,7 +796,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       }));
     }
     if (element.type === "node") {
-      return this.stepChildrenFor(element.corpusRoot, element.node);
+      return this.childNodesFor(element.corpusRoot, element.node);
     }
     return [];
   }

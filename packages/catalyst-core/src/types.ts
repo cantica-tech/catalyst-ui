@@ -14,7 +14,7 @@ export type NodeKind =
   | "roadmap"
   | "step";
 
-export type DevArtifactType = "bug" | "requirement" | "house-keeping";
+export type DevArtifactType = "bug" | "requirement" | "house-keeping" | "test";
 
 export interface SourceLocation {
   file: string;
@@ -47,8 +47,12 @@ export interface DevArtifactNode extends ChainNodeBase {
   status: string;
   targets: string[];
   feature?: string;
+  /** `artifactType: "test"` only: `(0,n)` `REQ-NNNNNN` this test verifies (`Rules-of-Rules.md` §22). Undefined for every other artifact type. */
+  requirements?: string[];
+  /** `artifactType: "test"` only: `(0,n)` `STEP-NNNNNN` this test verifies (`Rules-of-Rules.md` §22). Undefined for every other artifact type — in particular, a *requirement's or bug's own* `Steps` field (the steps opened against it) is deliberately not read into this field; that relationship is already derivable from `StepNode.parent` via the chain model's reverse edges. */
+  steps?: string[];
   signedOffBy?: string;
-  /** Listed in this artifact type's index table (requirements.md/bugs.md/house-keeping.md). */
+  /** Listed in this artifact type's index table (requirements.md/bugs.md/house-keeping.md/tests.md). */
   registered: boolean;
   /** Backing .md file exists on disk. */
   fileExists: boolean;
@@ -97,14 +101,16 @@ export interface FeatureNode extends ChainNodeBase {
 export type StepStatus = "planned" | "in-progress" | "done" | "abandoned";
 
 /**
- * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, framework 0.29.0) — one concrete
- * unit of implementation work performed toward a specific requirement.
- * Never rule-linked (no `targets`/`domain` of its own — it inherits its
- * parent requirement's); `requirement` is the one required cross-reference.
+ * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, framework 0.29.0, widened to a
+ * bug parent at 0.31.0) — one concrete unit of implementation work
+ * performed toward a specific requirement or bug. Never rule-linked (no
+ * `targets`/`domain` of its own — it inherits its parent's); `parent`
+ * (a `REQ-NNNNNN` or `BUG-NNNNNN` id) is the one required
+ * cross-reference.
  */
 export interface StepNode extends ChainNodeBase {
   kind: "step";
-  requirement: string;
+  parent: string;
   status: StepStatus;
   signedOffBy?: string;
   /** Listed in `steps/steps.md`. */

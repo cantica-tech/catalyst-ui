@@ -1,6 +1,6 @@
 {
   "project_name": "catalyst-ui",
-  "framework_version": "0.29.0",
+  "framework_version": "0.31.0",
   "agent": "claude-code",
   "agent-source": "/Users/oliviersteck/.claude/projects/-Users-oliviersteck-sources-catalyst-ui/.criterion",
   "repoed": true,
