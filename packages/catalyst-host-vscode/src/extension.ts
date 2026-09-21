@@ -26,6 +26,7 @@ import {
   discoverSlashCommands,
   hasCatalystPointer,
   joinCriterionRepo,
+  meetsRequiredFrameworkVersion,
   nextProposalId,
   openProposalsByTarget,
   parseChatAgents,
@@ -33,6 +34,7 @@ import {
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
+  REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
   suggestCriterionBranch,
   watchCorpus,
@@ -1149,6 +1151,16 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  * includes the target version, so a future bump of
  * `MAX_COMPATIBLE_FRAMEWORK_VERSION` re-prompts even if an earlier
  * offer was dismissed.
+ *
+ * One notification path covers both thresholds on the same scale —
+ * never two separate popups for what's really one situation. Below
+ * `REQUIRED_FRAMEWORK_VERSION` (`catalyst-core`'s declared floor, a
+ * version specifier the same way a `uv.lock`'s `requires-python` states
+ * one) the wording says so explicitly, since parsing may actually be
+ * wrong, not just missing newer sections; between the required floor
+ * and `MAX_COMPATIBLE_FRAMEWORK_VERSION` the wording stays the softer
+ * "supports syncing to" — a deployment there parses correctly today,
+ * syncing just gets it the newer entity types.
  */
 async function offerToSyncFramework(
   context: vscode.ExtensionContext,
@@ -1164,8 +1176,12 @@ async function offerToSyncFramework(
 
   if (compareVersions(deployed, MAX_COMPATIBLE_FRAMEWORK_VERSION) >= 0) return;
 
+  const message = meetsRequiredFrameworkVersion(deployed)
+    ? `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`
+    : `"${folder.name}" is on catalyst ${deployed}, below the ${REQUIRED_FRAMEWORK_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}?`;
+
   const choice = await vscode.window.showInformationMessage(
-    `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`,
+    message,
     "Sync now",
     "Don't ask again",
   );
