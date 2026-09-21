@@ -21,9 +21,11 @@ export { buildChainModel } from "./graph.js";
 export {
   claudeCodeStoragePath,
   hasCatalystPointer,
+  meetsRequiredFrameworkVersion,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
+  REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
 } from "./discover.js";
 export {
@@ -56,6 +58,10 @@ export {
 export { parseRuns, hasDrift } from "./runs.js";
 export { composeSlashCommand } from "./slash-command.js";
 export { validate } from "./validator.js";
-export { compareVersions } from "./versioning.js";
+export {
+  compareVersions,
+  parseVersionSpecifier,
+  satisfiesVersionSpecifier,
+} from "./versioning.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";
