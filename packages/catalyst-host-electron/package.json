@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-electron",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "private": true,
   "main": "dist/main.js",
   "scripts": {
