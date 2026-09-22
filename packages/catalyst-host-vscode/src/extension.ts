@@ -165,10 +165,10 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   requirement: "requirements",
   bug: "bug",
   "house-keeping": "house-keeping",
+  step: "step",
   test: "test",
   domain: "domain",
   feature: "features",
-  step: "step",
 };
 
 /**
@@ -181,10 +181,10 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   requirement: ["requirement"],
   bug: ["bug"],
   "house-keeping": ["house-keeping"],
+  step: ["step"],
   test: ["test"],
   domain: ["domain"],
   feature: ["feature"],
-  step: ["step"],
 };
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -574,19 +574,23 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   /**
    * Which reverse-edge node kinds nest under a given node in the tree, for
    * discoverability on top of that kind's own flat section under "Dev
-   * Artifacts" — a requirement's or bug's steps (`Rules-of-Rules.md` §21,
-   * single required parent, so a step only ever nests under the one
-   * requirement or bug it names) and both a requirement's/bug's and a
-   * step's tests (`Rules-of-Rules.md` §22, `(0,n)` many-to-many, so the
-   * same test can legitimately nest under more than one parent, or under
-   * none).
+   * Artifacts". Steps deliberately do **not** nest here, even though a
+   * step names exactly one parent requirement or bug
+   * (`Rules-of-Rules.md` §21) — a step is assembled under the flat
+   * "Steps" section and nowhere else, never duplicated as a nested
+   * child too. Tests still nest under both a requirement's/bug's and a
+   * step's own tree node (`Rules-of-Rules.md` §22, `(0,n)` many-to-many,
+   * so the same test can legitimately nest under more than one parent,
+   * or under none) — that's on top of the flat "Tests" section, not a
+   * duplicate of it, since `(0,n)` doesn't single out one owner the way
+   * a step's own required parent does.
    */
   private childKindsFor(node: ChainNode): Array<"step" | "test"> {
     if (
       node.kind === "dev-artifact" &&
       (node.artifactType === "requirement" || node.artifactType === "bug")
     ) {
-      return ["step", "test"];
+      return ["test"];
     }
     if (node.kind === "step") return ["test"];
     return [];

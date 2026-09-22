@@ -226,6 +226,15 @@ export function formatNodeLabel(node: ChainNode): string {
  * entity-type identity (icon, tooltip). Work items are omitted entirely:
  * no project-management plugin is active in this deployment, so the
  * model never has any.
+ *
+ * A `STEP-NNNNNN` is assembled under this flat "Steps" section and
+ * **nowhere else** — unlike a test (which additionally nests under
+ * whichever requirement/bug/step it verifies, on top of its own flat
+ * "Tests" section, since `(0,n)` doesn't single out one owner), a step
+ * never appears a second time as a nested child under its one parent
+ * requirement or bug (`extension.ts`'s `childKindsFor` deliberately
+ * excludes it) — one place to look for every step, never a duplicate
+ * listing.
  */
 export type DevArtifactSectionKind =
   "requirement" | "bug" | "house-keeping" | "step" | "test";
@@ -265,10 +274,10 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   requirement: "Requirements",
   bug: "Bugs",
   "house-keeping": "House-keeping",
+  step: "Steps",
   test: "Tests",
   domain: "Domains",
   feature: "Features",
-  step: "Steps",
 };
 
 const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [

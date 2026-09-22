@@ -14,9 +14,10 @@ goes through the governing agent, never straight from the UI.
   (rules → dev artifacts, grouped as requirements/bugs/house-keeping/
   steps/tests → features/roadmap → proposals and live runs) for every
   catalyst deployment open in your workspace. Multi-root aware: each
-  deployment gets its own section. A requirement or bug with recorded
-  implementation steps expands to show them inline, and a requirement,
-  bug, or step verified by one or more tests expands to show those too.
+  deployment gets its own section. Every step lives in its own flat
+  "Steps" list, nowhere else — never duplicated as a nested child under
+  its parent. A requirement, bug, or step verified by one or more tests
+  expands to show them nested inline, on top of the flat "Tests" list.
   Click any node for full detail in a webview.
 - **Health board** — diagnostics, gutter marks, and CodeLens surface
   drift (orphaned artifacts, missing rule targets, dangling references)
