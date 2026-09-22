@@ -31,7 +31,7 @@ describe("buildTreeSections", () => {
     assert.strictEqual(devArtifacts.label, "Dev Artifacts");
     assert.deepStrictEqual(
       devArtifacts.sections.map((s) => s.kind),
-      ["requirement", "bug", "house-keeping", "test"],
+      ["requirement", "bug", "house-keeping", "step", "test"],
     );
     assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
     assert.strictEqual(rules.label, "Rules");
@@ -43,7 +43,7 @@ describe("buildTreeSections", () => {
     assert.ok(sections.every((s) => s.nodes.length === 0));
   });
 
-  it("excludes step nodes from every flat section — they only ever nest under their parent", () => {
+  it("groups step nodes into their own Steps sub-section, under Dev Artifacts", () => {
     const stepNode: ChainNode = {
       id: "STEP-000001",
       kind: "step",
@@ -58,18 +58,14 @@ describe("buildTreeSections", () => {
       content: "",
     } as ChainNode;
 
-    const { devArtifacts, sections } = buildTreeSections(
+    const { devArtifacts } = buildTreeSections(
       modelOf([stepNode, node({ id: "REQ-000001" })]),
     );
-    // `TreeSectionKind` has no "step" member at all — a step node can
-    // only ever land in neither `devArtifacts.sections` nor `sections`.
-    assert.ok(
-      devArtifacts.sections
-        .flatMap((s) => s.nodes)
-        .every((n) => n.id !== "STEP-000001"),
-    );
-    assert.ok(
-      sections.flatMap((s) => s.nodes).every((n) => n.id !== "STEP-000001"),
+    const stepSection = devArtifacts.sections.find((s) => s.kind === "step")!;
+    assert.strictEqual(stepSection.label, "Steps");
+    assert.deepStrictEqual(
+      stepSection.nodes.map((n) => n.id),
+      ["STEP-000001"],
     );
   });
 
