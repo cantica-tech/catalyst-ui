@@ -168,7 +168,6 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   test: "test",
   domain: "domain",
   feature: "features",
-  step: "step",
 };
 
 /**
@@ -184,7 +183,6 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   test: ["test"],
   domain: ["domain"],
   feature: ["feature"],
-  step: ["step"],
 };
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {

@@ -218,17 +218,24 @@ export function formatNodeLabel(node: ChainNode): string {
  * rule is still `kind: "rule"`), but the roadmap's "four layers" framing
  * calls it out as its own tree section, so it's split out here for
  * display only. Dev-artifact nodes are grouped under one "Dev Artifacts"
- * parent folder, itself split into five sub-sections: three by the
- * node's own `artifactType` (`requirement`/`bug`/`house-keeping`), plus
- * `test` (the fourth `artifactType`) and `step` (its own `NodeKind`, not
- * an `artifactType`, but grouped here too — display-only, catalyst-ui's
- * own choice, not a framework distinction) — each getting its own
- * entity-type identity (icon, tooltip). Work items are omitted entirely:
- * no project-management plugin is active in this deployment, so the
- * model never has any.
+ * parent folder, itself split by the node's own `artifactType`
+ * (`requirement`/`bug`/`house-keeping`/`test`) into four sub-sections,
+ * each getting its own entity-type identity (icon, tooltip). Work items
+ * are omitted entirely: no project-management plugin is active in this
+ * deployment, so the model never has any.
+ *
+ * A `STEP-NNNNNN` deliberately has **no** flat section of its own here,
+ * unlike every other node kind — it's exempt from the chain invariant
+ * (`Rules-of-Rules.md` §21: inherits its parent's already-vetted rule
+ * target rather than asserting one of its own) and isn't a peer
+ * `DevArtifactType` the way `test` is. It only ever surfaces nested
+ * inside its one parent requirement's or bug's own tree node
+ * (`extension.ts`'s `childNodesFor`, via the chain model's reverse
+ * edges) — never independently listed, matching its subordinate status
+ * in the framework's own model.
  */
 export type DevArtifactSectionKind =
-  "requirement" | "bug" | "house-keeping" | "step" | "test";
+  "requirement" | "bug" | "house-keeping" | "test";
 export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
 
 export interface TreeSection {
@@ -237,7 +244,7 @@ export interface TreeSection {
   nodes: ChainNode[];
 }
 
-/** The "Dev Artifacts" parent folder, wrapping its five sub-sections. */
+/** The "Dev Artifacts" parent folder, wrapping its four sub-sections. */
 export interface DevArtifactGroup {
   label: string;
   sections: TreeSection[];
@@ -268,14 +275,12 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   test: "Tests",
   domain: "Domains",
   feature: "Features",
-  step: "Steps",
 };
 
 const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "requirement",
   "bug",
   "house-keeping",
-  "step",
   "test",
 ];
 
@@ -304,10 +309,6 @@ export function buildTreeSections(model: ChainModel): TreeSections {
       const list = devArtifactsByKind.get(node.artifactType) ?? [];
       list.push(node);
       devArtifactsByKind.set(node.artifactType, list);
-    } else if (node.kind === "step") {
-      const list = devArtifactsByKind.get("step") ?? [];
-      list.push(node);
-      devArtifactsByKind.set("step", list);
     } else if (node.kind === "rule") {
       const prefix = node.docPrefix || "rule";
       const list = rulesByPrefix.get(prefix) ?? [];
