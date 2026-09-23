@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
@@ -1694,20 +1694,35 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
-  let detailPanel: vscode.WebviewPanel | undefined;
-  context.subscriptions.push({ dispose: () => detailPanel?.dispose() });
+  const detailPanels = new Map<string, vscode.WebviewPanel>();
+  context.subscriptions.push({
+    dispose: () => {
+      for (const panel of detailPanels.values()) panel.dispose();
+      detailPanels.clear();
+    },
+  });
 
   /**
-   * Shared by every command that opens the single bundled webview
-   * (node/IAM detail, journal). Reuses the one panel the same way node
-   * detail always has — opening one replaces whatever was showing.
+   * Shared by every command that opens the single bundled webview (node/
+   * IAM detail, journal, backlog) — but never a single shared panel
+   * across *different* things: `key` identifies the specific thing being
+   * opened (a node id, a user/role name, "journal", "backlog", each
+   * scoped to its own `corpusRoot` since ids are only unique within one
+   * corpus). Opening the same thing again reveals/updates its own
+   * existing panel; opening something different always gets its own new
+   * panel, never clobbering what was already showing.
    */
-  function showDetailPanel(title: string, payload: WebviewPayload): void {
-    if (detailPanel) {
-      detailPanel.title = title;
-      detailPanel.reveal(undefined, true);
+  function showDetailPanel(
+    key: string,
+    title: string,
+    payload: WebviewPayload,
+  ): void {
+    let panel = detailPanels.get(key);
+    if (panel) {
+      panel.title = title;
+      panel.reveal(undefined, true);
     } else {
-      detailPanel = vscode.window.createWebviewPanel(
+      panel = vscode.window.createWebviewPanel(
         "catalystNodeDetail",
         title,
         vscode.ViewColumn.Beside,
@@ -1715,15 +1730,16 @@ export function activate(context: vscode.ExtensionContext): void {
           enableScripts: true,
         },
       );
-      detailPanel.onDidDispose(() => {
-        detailPanel = undefined;
+      detailPanels.set(key, panel);
+      panel.onDidDispose(() => {
+        detailPanels.delete(key);
       });
     }
 
-    const scriptUri = detailPanel.webview.asWebviewUri(
+    const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
     );
-    detailPanel.webview.html = renderWebviewHtml(scriptUri, payload);
+    panel.webview.html = renderWebviewHtml(scriptUri, payload);
   }
 
   context.subscriptions.push(
@@ -1738,7 +1754,10 @@ export function activate(context: vscode.ExtensionContext): void {
           provider.getPendingTargets(corpusRoot),
         );
         if (!payload) return;
-        showDetailPanel(`Node: ${nodeId}`, { type: "node", ...payload });
+        showDetailPanel(`node:${corpusRoot}:${nodeId}`, `Node: ${nodeId}`, {
+          type: "node",
+          ...payload,
+        });
       },
     ),
   );
@@ -1756,7 +1775,10 @@ export function activate(context: vscode.ExtensionContext): void {
             user,
             provider.getRoles(corpusRoot),
           );
-          showDetailPanel(`User: ${name}`, { type: "iam-user", ...detail });
+          showDetailPanel(`iam-user:${corpusRoot}:${name}`, `User: ${name}`, {
+            type: "iam-user",
+            ...detail,
+          });
         } else {
           const role = provider
             .getRoles(corpusRoot)
@@ -1766,7 +1788,10 @@ export function activate(context: vscode.ExtensionContext): void {
             role,
             provider.getUsers(corpusRoot),
           );
-          showDetailPanel(`Role: ${name}`, { type: "iam-role", ...detail });
+          showDetailPanel(`iam-role:${corpusRoot}:${name}`, `Role: ${name}`, {
+            type: "iam-role",
+            ...detail,
+          });
         }
       },
     ),
@@ -1781,7 +1806,10 @@ export function activate(context: vscode.ExtensionContext): void {
         // by project lifetime, not unbounded, so shipping it all up front is
         // cheap and simpler than the alternative.
         const entries = parseJournal(corpusRoot);
-        showDetailPanel("Journal", { type: "journal", entries });
+        showDetailPanel(`journal:${corpusRoot}`, "Journal", {
+          type: "journal",
+          entries,
+        });
       },
     ),
   );
@@ -1789,11 +1817,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       OPEN_BACKLOG_COMMAND,
-      async (corpusRoot: string) => {
-        const backlogPath = vscode.Uri.file(
-          join(corpusRoot, "development", "BACKLOG.md"),
-        );
-        if (!existsSync(backlogPath.fsPath)) {
+      (corpusRoot: string) => {
+        const backlogPath = join(corpusRoot, "development", "BACKLOG.md");
+        if (!existsSync(backlogPath)) {
           void vscode.window.showWarningMessage(
             "No BACKLOG.md found — run /show-backlog first.",
           );
@@ -1801,10 +1827,17 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         // Rendered, not raw source — BACKLOG.md is generated prose for a
         // human to read, not something authored/edited by hand in place.
-        await vscode.commands.executeCommand(
-          "markdown.showPreview",
-          backlogPath,
-        );
+        // Through the same keyed panel mechanism as node/IAM/journal
+        // detail, not `markdown.showPreview` — that command's own
+        // built-in preview tab is a VS Code singleton shared across
+        // *any* markdown file previewed anywhere in the workspace, which
+        // is exactly the "everything lands in the same place" problem
+        // this mechanism exists to avoid.
+        const markdown = readFileSync(backlogPath, "utf8");
+        showDetailPanel(`backlog:${corpusRoot}`, "Backlog", {
+          type: "backlog",
+          markdown,
+        });
       },
     ),
   );
