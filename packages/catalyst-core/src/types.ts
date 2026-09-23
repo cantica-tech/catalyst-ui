@@ -321,6 +321,13 @@ export interface NodeDetailPayload {
   openProposals: Proposal[];
 }
 
+export interface FrameworkVersionInfo {
+  version: string | null;
+  requiredVersion: string;
+  meetsRequirement: boolean;
+  explanation?: string;
+}
+
 /**
  * Every shape the single bundled webview can be asked to render, tagged by
  * `type` so `webview-entry.tsx` can dispatch with one switch. Wraps
@@ -328,12 +335,15 @@ export interface NodeDetailPayload {
  * know about node detail (e.g. `catalyst-host-electron`'s own independent
  * `detail.ts`) are unaffected by the IAM/journal/backlog additions.
  */
-export type WebviewPayload =
+export type WebviewPayload = {
+  frameworkVersionInfo?: FrameworkVersionInfo;
+} & (
   | ({ type: "node" } & NodeDetailPayload)
   | { type: "iam-user"; user: IamUser; roles: IamRole[] }
   | { type: "iam-role"; role: IamRole; users: IamUser[] }
   | { type: "journal"; entries: JournalEntry[] }
-  | { type: "backlog"; markdown: string };
+  | { type: "backlog"; markdown: string }
+);
 
 export type AgentBindingKind = "chat-participant" | "command" | "lm-model";
 
