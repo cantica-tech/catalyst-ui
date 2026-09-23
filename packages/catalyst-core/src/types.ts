@@ -326,13 +326,14 @@ export interface NodeDetailPayload {
  * `type` so `webview-entry.tsx` can dispatch with one switch. Wraps
  * `NodeDetailPayload` rather than folding into it, so hosts/tests that only
  * know about node detail (e.g. `catalyst-host-electron`'s own independent
- * `detail.ts`) are unaffected by the IAM/journal additions.
+ * `detail.ts`) are unaffected by the IAM/journal/backlog additions.
  */
 export type WebviewPayload =
   | ({ type: "node" } & NodeDetailPayload)
   | { type: "iam-user"; user: IamUser; roles: IamRole[] }
   | { type: "iam-role"; role: IamRole; users: IamUser[] }
-  | { type: "journal"; entries: JournalEntry[] };
+  | { type: "journal"; entries: JournalEntry[] }
+  | { type: "backlog"; markdown: string };
 
 export type AgentBindingKind = "chat-participant" | "command" | "lm-model";
 
