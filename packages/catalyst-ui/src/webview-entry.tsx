@@ -2,6 +2,7 @@ import type { WebviewPayload } from "catalyst-core";
 import { createRoot } from "react-dom/client";
 
 import { Backlog } from "./Backlog.js";
+import { FrameworkVersionHeader } from "./FrameworkVersionHeader.js";
 import { IamRoleDetail, IamUserDetail } from "./IamDetail.js";
 import { Journal } from "./Journal.js";
 import { NodeDetail } from "./NodeDetail.js";
@@ -18,34 +19,34 @@ if (container) {
   const root = createRoot(container);
 
   const render = (payload: WebviewPayload) => {
-    switch (payload.type) {
-      case "node":
-        root.render(
-          <NodeDetail
-            node={payload.node}
-            upstream={payload.upstream}
-            downstream={payload.downstream}
-            openProposals={payload.openProposals}
-          />,
-        );
-        return;
-      case "iam-user":
-        root.render(
-          <IamUserDetail user={payload.user} roles={payload.roles} />,
-        );
-        return;
-      case "iam-role":
-        root.render(
-          <IamRoleDetail role={payload.role} users={payload.users} />,
-        );
-        return;
-      case "journal":
-        root.render(<Journal entries={payload.entries} />);
-        return;
-      case "backlog":
-        root.render(<Backlog markdown={payload.markdown} />);
-        return;
-    }
+    const content = (() => {
+      switch (payload.type) {
+        case "node":
+          return (
+            <NodeDetail
+              node={payload.node}
+              upstream={payload.upstream}
+              downstream={payload.downstream}
+              openProposals={payload.openProposals}
+            />
+          );
+        case "iam-user":
+          return <IamUserDetail user={payload.user} roles={payload.roles} />;
+        case "iam-role":
+          return <IamRoleDetail role={payload.role} users={payload.users} />;
+        case "journal":
+          return <Journal entries={payload.entries} />;
+        case "backlog":
+          return <Backlog markdown={payload.markdown} />;
+      }
+    })();
+
+    root.render(
+      <div className="catalyst-ui-root">
+        <FrameworkVersionHeader versionInfo={payload.frameworkVersionInfo} />
+        <div style={{ padding: "0 16px 16px 16px" }}>{content}</div>
+      </div>,
+    );
   };
 
   // The host injects the panel's initial data as a global before this

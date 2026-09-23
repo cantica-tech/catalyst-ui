@@ -6,6 +6,7 @@ import type {
   AgentBinding,
   ChainModel,
   ChainNode,
+  FrameworkVersionInfo,
   IamRole,
   IamUser,
   Proposal,
@@ -1742,6 +1743,25 @@ export function activate(context: vscode.ExtensionContext): void {
     panel.webview.html = renderWebviewHtml(scriptUri, payload);
   }
 
+function getFrameworkVersionInfo(corpusRoot: string): FrameworkVersionInfo {
+  const version = readDeployedFrameworkVersion(corpusRoot);
+  const meets = meetsRequiredFrameworkVersion(version);
+  let explanation: string | undefined;
+  if (!version) {
+    explanation = `Framework version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_FRAMEWORK_VERSION}.`;
+  } else if (!meets) {
+    explanation = `Framework version ${version} does not match expected required version (${REQUIRED_FRAMEWORK_VERSION}). Some entities may fail to parse or validate correctly.`;
+  } else {
+    explanation = `Framework version ${version} meets expected requirement (${REQUIRED_FRAMEWORK_VERSION}).`;
+  }
+  return {
+    version,
+    requiredVersion: REQUIRED_FRAMEWORK_VERSION,
+    meetsRequirement: meets,
+    explanation,
+  };
+}
+
   context.subscriptions.push(
     vscode.commands.registerCommand(
       SHOW_DETAIL_COMMAND,
@@ -1756,6 +1776,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!payload) return;
         showDetailPanel(`node:${corpusRoot}:${nodeId}`, `Node: ${nodeId}`, {
           type: "node",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
           ...payload,
         });
       },
@@ -1766,6 +1787,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       SHOW_IAM_DETAIL_COMMAND,
       (corpusRoot: string, kind: "user" | "role", name: string) => {
+        const frameworkVersionInfo = getFrameworkVersionInfo(corpusRoot);
         if (kind === "user") {
           const user = provider
             .getUsers(corpusRoot)
@@ -1777,6 +1799,7 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           showDetailPanel(`iam-user:${corpusRoot}:${name}`, `User: ${name}`, {
             type: "iam-user",
+            frameworkVersionInfo,
             ...detail,
           });
         } else {
@@ -1790,6 +1813,7 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           showDetailPanel(`iam-role:${corpusRoot}:${name}`, `Role: ${name}`, {
             type: "iam-role",
+            frameworkVersionInfo,
             ...detail,
           });
         }
@@ -1808,6 +1832,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const entries = parseJournal(corpusRoot);
         showDetailPanel(`journal:${corpusRoot}`, "Journal", {
           type: "journal",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
           entries,
         });
       },
@@ -1836,6 +1861,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const markdown = readFileSync(backlogPath, "utf8");
         showDetailPanel(`backlog:${corpusRoot}`, "Backlog", {
           type: "backlog",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
           markdown,
         });
       },
