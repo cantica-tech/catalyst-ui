@@ -1,6 +1,6 @@
 # How Modules Work in Catalyst UI
 
-_As of 2026-09-25, catalyst 0.35.0._
+_As of 2026-09-25: catalyst 0.35.2, catalyst UI 0.31.0._
 
 A module is a versioned zip bundle for one process domain, built from its own
 `catalyst-<module-id>` repository. The catalyst UI VS Code extension finds it
@@ -25,7 +25,7 @@ was removed in 0.35.0.
 ```
 sources/
 ├── catalyst/                          # framework/kernel/ + framework/modules/sample-process only
-├── catalyst-software-engineering/     # the module repo (origin: calatalyst-software-engineering.git)
+├── catalyst-software-engineering/     # the module repo (origin: catalyst-software-engineering.git)
 ├── catalyst-ui/                       # the extension; the module's ui/ builds against it
 └── cantica-tech/                      # published releases
 ```
@@ -64,15 +64,16 @@ catalyst-software-engineering/
 The extension reads only this file. `parseUiModuleFromZip` checks the required
 fields.
 
-| Field           | Required | Example                               | Meaning                                                                                                                                                          |
-| --------------- | -------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`            | Yes      | `software-engineering`                | Unique id; also the folder name on cantica-tech                                                                                                                  |
-| `name`          | Yes      | `Software Engineering Process Module` | Label in the module picker                                                                                                                                       |
-| `version`       | Yes      | `1.0.0`                               | Module version; release folder is `v<version>`                                                                                                                   |
-| `kernelVersion` | Yes      | `>=0.35.0`                            | UV-style specifier the active kernel must satisfy. Releases before 0.35.0 wrote `frameworkVersion`; every reader still accepts it (`readManifestKernelVersion`). |
-| `description`   | No       |                                       | Picker detail line                                                                                                                                               |
-| `entry`         | No       | `ui/index.js`                         | Entry script for the UI code (declared, not executed yet)                                                                                                        |
-| `components`    | No       |                                       | Reserved                                                                                                                                                         |
+| Field              | Required | Example                               | Meaning                                                                                                                                                                                                        |
+| ------------------ | -------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | Yes      | `software-engineering`                | Unique id; also the folder name on cantica-tech                                                                                                                                                                |
+| `name`             | Yes      | `Software Engineering Process Module` | Label in the module picker                                                                                                                                                                                     |
+| `version`          | Yes      | `1.0.0`                               | Module version; release folder is `v<version>`                                                                                                                                                                 |
+| `kernelVersion`    | Yes      | `>=0.35.2`                            | UV-style specifier the active kernel must satisfy.                                                                                                                                                             |
+| `frameworkVersion` | Legacy   | `>=0.35.2`                            | Old name of `kernelVersion`, written with the same value. Extension builds before 0.31.0 read only this field. catalyst UI 0.31.0+ prefers `kernelVersion` and falls back to it (`readManifestKernelVersion`). |
+| `description`      | No       |                                       | Picker detail line                                                                                                                                                                                             |
+| `entry`            | No       | `ui/index.js`                         | Entry script for the UI code (declared, not executed yet)                                                                                                                                                      |
+| `components`       | No       |                                       | Reserved                                                                                                                                                                                                       |
 
 The loader looks for `manifest.json`, then `ui-module.json`, then `module.json`,
 first at the zip root and then in any subfolder.
@@ -156,8 +157,8 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 `task release` in catalyst runs `scripts/package_release.py`:
 
 1. **Module.** From `../catalyst-software-engineering/`, it writes
-   `manifest.json` (`kernelVersion: ">=<kernel version>"`, `entry:
-"ui/index.js"`) and zips the repo into
+   `manifest.json` (`kernelVersion` and legacy `frameworkVersion`, both
+   `">=<kernel version>"`, and `entry: "ui/index.js"`) and zips the repo into
    `catalyst/modules/software-engineering/v<version>/`. It skips dotfiles,
    `node_modules`, `dist` and `catalyst/`, then commits and pushes to the
    module repo's `main`.
@@ -169,7 +170,7 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 
 ```
 cantica-tech/catalyst/
-├── kernel/v0.34.0/{manifest.json, kernel-v0.34.0.zip}
+├── kernel/v0.34.0 … v0.35.2/{manifest.json, kernel-v<version>.zip}
 └── modules/software-engineering/v1.0.0/{manifest.json, software-engineering-v1.0.0.zip}
 ```
 
@@ -184,18 +185,20 @@ cantica-tech/catalyst/
 
 ## Known pitfalls
 
-| Pitfall                                         | Where                                                                                          | Effect                                                                                                                                            |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No compiled UI in the next release              | Module `ui/` builds to `dist/`, which the zip skips; `ui/*.js` is gitignored                   | `entry: ui/index.js` points at a file the zip won't contain. The old submodule checkout only shipped JS by accident, via stale local build files. |
-| Saved module restored against the wrong version | `activate()` passes `REQUIRED_KERNEL_VERSION` (`">=0.31.0"`, a specifier) as a version         | Read as 0.31.0, so a saved module needing `>=0.34.0` silently fails to restore on every start                                                     |
-| Same fallback in the load commands              | `loadUiModule`, `switchUiModule`                                                               | A workspace with no deployment is checked as 0.31.0                                                                                               |
-| Build depends on sibling checkouts              | Module `ui/tsconfig.json` → `../../catalyst-ui`; types come from catalyst-core's built `dist/` | Build catalyst-ui first; the module won't compile outside the sibling layout                                                                      |
-| Single-module release                           | `package_release.py`                                                                           | A second module is neither packaged nor deployed                                                                                                  |
-| Kernel ignores the module id                    | `loadModule` in catalyst-core                                                                  | Every id loads the built-in software-engineering ETDs                                                                                             |
-| Components duplicated                           | `catalyst-ui/src` vs the module's `ui/`                                                        | Fixes must land twice until runtime rendering exists                                                                                              |
-| Legacy release folder                           | Module repo still tracks `catalyst/module/` (singular)                                         | Dead copy of v1.0.0; discovery accepts both spellings                                                                                             |
+| Pitfall                                         | Where                                                                                          | Effect                                                                                                                                                                                   |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No compiled UI in the next release              | Module `ui/` builds to `dist/`, which the zip skips; `ui/*.js` is gitignored                   | `entry: ui/index.js` points at a file the zip won't contain. The old submodule checkout only shipped JS by accident, via stale local build files.                                        |
+| Saved module restored against the wrong version | `activate()` passes `REQUIRED_KERNEL_VERSION` (`">=0.31.0"`, a specifier) as a version         | Read as 0.31.0, so a saved module needing `>=0.34.0` silently fails to restore on every start                                                                                            |
+| Same fallback in the load commands              | `loadUiModule`, `switchUiModule`                                                               | A workspace with no deployment is checked as 0.31.0                                                                                                                                      |
+| Build depends on sibling checkouts              | Module `ui/tsconfig.json` → `../../catalyst-ui`; types come from catalyst-core's built `dist/` | Build catalyst-ui first; the module won't compile outside the sibling layout                                                                                                             |
+| Single-module release                           | `package_release.py`                                                                           | A second module is neither packaged nor deployed                                                                                                                                         |
+| Kernel ignores the module id                    | `loadModule` in catalyst-core                                                                  | Every id loads the built-in software-engineering ETDs                                                                                                                                    |
+| Components duplicated                           | `catalyst-ui/src` vs the module's `ui/`                                                        | Fixes must land twice until runtime rendering exists                                                                                                                                     |
+| Legacy release folder                           | Module repo still tracks `catalyst/module/` (singular)                                         | Dead copy of v1.0.0; discovery accepts both spellings                                                                                                                                    |
+| Requirement follows the latest kernel           | `package_release.py` writes `>=<current kernel>` and republishes module 1.0.0 in place         | Each catalyst release raises the published requirement (now `>=0.35.2`), so projects on older kernels can no longer activate the module                                                  |
+| Dropping `frameworkVersion` hides the module    | Manifest fields                                                                                | catalyst 0.35.0–0.35.1 published only `kernelVersion`, and extensions before 0.31.0 reported "No process UI modules found". Fixed in 0.35.2; keep writing both until old builds are gone |
 
 ## Open questions
 
 - How should the webview load `manifest.entry`: as a bundled IIFE like `dist/webview.js`, or via dynamic `import()` from a webview URI?
-- Should `kernelVersion` stay pinned to `>=<kernel version at release>`, or should module authors declare it?
+- Should `kernelVersion` stay pinned to `>=<kernel version at release>`, or should module authors declare a fixed minimum (for example in `module.yaml`)?
