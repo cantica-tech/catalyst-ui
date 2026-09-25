@@ -4,13 +4,7 @@ import { join } from "node:path";
 export type GroundingKind = "required" | "inherited" | "none";
 
 export type FieldKind =
-  | "text"
-  | "enum"
-  | "ref"
-  | "ref-list"
-  | "date"
-  | "user"
-  | "user-list";
+  "text" | "enum" | "ref" | "ref-list" | "date" | "user" | "user-list";
 
 export interface FieldDefinition {
   name: string;
@@ -250,13 +244,7 @@ export function getDefaultSoftwareEngineeringManifest(): ModuleManifest {
         name: "Status",
         kind: "enum",
         required: true,
-        allowedValues: [
-          "Draft",
-          "Triaged",
-          "Active",
-          "Completed",
-          "Abandoned",
-        ],
+        allowedValues: ["Draft", "Triaged", "Active", "Completed", "Abandoned"],
       },
     ],
     workflow: {
@@ -437,7 +425,7 @@ export function resolveModuleId(projectRoot?: string): string {
 
 export function loadModule(
   projectRoot?: string,
-  moduleId?: string
+  moduleId?: string,
 ): ModuleManifest {
   const targetId = moduleId || resolveModuleId(projectRoot);
 
@@ -450,7 +438,7 @@ export function loadModule(
 }
 
 export function getActiveETDs(
-  manifest: ModuleManifest
+  manifest: ModuleManifest,
 ): Map<string, EntityTypeDefinition> {
   return manifest.entityTypes;
 }
@@ -461,7 +449,7 @@ export function getGroundingType(manifest: ModuleManifest): string {
 
 export function resolveCommand(
   manifest: ModuleManifest,
-  commandName: string
+  commandName: string,
 ): CommandRegistration | undefined {
   const cleanName = commandName.startsWith("/")
     ? commandName.slice(1)

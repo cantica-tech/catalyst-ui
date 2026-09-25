@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { inflateRawSync, deflateRawSync } from "node:zlib";
 import { satisfiesUvVersionSpecifier } from "./versioning.js";
 
@@ -21,8 +21,7 @@ export interface ActiveUiModule {
 }
 
 export type UiModuleLoadResult =
-  | { success: true; module: ActiveUiModule }
-  | { success: false; error: string };
+  { success: true; module: ActiveUiModule } | { success: false; error: string };
 
 /** Simple CRC32 computation for zip archives */
 function calculateCrc32(buf: Buffer): number {
@@ -131,7 +130,10 @@ export function readZipArchive(buffer: Buffer): Map<string, Buffer> {
     const extraLen = buffer.readUInt16LE(offset + 28);
     const name = buffer.toString("utf8", offset + 30, offset + 30 + nameLen);
     const dataOffset = offset + 30 + nameLen + extraLen;
-    const compressedData = buffer.subarray(dataOffset, dataOffset + compressedSize);
+    const compressedData = buffer.subarray(
+      dataOffset,
+      dataOffset + compressedSize,
+    );
 
     let fileData: Buffer;
     if (compression === 0) {
@@ -156,7 +158,7 @@ export function readZipArchive(buffer: Buffer): Map<string, Buffer> {
  */
 export function packageUiModule(
   manifest: UiModuleManifest,
-  files: Map<string, Buffer | string> = new Map()
+  files: Map<string, Buffer | string> = new Map(),
 ): Buffer {
   const fileMap = new Map<string, Buffer | string>(files);
   fileMap.set("manifest.json", JSON.stringify(manifest, null, 2));
@@ -199,7 +201,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
 
   if (!manifestEntry) {
     throw new Error(
-      "UI Module zip archive does not contain a manifest.json or ui-module.json"
+      "UI Module zip archive does not contain a manifest.json or ui-module.json",
     );
   }
 
@@ -214,12 +216,12 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   }
   if (!json.version || typeof json.version !== "string") {
     throw new Error(
-      "UI Module manifest missing required string field 'version'"
+      "UI Module manifest missing required string field 'version'",
     );
   }
   if (!json.frameworkVersion || typeof json.frameworkVersion !== "string") {
     throw new Error(
-      "UI Module manifest missing required string field 'frameworkVersion'"
+      "UI Module manifest missing required string field 'frameworkVersion'",
     );
   }
 
@@ -250,14 +252,14 @@ export class UiModuleManager {
    */
   public loadAndActivateZipModule(
     zipSource: Buffer | string,
-    currentFrameworkVersion: string
+    currentFrameworkVersion: string,
   ): UiModuleLoadResult {
     try {
       const { manifest, files } = parseUiModuleFromZip(zipSource);
 
       const isCompatible = satisfiesUvVersionSpecifier(
         currentFrameworkVersion,
-        manifest.frameworkVersion
+        manifest.frameworkVersion,
       );
 
       if (!isCompatible) {
