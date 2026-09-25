@@ -46,16 +46,34 @@ export async function fetchRemoteUiModules(
         (p) => p.startsWith("catalyst/module/") && p.endsWith("/manifest.json"),
       );
 
+    const zipFiles = new Map<string, string>();
+    for (const item of data.tree) {
+      if (
+        item.path.startsWith("catalyst/module/") &&
+        item.path.endsWith(".zip")
+      ) {
+        const dir = item.path.substring(0, item.path.lastIndexOf("/"));
+        zipFiles.set(dir, item.path);
+      }
+    }
+
     const modules: RemoteModuleInfo[] = [];
 
     for (const manifestPath of manifestPaths) {
       // catalyst/module/software-engineering/v1.0.0/manifest.json
+      const dir = manifestPath.substring(0, manifestPath.lastIndexOf("/"));
       const parts = manifestPath.split("/");
       if (parts.length === 5) {
         const moduleId = parts[2];
         const versionDir = parts[3]; // v1.0.0
         const rawUrl = `${GITHUB_RAW_BASE}/${moduleId}/${versionDir}/manifest.json`;
-        const zipUrl = `${GITHUB_RAW_BASE}/${moduleId}/${versionDir}/${moduleId}-${versionDir}.zip`;
+        let zipUrl = `${GITHUB_RAW_BASE}/${moduleId}/${versionDir}/${moduleId}-${versionDir}.zip`;
+
+        if (zipFiles.has(dir)) {
+          zipUrl = `https://raw.githubusercontent.com/oliben67/cantica-tech/main/${zipFiles.get(
+            dir,
+          )}`;
+        }
 
         try {
           const mRes = await fetchFn(rawUrl, {
