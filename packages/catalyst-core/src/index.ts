@@ -63,6 +63,17 @@ export {
   compareVersions,
   parseVersionSpecifier,
   satisfiesVersionSpecifier,
+  satisfiesUvVersionSpecifier,
 } from "./versioning.js";
+export {
+  createZipArchive,
+  readZipArchive,
+  packageUiModule,
+  parseUiModuleFromZip,
+  UiModuleManager,
+  type ActiveUiModule,
+  type UiModuleLoadResult,
+  type UiModuleManifest,
+} from "./ui-module-manager.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";

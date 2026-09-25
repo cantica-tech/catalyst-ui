@@ -1,5 +1,6 @@
 import type { ChainNode, Proposal } from "catalyst-core";
 import { marked } from "marked";
+import { RoadmapDetails } from "@catalyst-modules/software-engineering-ui";
 
 export interface NodeDetailProps {
   node: ChainNode;
@@ -62,28 +63,6 @@ function SignedOffByDetails({ node }: { node: ChainNode }) {
     );
   }
   return null;
-}
-
-function RoadmapDetails({ node }: { node: ChainNode }) {
-  if (node.kind !== "roadmap") return null;
-  const clean = node.signedOffBy
-    ? node.signedOffBy.replace(/^_+|_+$/g, "")
-    : "";
-  return (
-    <section>
-      <h2>Roadmap</h2>
-      <p>
-        {node.roadmapName}
-        {node.roadmapRetired ? " (retired)" : ""}
-      </p>
-      {clean ? (
-        <p>
-          Signed off by: <em>{clean}</em>
-        </p>
-      ) : null}
-      {node.notes ? <p>{node.notes}</p> : null}
-    </section>
-  );
 }
 
 /**

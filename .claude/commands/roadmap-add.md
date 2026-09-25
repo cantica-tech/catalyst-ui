@@ -13,7 +13,7 @@ Input: $ARGUMENTS
    `/roadmap-update` or `/roadmap-merge` instead.
 3. If `.criterion/development/roadmaps/` doesn't exist yet, create it, seed
    `.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-v1.md` from
-   `development-framework/templates/roadmap.template.md`, and create an
+   `framework/templates/roadmap.template.md`, and create an
    empty `.criterion/development/roadmaps/roadmaps.md` index.
 4. Read `<file>` from the local filesystem and identify its distinct
    roadmap items (headings, bullets, table rows — whatever structure the

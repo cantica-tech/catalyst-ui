@@ -14,6 +14,7 @@ import type {
   Run,
   RunStep,
   SlashCommandSpec,
+  UiModuleManifest,
   ValidationIssue,
   ValidationReport,
   WatcherHandle,
@@ -30,6 +31,7 @@ import {
   meetsRequiredFrameworkVersion,
   nextProposalId,
   openProposalsByTarget,
+  packageUiModule,
   parseChatAgents,
   parseJournal,
   readCatalystPointer,
@@ -38,6 +40,7 @@ import {
   REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
   suggestCriterionBranch,
+  UiModuleManager,
   watchCorpus,
 } from "catalyst-core";
 import * as vscode from "vscode";
@@ -102,6 +105,8 @@ const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
+const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
+const SELECT_FRAMEWORK_VERSION_COMMAND = "catalyst.selectFrameworkVersion";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -1016,6 +1021,12 @@ async function offerToInstall(
   const pick = await vscode.window.showQuickPick(
     [
       {
+        label: "Load a specific framework version in memory",
+        detail:
+          "Select a specific Catalyst framework version to load into extension memory and activate a matching UI module.",
+        action: "version" as const,
+      },
+      {
         label: "Connect to an existing criterion repo",
         detail:
           "Clone an already-repoed deployment's branch — a git clone and a pointer file, no agent involved.",
@@ -1032,7 +1043,9 @@ async function offerToInstall(
   );
   if (!pick) return;
 
-  if (pick.action === "connect") {
+  if (pick.action === "version") {
+    await vscode.commands.executeCommand(SELECT_FRAMEWORK_VERSION_COMMAND);
+  } else if (pick.action === "connect") {
     await connectExistingCriterionRepo(folder);
   } else {
     await offerAgentDrivenInstantiation(folder);
@@ -1411,6 +1424,9 @@ function discoverCommandCandidates(): CommandCandidate[] {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  const uiModuleManager = new UiModuleManager();
+  let inMemoryFrameworkVersion: string | null = null;
+
   const provider = new ChainInspectorProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(VIEW_ID, provider),
@@ -1691,6 +1707,97 @@ export function activate(context: vscode.ExtensionContext): void {
       // a bulk git operation) or the user just wants certainty right now.
       for (const registered of registeredDeployments.values()) {
         registered.handle.refresh();
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SELECT_FRAMEWORK_VERSION_COMMAND, async () => {
+      const picks = [
+        { label: "0.33.0", description: "Latest Catalyst Framework release (v0.33.0)" },
+        { label: "0.31.0", description: "Catalyst Framework v0.31.0" },
+        { label: "0.30.0", description: "Catalyst Framework v0.30.0" },
+        { label: "Specify custom version...", description: "Enter a custom framework version string" },
+      ];
+      const pick = await vscode.window.showQuickPick(picks, {
+        placeHolder: "Select a Catalyst Framework version to load into extension memory:",
+      });
+      if (!pick) return;
+
+      let version = pick.label;
+      if (pick.label.startsWith("Specify")) {
+        const input = await vscode.window.showInputBox({
+          prompt: "Enter framework version",
+          value: "0.33.0",
+          placeHolder: "e.g. 0.33.0",
+        });
+        if (!input) return;
+        version = input.trim();
+      }
+
+      inMemoryFrameworkVersion = version;
+
+      const defaultManifest: UiModuleManifest = {
+        id: "software-engineering-ui",
+        name: "Software Engineering Process UI Module",
+        version: "1.0.0",
+        description: "UI components for software engineering processes",
+        frameworkVersion: `>=${version}`,
+        entry: "dist/webview.js",
+      };
+
+      const zipBuf = packageUiModule(defaultManifest);
+      const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
+
+      if (res.success) {
+        void vscode.window.showInformationMessage(
+          `Loaded Catalyst Framework v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.frameworkVersion}).`
+        );
+      } else {
+        void vscode.window.showWarningMessage(
+          `Loaded Catalyst Framework v${version}, but UI module activation failed: ${res.error}`
+        );
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(LOAD_UI_MODULE_COMMAND, async () => {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        filters: { "Zip Modules": ["zip"] },
+        title: "Select Zipped Catalyst UI Module",
+      });
+      if (!uris || uris.length === 0) return;
+
+      const zipPath = uris[0].fsPath;
+
+      let currentFrameworkVersion = inMemoryFrameworkVersion;
+      if (!currentFrameworkVersion) {
+        for (const root of provider.getCorpusRoots()) {
+          const v = readDeployedFrameworkVersion(root);
+          if (v) {
+            currentFrameworkVersion = v;
+            break;
+          }
+        }
+      }
+      if (!currentFrameworkVersion) {
+        currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
+      }
+
+      const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentFrameworkVersion);
+
+      if (res.success) {
+        void vscode.window.showInformationMessage(
+          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`
+        );
+      } else {
+        void vscode.window.showErrorMessage(
+          `Failed to load UI module: ${res.error}`
+        );
       }
     }),
   );

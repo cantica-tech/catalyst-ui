@@ -2,7 +2,8 @@
   "name": "catalyst-ui-monorepo",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "../catalyst/framework/modules/software-engineering/ui"
   ],
   "engines": {
     "node": ">=20"

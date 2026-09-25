@@ -5,7 +5,7 @@ argument-hint: "[--role <role>] [--active-only]"
 
 List registered users. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `development-framework/templates/users.template.json`.
+template: `framework/templates/users.template.json`.
 Input: $ARGUMENTS
 
 1. If `.criterion/IAM/users/users.json` doesn't exist, say so rather than
