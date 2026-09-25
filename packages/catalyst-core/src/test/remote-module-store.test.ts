@@ -1,18 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  downloadModuleZip,
   fetchRemoteUiModules,
   loadLocalSavedModule,
   parseArtifactSourceLocation,
   saveModuleLocally,
+  scanModulesFromLocalDirectory,
 } from "../remote-module-store.js";
 import {
   packageUiModule,
   UiModuleManager,
   type UiModuleManifest,
 } from "../ui-module-manager.js";
-import { join } from "node:path";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 describe("remote-module-store", () => {
   it("parses various source URL formats cleanly", () => {
@@ -23,7 +25,7 @@ describe("remote-module-store", () => {
     expect(loc1.owner).toBe("oliben67");
     expect(loc1.repo).toBe("cantica-tech");
     expect(loc1.branch).toBe("main");
-    expect(loc1.moduleSubpath).toBe("catalyst/module");
+    expect(loc1.moduleSubpath).toBe("catalyst/modules");
     expect(loc1.frameworkSubpath).toBe("catalyst/framework");
 
     const loc2 = parseArtifactSourceLocation(
@@ -33,7 +35,7 @@ describe("remote-module-store", () => {
     expect(loc2.owner).toBe("myorg");
     expect(loc2.repo).toBe("myrepo");
     expect(loc2.branch).toBe("dev");
-    expect(loc2.moduleSubpath).toBe("custom-path/module");
+    expect(loc2.moduleSubpath).toBe("custom-path/modules");
 
     const loc3 = parseArtifactSourceLocation(
       "git+https://github.com/myorg/myrepo.git#main:catalyst",
@@ -42,7 +44,73 @@ describe("remote-module-store", () => {
     expect(loc3.owner).toBe("myorg");
     expect(loc3.repo).toBe("myrepo");
     expect(loc3.branch).toBe("main");
-    expect(loc3.moduleSubpath).toBe("catalyst/module");
+    expect(loc3.moduleSubpath).toBe("catalyst/modules");
+
+    const loc4 = parseArtifactSourceLocation("/path/to/local/dir");
+    expect(loc4.type).toBe("local");
+    expect(loc4.localPath).toBe("/path/to/local/dir");
+  });
+
+  it("scans modules from local directory without duplicates", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "catalyst-scan-test-"));
+    try {
+      const vDir = join(
+        tmpDir,
+        "catalyst",
+        "module",
+        "software-engineering",
+        "v1.0.0",
+      );
+      mkdirSync(vDir, { recursive: true });
+
+      const manifest: UiModuleManifest = {
+        id: "software-engineering",
+        name: "Software Engineering Process Module",
+        version: "1.0.0",
+        frameworkVersion: ">=0.34.0",
+      };
+      writeFileSync(
+        join(vDir, "manifest.json"),
+        JSON.stringify(manifest),
+        "utf8",
+      );
+      const zipBuf = packageUiModule(manifest);
+      writeFileSync(join(vDir, "software-engineering-v1.0.0.zip"), zipBuf);
+
+      const scanned = scanModulesFromLocalDirectory(tmpDir, "catalyst/module");
+      expect(scanned.length).toBe(1);
+      expect(scanned[0].id).toBe("software-engineering");
+      expect(scanned[0].version).toBe("1.0.0");
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("downloads module zip from local path and HTTP URL", async () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "catalyst-dl-test-"));
+    try {
+      const zipPath = join(tmpDir, "test.zip");
+      const sampleData = Buffer.from("ZIPDATA");
+      writeFileSync(zipPath, sampleData);
+
+      const loadedLocal = await downloadModuleZip(zipPath);
+      expect(loadedLocal.toString()).toBe("ZIPDATA");
+
+      const mockFetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(sampleData.buffer),
+        }),
+      );
+
+      const loadedHttp = await downloadModuleZip(
+        "https://example.com/mod.zip",
+        mockFetch as unknown as typeof fetch,
+      );
+      expect(loadedHttp.toString()).toBe("ZIPDATA");
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 
   it("fetches remote UI modules from cantica-tech mock tree", async () => {

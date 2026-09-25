@@ -76,10 +76,12 @@ export {
   type UiModuleManifest,
 } from "./ui-module-manager.js";
 export {
+  downloadModuleZip,
   fetchRemoteUiModules,
   loadLocalSavedModule,
   parseArtifactSourceLocation,
   saveModuleLocally,
+  syncGitRepoToCache,
   DEFAULT_MODULE_SOURCE_URL,
   type ArtifactSourceLocation,
   type RemoteModuleInfo,
