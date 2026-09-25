@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchRemoteUiModules,
   loadLocalSavedModule,
+  parseArtifactSourceLocation,
   saveModuleLocally,
 } from "../remote-module-store.js";
 import {
@@ -14,6 +15,36 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 describe("remote-module-store", () => {
+  it("parses various source URL formats cleanly", () => {
+    const loc1 = parseArtifactSourceLocation(
+      "git@github.com:oliben67/cantica-tech.git/catalyst/",
+    );
+    expect(loc1.type).toBe("git");
+    expect(loc1.owner).toBe("oliben67");
+    expect(loc1.repo).toBe("cantica-tech");
+    expect(loc1.branch).toBe("main");
+    expect(loc1.moduleSubpath).toBe("catalyst/module");
+    expect(loc1.frameworkSubpath).toBe("catalyst/framework");
+
+    const loc2 = parseArtifactSourceLocation(
+      "https://github.com/myorg/myrepo/tree/dev/custom-path",
+    );
+    expect(loc2.type).toBe("github");
+    expect(loc2.owner).toBe("myorg");
+    expect(loc2.repo).toBe("myrepo");
+    expect(loc2.branch).toBe("dev");
+    expect(loc2.moduleSubpath).toBe("custom-path/module");
+
+    const loc3 = parseArtifactSourceLocation(
+      "git+https://github.com/myorg/myrepo.git#main:catalyst",
+    );
+    expect(loc3.type).toBe("git");
+    expect(loc3.owner).toBe("myorg");
+    expect(loc3.repo).toBe("myrepo");
+    expect(loc3.branch).toBe("main");
+    expect(loc3.moduleSubpath).toBe("catalyst/module");
+  });
+
   it("fetches remote UI modules from cantica-tech mock tree", async () => {
     const mockTree = {
       tree: [

@@ -78,7 +78,10 @@ export {
 export {
   fetchRemoteUiModules,
   loadLocalSavedModule,
+  parseArtifactSourceLocation,
   saveModuleLocally,
+  DEFAULT_MODULE_SOURCE_URL,
+  type ArtifactSourceLocation,
   type RemoteModuleInfo,
 } from "./remote-module-store.js";
 export { watchCorpus } from "./watcher.js";

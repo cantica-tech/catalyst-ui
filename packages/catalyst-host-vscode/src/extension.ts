@@ -1898,17 +1898,23 @@ export function activate(context: vscode.ExtensionContext): void {
       currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
     }
 
+    const moduleSourceUrl =
+      vscode.workspace
+        .getConfiguration("catalyst")
+        .get<string>("moduleSourceUrl") ||
+      "git@github.com:oliben67/cantica-tech.git/catalyst/";
+
     const remoteModules = await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: "Fetching available UI modules from cantica-tech...",
+        title: "Fetching available UI modules...",
       },
-      async () => fetchRemoteUiModules(),
+      async () => fetchRemoteUiModules(moduleSourceUrl),
     );
 
     if (remoteModules.length === 0) {
       void vscode.window.showErrorMessage(
-        "No process UI modules found in git@github.com:oliben67/cantica-tech.git",
+        `No process UI modules found at ${moduleSourceUrl}`,
       );
       return;
     }
