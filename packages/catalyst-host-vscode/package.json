@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -91,8 +91,8 @@
         "title": "Catalyst: Load Zipped UI Module…"
       },
       {
-        "command": "catalyst.selectFrameworkVersion",
-        "title": "Catalyst: Load Specific Framework Version in Memory…"
+        "command": "catalyst.selectKernelVersion",
+        "title": "Catalyst: Load Specific Kernel Version in Memory…"
       },
       {
         "command": "catalyst.switchUiModule",
@@ -147,10 +147,10 @@
           "default": "git@github.com:oliben67/cantica-tech.git/catalyst/",
           "description": "Source location URL for downloading Catalyst process modules. Supports Git SSH URLs (git@github.com:owner/repo.git/path/), GitHub tree URLs (https://github.com/owner/repo/tree/branch/path), standard VCS URIs (git+https://github.com/owner/repo.git#branch:path), or raw GitHub HTTP URLs."
         },
-        "catalyst.frameworkSourceUrl": {
+        "catalyst.kernelSourceUrl": {
           "type": "string",
-          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/framework/",
-          "description": "Source location URL for downloading Catalyst framework specification releases."
+          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/kernel/",
+          "description": "Source location URL for downloading Catalyst kernel releases."
         }
       }
     },

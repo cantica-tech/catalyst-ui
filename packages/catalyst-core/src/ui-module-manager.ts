@@ -7,16 +7,37 @@ export interface UiModuleManifest {
   name: string;
   version: string;
   description?: string;
-  frameworkVersion: string; // UV-style compatibility specifier, e.g. ">=0.33.0"
+  kernelVersion: string; // UV-style compatibility specifier, e.g. ">=0.33.0"
   entry?: string;
   components?: string[];
+}
+
+/**
+ * A manifest as read from disk: releases before catalyst 0.35.0 named the
+ * kernel compatibility field `frameworkVersion`.
+ */
+export type RawUiModuleManifest = Partial<UiModuleManifest> & {
+  frameworkVersion?: unknown;
+};
+
+/** The manifest's kernel specifier, falling back to the legacy `frameworkVersion`. */
+export function readManifestKernelVersion(
+  json: RawUiModuleManifest,
+): string | undefined {
+  if (typeof json.kernelVersion === "string" && json.kernelVersion) {
+    return json.kernelVersion;
+  }
+  if (typeof json.frameworkVersion === "string" && json.frameworkVersion) {
+    return json.frameworkVersion;
+  }
+  return undefined;
 }
 
 export interface ActiveUiModule {
   manifest: UiModuleManifest;
   source: { type: "zip" | "folder"; path?: string };
   activatedAt: Date;
-  frameworkVersion: string;
+  kernelVersion: string;
   files: Map<string, Buffer>;
 }
 
@@ -206,7 +227,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   }
 
   const rawJson = files.get(manifestEntry)!.toString("utf8");
-  const json = JSON.parse(rawJson) as Partial<UiModuleManifest>;
+  const json = JSON.parse(rawJson) as RawUiModuleManifest;
 
   if (!json.id || typeof json.id !== "string") {
     throw new Error("UI Module manifest missing required string field 'id'");
@@ -219,9 +240,10 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
       "UI Module manifest missing required string field 'version'",
     );
   }
-  if (!json.frameworkVersion || typeof json.frameworkVersion !== "string") {
+  const kernelVersion = readManifestKernelVersion(json);
+  if (!kernelVersion) {
     throw new Error(
-      "UI Module manifest missing required string field 'frameworkVersion'",
+      "UI Module manifest missing required string field 'kernelVersion'",
     );
   }
 
@@ -230,7 +252,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
     name: json.name,
     version: json.version,
     description: json.description,
-    frameworkVersion: json.frameworkVersion,
+    kernelVersion,
     entry: json.entry,
     components: json.components,
   };
@@ -248,24 +270,24 @@ export class UiModuleManager {
 
   /**
    * Loads and activates a UI module from a zip buffer or file path, validating
-   * frameworkVersion against currentFrameworkVersion using UV-style constraints.
+   * kernelVersion against currentKernelVersion using UV-style constraints.
    */
   public loadAndActivateZipModule(
     zipSource: Buffer | string,
-    currentFrameworkVersion: string,
+    currentKernelVersion: string,
   ): UiModuleLoadResult {
     try {
       const { manifest, files } = parseUiModuleFromZip(zipSource);
 
       const isCompatible = satisfiesUvVersionSpecifier(
-        currentFrameworkVersion,
-        manifest.frameworkVersion,
+        currentKernelVersion,
+        manifest.kernelVersion,
       );
 
       if (!isCompatible) {
         return {
           success: false,
-          error: `Module "${manifest.id}" (${manifest.name} v${manifest.version}) requires catalyst framework "${manifest.frameworkVersion}", but active framework is "${currentFrameworkVersion}".`,
+          error: `Module "${manifest.id}" (${manifest.name} v${manifest.version}) requires catalyst kernel "${manifest.kernelVersion}", but active kernel is "${currentKernelVersion}".`,
         };
       }
 
@@ -281,7 +303,7 @@ export class UiModuleManager {
           path: typeof zipSource === "string" ? zipSource : undefined,
         },
         activatedAt: new Date(),
-        frameworkVersion: currentFrameworkVersion,
+        kernelVersion: currentKernelVersion,
         files,
       };
 

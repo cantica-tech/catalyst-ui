@@ -1,12 +1,12 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FrameworkVersionHeader } from "./FrameworkVersionHeader.js";
+import { KernelVersionHeader } from "./KernelVersionHeader.js";
 
-describe("FrameworkVersionHeader", () => {
-  it("renders framework version button and details when matching", () => {
+describe("KernelVersionHeader", () => {
+  it("renders kernel version button and details when matching", () => {
     const html = renderToStaticMarkup(
-      createElement(FrameworkVersionHeader, {
+      createElement(KernelVersionHeader, {
         versionInfo: {
           version: "0.33.0",
           requiredVersion: ">=0.31.0",
@@ -15,13 +15,13 @@ describe("FrameworkVersionHeader", () => {
         },
       }),
     );
-    expect(html).toContain("Framework Version");
+    expect(html).toContain("Kernel Version");
     expect(html).toContain("<svg");
   });
 
   it("renders red styling and exclamation mark when version does not match expected", () => {
     const html = renderToStaticMarkup(
-      createElement(FrameworkVersionHeader, {
+      createElement(KernelVersionHeader, {
         versionInfo: {
           version: "0.29.0",
           requiredVersion: ">=0.31.0",
@@ -30,7 +30,7 @@ describe("FrameworkVersionHeader", () => {
         },
       }),
     );
-    expect(html).toContain("Framework Version");
+    expect(html).toContain("Kernel Version");
     expect(html).toContain("!");
     expect(html).toContain(
       "Version 0.29.0 is below required version &gt;=0.31.0",
