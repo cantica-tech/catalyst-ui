@@ -27,6 +27,7 @@ import {
   defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
+  downloadModuleZip,
   fetchRemoteUiModules,
   hasCatalystPointer,
   joinCriterionRepo,
@@ -1954,14 +1955,7 @@ export function activate(context: vscode.ExtensionContext): void {
           location: vscode.ProgressLocation.Notification,
           title: `Downloading UI module "${mod.name}" v${mod.version}...`,
         },
-        async () => {
-          const res = await fetch(mod.downloadUrl);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status} downloading module zip`);
-          }
-          const arrayBuf = await res.arrayBuffer();
-          return Buffer.from(arrayBuf);
-        },
+        async () => downloadModuleZip(mod.downloadUrl),
       );
 
       const loadRes = uiModuleManager.loadAndActivateZipModule(
