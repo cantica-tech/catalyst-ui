@@ -85,6 +85,14 @@
         "command": "catalyst.refreshChainInspector",
         "title": "Catalyst: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "catalyst.loadUiModule",
+        "title": "Catalyst: Load Zipped UI Module…"
+      },
+      {
+        "command": "catalyst.selectFrameworkVersion",
+        "title": "Catalyst: Load Specific Framework Version in Memory…"
       }
     ],
     "menus": {
@@ -143,7 +151,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.23.0"
+    "catalyst-core": "*"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

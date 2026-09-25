@@ -81,3 +81,37 @@ export function satisfiesVersionSpecifier(
       return cmp !== 0;
   }
 }
+
+/**
+ * Evaluates whether `frameworkVersion` satisfies a UV-style version constraint string,
+ * such as `">=0.33.0"`, `">=0.1.0, <1.0.0"`, `"==0.33.0"`, or `"~=0.33.0"`.
+ * Supports multi-clause comma-separated specifiers.
+ */
+export function satisfiesUvVersionSpecifier(
+  frameworkVersion: string,
+  specifierString: string,
+): boolean {
+  const trimmed = specifierString.trim();
+  if (!trimmed || trimmed === "*") return true;
+
+  const clauses = trimmed.split(",").map((c) => c.trim()).filter(Boolean);
+
+  return clauses.every((clause) => {
+    if (clause.startsWith("~=")) {
+      const baseVersion = clause.slice(2).trim();
+      const parts = baseVersion.split(".").map((p) => Number.parseInt(p, 10) || 0);
+      if (parts.length >= 2) {
+        const nextParts = [...parts];
+        nextParts[nextParts.length - 2] += 1;
+        const upperLimit = nextParts.slice(0, -1).join(".");
+        return (
+          compareVersions(frameworkVersion, baseVersion) >= 0 &&
+          compareVersions(frameworkVersion, upperLimit) < 0
+        );
+      }
+      return compareVersions(frameworkVersion, baseVersion) >= 0;
+    }
+
+    return satisfiesVersionSpecifier(frameworkVersion, clause);
+  });
+}

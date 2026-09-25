@@ -12,7 +12,7 @@ Input: $ARGUMENTS
    as a hand-maintained subset.
 2. Apply `--filter` the same way `/list` does, if given.
 3. If this session is working on catalyst's own repository
-   (`development-framework/` present at the root) rather than a deployed
+   (`framework/` present at the root) rather than a deployed
    project, also list catalyst-development-only commands that exist here
    but aren't part of the deployed set — `/dogfood` is the current
    example (see `.claude/commands/dogfood.md`).

@@ -5,16 +5,16 @@ argument-hint: <name> <role>
 
 Register a new user. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-templates: `development-framework/templates/users.template.json`,
-`development-framework/templates/roles.template.json`.
+templates: `framework/templates/users.template.json`,
+`framework/templates/roles.template.json`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <role>`. If either is missing, ask for it.
 2. If `.criterion/IAM/roles/roles.json` or `.criterion/IAM/users/users.json` doesn't exist
    yet, create them from
-   `development-framework/templates/roles.template.json` (filled in with
+   `framework/templates/roles.template.json` (filled in with
    its default agile-role mapping) and
-   `development-framework/templates/users.template.json` (`{"users": []}`)
+   `framework/templates/users.template.json` (`{"users": []}`)
    first.
 3. If `<name>` already has an entry in `.criterion/IAM/users/users.json`, refuse
    and point to `/user-modify`/`/user-assign-role` instead.

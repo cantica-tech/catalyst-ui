@@ -5,8 +5,8 @@ argument-hint: <name> <role>
 
 Assign an additional role to an existing user. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-templates: `development-framework/templates/users.template.json`,
-`development-framework/templates/roles.template.json`.
+templates: `framework/templates/users.template.json`,
+`framework/templates/roles.template.json`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <role>`. If either is missing, ask for it.
