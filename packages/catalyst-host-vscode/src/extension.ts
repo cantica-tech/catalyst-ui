@@ -6,7 +6,7 @@ import type {
   AgentBinding,
   ChainModel,
   ChainNode,
-  FrameworkVersionInfo,
+  KernelVersionInfo,
   IamRole,
   IamUser,
   Proposal,
@@ -32,16 +32,16 @@ import {
   hasCatalystPointer,
   joinCriterionRepo,
   loadLocalSavedModule,
-  meetsRequiredFrameworkVersion,
+  meetsRequiredKernelVersion,
   nextProposalId,
   openProposalsByTarget,
   packageUiModule,
   parseChatAgents,
   parseJournal,
   readCatalystPointer,
-  readDeployedFrameworkVersion,
+  readDeployedKernelVersion,
   readEntityDefinition,
-  REQUIRED_FRAMEWORK_VERSION,
+  REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
   saveModuleLocally,
   suggestCriterionBranch,
@@ -111,14 +111,14 @@ const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
 const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
-const SELECT_FRAMEWORK_VERSION_COMMAND = "catalyst.selectFrameworkVersion";
+const SELECT_KERNEL_VERSION_COMMAND = "catalyst.selectKernelVersion";
 const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
 const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
 /**
- * The highest catalyst framework version this extension build has been
+ * The highest catalyst kernel version this extension build has been
  * verified against — bumped by hand whenever that happens, same
  * "small, verified, hand-maintained" precedent as AGENT_PRESETS/
  * KNOWN_AGENT_COMMANDS. A deployment is only ever offered a sync to
@@ -126,7 +126,7 @@ const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
  * should never tell a deployment to sync past what it's actually been
  * checked against.
  */
-const MAX_COMPATIBLE_FRAMEWORK_VERSION = "0.31.0";
+const MAX_COMPATIBLE_KERNEL_VERSION = "0.31.0";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
   "rule",
   "requirement",
@@ -1032,9 +1032,9 @@ async function offerToInstall(
   const pick = await vscode.window.showQuickPick(
     [
       {
-        label: "Load a specific framework version in memory",
+        label: "Load a specific kernel version in memory",
         detail:
-          "Select a specific Catalyst framework version to load into extension memory and activate a matching UI module.",
+          "Select a specific Catalyst kernel version to load into extension memory and activate a matching UI module.",
         action: "version" as const,
       },
       {
@@ -1055,7 +1055,7 @@ async function offerToInstall(
   if (!pick) return;
 
   if (pick.action === "version") {
-    await vscode.commands.executeCommand(SELECT_FRAMEWORK_VERSION_COMMAND);
+    await vscode.commands.executeCommand(SELECT_KERNEL_VERSION_COMMAND);
   } else if (pick.action === "connect") {
     await connectExistingCriterionRepo(folder);
   } else {
@@ -1172,42 +1172,42 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
 }
 
 /**
- * A resolved deployment behind the highest catalyst framework version
+ * A resolved deployment behind the highest catalyst kernel version
  * this extension build has been verified against gets an actionable
  * offer, mirroring `offerToInstall`'s own bar: nothing runs until the
  * user explicitly clicks "Sync now" — `/sync-framework` mutates real
  * deployment files, so this must never fire silently. The dismiss key
  * includes the target version, so a future bump of
- * `MAX_COMPATIBLE_FRAMEWORK_VERSION` re-prompts even if an earlier
+ * `MAX_COMPATIBLE_KERNEL_VERSION` re-prompts even if an earlier
  * offer was dismissed.
  *
  * One notification path covers both thresholds on the same scale —
  * never two separate popups for what's really one situation. Below
- * `REQUIRED_FRAMEWORK_VERSION` (`catalyst-core`'s declared floor, a
+ * `REQUIRED_KERNEL_VERSION` (`catalyst-core`'s declared floor, a
  * version specifier the same way a `uv.lock`'s `requires-python` states
  * one) the wording says so explicitly, since parsing may actually be
  * wrong, not just missing newer sections; between the required floor
- * and `MAX_COMPATIBLE_FRAMEWORK_VERSION` the wording stays the softer
+ * and `MAX_COMPATIBLE_KERNEL_VERSION` the wording stays the softer
  * "supports syncing to" — a deployment there parses correctly today,
  * syncing just gets it the newer entity types.
  */
-async function offerToSyncFramework(
+async function offerToSyncKernel(
   context: vscode.ExtensionContext,
   folder: vscode.WorkspaceFolder,
   corpusRoot: string,
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
-  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${folder.uri.fsPath}:${MAX_COMPATIBLE_FRAMEWORK_VERSION}`;
+  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${folder.uri.fsPath}:${MAX_COMPATIBLE_KERNEL_VERSION}`;
   if (context.workspaceState.get<boolean>(dismissKey)) return;
 
-  const deployed = readDeployedFrameworkVersion(corpusRoot);
+  const deployed = readDeployedKernelVersion(corpusRoot);
   if (!deployed) return; // can't safely compare — don't guess
 
-  if (compareVersions(deployed, MAX_COMPATIBLE_FRAMEWORK_VERSION) >= 0) return;
+  if (compareVersions(deployed, MAX_COMPATIBLE_KERNEL_VERSION) >= 0) return;
 
-  const message = meetsRequiredFrameworkVersion(deployed)
-    ? `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`
-    : `"${folder.name}" is on catalyst ${deployed}, below the ${REQUIRED_FRAMEWORK_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}?`;
+  const message = meetsRequiredKernelVersion(deployed)
+    ? `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_KERNEL_VERSION}.`
+    : `"${folder.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_KERNEL_VERSION}?`;
 
   const choice = await vscode.window.showInformationMessage(
     message,
@@ -1229,10 +1229,12 @@ async function offerToSyncFramework(
     return;
   }
 
+  // `/sync-framework` rather than `/sync-kernel`: deployments older than
+  // catalyst 0.35.0 only know the old name, and 0.35.0+ keeps it as an alias.
   await resolveAndInvoke(
     agentDef,
     "/sync-framework",
-    MAX_COMPATIBLE_FRAMEWORK_VERSION,
+    MAX_COMPATIBLE_KERNEL_VERSION,
     outputChannel,
   );
 }
@@ -1436,17 +1438,17 @@ function discoverCommandCandidates(): CommandCandidate[] {
 
 export function activate(context: vscode.ExtensionContext): void {
   const uiModuleManager = new UiModuleManager();
-  let inMemoryFrameworkVersion: string | null = null;
+  let inMemoryKernelVersion: string | null = null;
   const storagePath = context.globalStorageUri.fsPath;
 
   const provider = new ChainInspectorProvider(context.extensionUri);
 
   // Attempt automatic activation from saved local module
-  const initialFwVer = REQUIRED_FRAMEWORK_VERSION;
+  const initialKernelVer = REQUIRED_KERNEL_VERSION;
   const localRes = loadLocalSavedModule(
     storagePath,
     uiModuleManager,
-    initialFwVer,
+    initialKernelVer,
   );
   if (localRes && localRes.success) {
     void vscode.window.showInformationMessage(
@@ -1493,7 +1495,7 @@ export function activate(context: vscode.ExtensionContext): void {
         codeLensChangeEmitter,
       ),
     );
-    void offerToSyncFramework(
+    void offerToSyncKernel(
       context,
       folder,
       corpusRoot,
@@ -1750,63 +1752,60 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      SELECT_FRAMEWORK_VERSION_COMMAND,
-      async () => {
-        const picks = [
-          {
-            label: "0.33.0",
-            description: "Latest Catalyst Framework release (v0.33.0)",
-          },
-          { label: "0.31.0", description: "Catalyst Framework v0.31.0" },
-          { label: "0.30.0", description: "Catalyst Framework v0.30.0" },
-          {
-            label: "Specify custom version...",
-            description: "Enter a custom framework version string",
-          },
-        ];
-        const pick = await vscode.window.showQuickPick(picks, {
-          placeHolder:
-            "Select a Catalyst Framework version to load into extension memory:",
+    vscode.commands.registerCommand(SELECT_KERNEL_VERSION_COMMAND, async () => {
+      const picks = [
+        {
+          label: "0.33.0",
+          description: "Latest Catalyst kernel release (v0.33.0)",
+        },
+        { label: "0.31.0", description: "Catalyst kernel v0.31.0" },
+        { label: "0.30.0", description: "Catalyst kernel v0.30.0" },
+        {
+          label: "Specify custom version...",
+          description: "Enter a custom kernel version string",
+        },
+      ];
+      const pick = await vscode.window.showQuickPick(picks, {
+        placeHolder:
+          "Select a Catalyst kernel version to load into extension memory:",
+      });
+      if (!pick) return;
+
+      let version = pick.label;
+      if (pick.label.startsWith("Specify")) {
+        const input = await vscode.window.showInputBox({
+          prompt: "Enter kernel version",
+          value: "0.33.0",
+          placeHolder: "e.g. 0.33.0",
         });
-        if (!pick) return;
+        if (!input) return;
+        version = input.trim();
+      }
 
-        let version = pick.label;
-        if (pick.label.startsWith("Specify")) {
-          const input = await vscode.window.showInputBox({
-            prompt: "Enter framework version",
-            value: "0.33.0",
-            placeHolder: "e.g. 0.33.0",
-          });
-          if (!input) return;
-          version = input.trim();
-        }
+      inMemoryKernelVersion = version;
 
-        inMemoryFrameworkVersion = version;
+      const defaultManifest: UiModuleManifest = {
+        id: "software-engineering-ui",
+        name: "Software Engineering Process UI Module",
+        version: "1.0.0",
+        description: "UI components for software engineering processes",
+        kernelVersion: `>=${version}`,
+        entry: "dist/webview.js",
+      };
 
-        const defaultManifest: UiModuleManifest = {
-          id: "software-engineering-ui",
-          name: "Software Engineering Process UI Module",
-          version: "1.0.0",
-          description: "UI components for software engineering processes",
-          frameworkVersion: `>=${version}`,
-          entry: "dist/webview.js",
-        };
+      const zipBuf = packageUiModule(defaultManifest);
+      const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
 
-        const zipBuf = packageUiModule(defaultManifest);
-        const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
-
-        if (res.success) {
-          void vscode.window.showInformationMessage(
-            `Loaded Catalyst Framework v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.frameworkVersion}).`,
-          );
-        } else {
-          void vscode.window.showWarningMessage(
-            `Loaded Catalyst Framework v${version}, but UI module activation failed: ${res.error}`,
-          );
-        }
-      },
-    ),
+      if (res.success) {
+        void vscode.window.showInformationMessage(
+          `Loaded Catalyst kernel v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.kernelVersion}).`,
+        );
+      } else {
+        void vscode.window.showWarningMessage(
+          `Loaded Catalyst kernel v${version}, but UI module activation failed: ${res.error}`,
+        );
+      }
+    }),
   );
 
   context.subscriptions.push(
@@ -1822,23 +1821,23 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const zipPath = uris[0].fsPath;
 
-      let currentFrameworkVersion = inMemoryFrameworkVersion;
-      if (!currentFrameworkVersion) {
+      let currentKernelVersion = inMemoryKernelVersion;
+      if (!currentKernelVersion) {
         for (const root of provider.getCorpusRoots()) {
-          const v = readDeployedFrameworkVersion(root);
+          const v = readDeployedKernelVersion(root);
           if (v) {
-            currentFrameworkVersion = v;
+            currentKernelVersion = v;
             break;
           }
         }
       }
-      if (!currentFrameworkVersion) {
-        currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
+      if (!currentKernelVersion) {
+        currentKernelVersion = REQUIRED_KERNEL_VERSION;
       }
 
       const res = uiModuleManager.loadAndActivateZipModule(
         zipPath,
-        currentFrameworkVersion,
+        currentKernelVersion,
       );
 
       if (res.success) {
@@ -1846,7 +1845,7 @@ export function activate(context: vscode.ExtensionContext): void {
         refreshAllDetailPanels();
         provider.refreshTree();
         void vscode.window.showInformationMessage(
-          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`,
+          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for kernel version ${currentKernelVersion}.`,
         );
       } else {
         void vscode.window.showErrorMessage(
@@ -1884,7 +1883,7 @@ export function activate(context: vscode.ExtensionContext): void {
               ),
               {
                 type: "node",
-                frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
                 ...payload,
               },
             );
@@ -1895,18 +1894,18 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   async function promptAndSwitchUiModule(): Promise<void> {
-    let currentFrameworkVersion = inMemoryFrameworkVersion;
-    if (!currentFrameworkVersion) {
+    let currentKernelVersion = inMemoryKernelVersion;
+    if (!currentKernelVersion) {
       for (const root of provider.getCorpusRoots()) {
-        const v = readDeployedFrameworkVersion(root);
+        const v = readDeployedKernelVersion(root);
         if (v) {
-          currentFrameworkVersion = v;
+          currentKernelVersion = v;
           break;
         }
       }
     }
-    if (!currentFrameworkVersion) {
-      currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
+    if (!currentKernelVersion) {
+      currentKernelVersion = REQUIRED_KERNEL_VERSION;
     }
 
     const moduleSourceUrl =
@@ -1937,13 +1936,13 @@ export function activate(context: vscode.ExtensionContext): void {
       module: RemoteModuleInfo;
     }> = remoteModules.map((m) => ({
       label: `$(symbol-module) ${m.name} (v${m.version})`,
-      description: `[${m.id}] Framework ${m.frameworkVersion}`,
+      description: `[${m.id}] Kernel ${m.kernelVersion}`,
       detail: m.description || `Module ID: ${m.id}`,
       module: m,
     }));
 
     const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: `Select a Catalyst Process UI Module to download & activate from cantica-tech (framework ${currentFrameworkVersion}):`,
+      placeHolder: `Select a Catalyst Process UI Module to download & activate from cantica-tech (kernel ${currentKernelVersion}):`,
     });
 
     if (!selected) return;
@@ -1960,7 +1959,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const loadRes = uiModuleManager.loadAndActivateZipModule(
         zipBuffer,
-        currentFrameworkVersion,
+        currentKernelVersion,
       );
 
       if (loadRes.success) {
@@ -2030,20 +2029,20 @@ export function activate(context: vscode.ExtensionContext): void {
     panel.webview.html = renderWebviewHtml(scriptUri, payload);
   }
 
-  function getFrameworkVersionInfo(corpusRoot: string): FrameworkVersionInfo {
-    const version = readDeployedFrameworkVersion(corpusRoot);
-    const meets = meetsRequiredFrameworkVersion(version);
+  function getKernelVersionInfo(corpusRoot: string): KernelVersionInfo {
+    const version = readDeployedKernelVersion(corpusRoot);
+    const meets = meetsRequiredKernelVersion(version);
     let explanation: string | undefined;
     if (!version) {
-      explanation = `Framework version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_FRAMEWORK_VERSION}.`;
+      explanation = `Kernel version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_KERNEL_VERSION}.`;
     } else if (!meets) {
-      explanation = `Framework version ${version} does not match expected required version (${REQUIRED_FRAMEWORK_VERSION}). Some entities may fail to parse or validate correctly.`;
+      explanation = `Kernel version ${version} does not match expected required version (${REQUIRED_KERNEL_VERSION}). Some entities may fail to parse or validate correctly.`;
     } else {
-      explanation = `Framework version ${version} meets expected requirement (${REQUIRED_FRAMEWORK_VERSION}).`;
+      explanation = `Kernel version ${version} meets expected requirement (${REQUIRED_KERNEL_VERSION}).`;
     }
     return {
       version,
-      requiredVersion: REQUIRED_FRAMEWORK_VERSION,
+      requiredVersion: REQUIRED_KERNEL_VERSION,
       meetsRequirement: meets,
       explanation,
     };
@@ -2063,7 +2062,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!payload) return;
         showDetailPanel(`node:${corpusRoot}:${nodeId}`, `Node: ${nodeId}`, {
           type: "node",
-          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
           ...payload,
         });
       },
@@ -2074,7 +2073,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       SHOW_IAM_DETAIL_COMMAND,
       (corpusRoot: string, kind: "user" | "role", name: string) => {
-        const frameworkVersionInfo = getFrameworkVersionInfo(corpusRoot);
+        const kernelVersionInfo = getKernelVersionInfo(corpusRoot);
         if (kind === "user") {
           const user = provider
             .getUsers(corpusRoot)
@@ -2086,7 +2085,7 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           showDetailPanel(`iam-user:${corpusRoot}:${name}`, `User: ${name}`, {
             type: "iam-user",
-            frameworkVersionInfo,
+            kernelVersionInfo,
             ...detail,
           });
         } else {
@@ -2100,7 +2099,7 @@ export function activate(context: vscode.ExtensionContext): void {
           );
           showDetailPanel(`iam-role:${corpusRoot}:${name}`, `Role: ${name}`, {
             type: "iam-role",
-            frameworkVersionInfo,
+            kernelVersionInfo,
             ...detail,
           });
         }
@@ -2119,7 +2118,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const entries = parseJournal(corpusRoot);
         showDetailPanel(`journal:${corpusRoot}`, "Journal", {
           type: "journal",
-          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
           entries,
         });
       },
@@ -2148,7 +2147,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const markdown = readFileSync(backlogPath, "utf8");
         showDetailPanel(`backlog:${corpusRoot}`, "Backlog", {
           type: "backlog",
-          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
           markdown,
         });
       },

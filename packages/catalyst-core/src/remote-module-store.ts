@@ -10,9 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  readManifestKernelVersion,
   UiModuleManager,
+  type RawUiModuleManifest,
   type UiModuleLoadResult,
-  type UiModuleManifest,
 } from "./ui-module-manager.js";
 
 export interface RemoteModuleInfo {
@@ -20,7 +21,7 @@ export interface RemoteModuleInfo {
   name: string;
   version: string;
   description?: string;
-  frameworkVersion: string;
+  kernelVersion: string;
   downloadUrl: string;
 }
 
@@ -33,7 +34,7 @@ export interface ArtifactSourceLocation {
   branch: string;
   subpath: string;
   moduleSubpath: string;
-  frameworkSubpath: string;
+  kernelSubpath: string;
   rawBaseUrl?: string;
   apiTreeUrl?: string;
 }
@@ -133,21 +134,24 @@ export function parseArtifactSourceLocation(
     ? subpath
     : subpath.endsWith("module")
       ? `${subpath}s`
-      : subpath.endsWith("framework")
-        ? subpath.replace(/framework$/, "modules")
+      : /(kernel|framework)$/.test(subpath)
+        ? subpath.replace(/(kernel|framework)$/, "modules")
         : subpath
           ? `${subpath}/modules`
           : "modules";
 
-  const frameworkSubpath = subpath.endsWith("framework")
+  // "framework" is the pre-0.35.0 name of the kernel release folder.
+  const kernelSubpath = subpath.endsWith("kernel")
     ? subpath
-    : subpath.endsWith("modules")
-      ? subpath.replace(/modules$/, "framework")
-      : subpath.endsWith("module")
-        ? subpath.replace(/module$/, "framework")
-        : subpath
-          ? `${subpath}/framework`
-          : "framework";
+    : subpath.endsWith("framework")
+      ? subpath.replace(/framework$/, "kernel")
+      : subpath.endsWith("modules")
+        ? subpath.replace(/modules$/, "kernel")
+        : subpath.endsWith("module")
+          ? subpath.replace(/module$/, "kernel")
+          : subpath
+            ? `${subpath}/kernel`
+            : "kernel";
 
   const rawBaseUrl =
     owner && repo
@@ -167,7 +171,7 @@ export function parseArtifactSourceLocation(
     branch,
     subpath,
     moduleSubpath,
-    frameworkSubpath,
+    kernelSubpath,
     rawBaseUrl,
     apiTreeUrl,
   };
@@ -265,8 +269,9 @@ export function scanModulesFromLocalDirectory(
         try {
           const json = JSON.parse(
             readFileSync(manifestPath, "utf8"),
-          ) as Partial<UiModuleManifest>;
-          if (json.id && json.version && json.frameworkVersion) {
+          ) as RawUiModuleManifest;
+          const kernelVersion = readManifestKernelVersion(json);
+          if (json.id && json.version && kernelVersion) {
             const key = `${json.id}@${json.version}`;
             if (seenKeys.has(key)) continue;
 
@@ -286,7 +291,7 @@ export function scanModulesFromLocalDirectory(
                 name: json.name || json.id,
                 version: json.version,
                 description: json.description,
-                frameworkVersion: json.frameworkVersion,
+                kernelVersion,
                 downloadUrl: zipPath,
               });
             }
@@ -427,14 +432,15 @@ export async function fetchRemoteUiModules(
                   headers: { "User-Agent": "Catalyst-UI-Extension" },
                 });
                 if (mRes.ok) {
-                  const json = (await mRes.json()) as Partial<UiModuleManifest>;
-                  if (json.id && json.version && json.frameworkVersion) {
+                  const json = (await mRes.json()) as RawUiModuleManifest;
+                  const kernelVersion = readManifestKernelVersion(json);
+                  if (json.id && json.version && kernelVersion) {
                     modules.push({
                       id: json.id,
                       name: json.name || json.id,
                       version: json.version,
                       description: json.description,
-                      frameworkVersion: json.frameworkVersion,
+                      kernelVersion,
                       downloadUrl: zipUrl,
                     });
                   }
@@ -477,14 +483,14 @@ export function saveModuleLocally(
 export function loadLocalSavedModule(
   storageDir: string,
   manager: UiModuleManager,
-  currentFrameworkVersion: string,
+  currentKernelVersion: string,
 ): UiModuleLoadResult | null {
   const filePath = join(storageDir, "active-module.zip");
   if (!existsSync(filePath)) return null;
 
   try {
     const buffer = readFileSync(filePath);
-    return manager.loadAndActivateZipModule(buffer, currentFrameworkVersion);
+    return manager.loadAndActivateZipModule(buffer, currentKernelVersion);
   } catch (err) {
     return {
       success: false,

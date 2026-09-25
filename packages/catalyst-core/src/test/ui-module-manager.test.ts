@@ -50,7 +50,7 @@ describe("Zip Archiving & Parsing", () => {
       id: "software-engineering-ui",
       name: "Software Engineering UI",
       version: "1.0.0",
-      frameworkVersion: ">=0.33.0",
+      kernelVersion: ">=0.33.0",
       entry: "dist/index.js",
     };
 
@@ -61,8 +61,27 @@ describe("Zip Archiving & Parsing", () => {
     const parsed = parseUiModuleFromZip(zipBuffer);
 
     expect(parsed.manifest.id).toBe("software-engineering-ui");
-    expect(parsed.manifest.frameworkVersion).toBe(">=0.33.0");
+    expect(parsed.manifest.kernelVersion).toBe(">=0.33.0");
     expect(parsed.files.has("dist/index.js")).toBe(true);
+  });
+
+  it("reads the legacy frameworkVersion field as the kernel version", () => {
+    const zipBuffer = createZipArchive(
+      new Map([
+        [
+          "manifest.json",
+          JSON.stringify({
+            id: "legacy-ui",
+            name: "Legacy UI",
+            version: "1.0.0",
+            frameworkVersion: ">=0.34.0",
+          }),
+        ],
+      ]),
+    );
+    expect(parseUiModuleFromZip(zipBuffer).manifest.kernelVersion).toBe(
+      ">=0.34.0",
+    );
   });
 });
 
@@ -72,13 +91,13 @@ describe("UiModuleManager", () => {
     id: "module-a",
     name: "Module A",
     version: "1.0.0",
-    frameworkVersion: ">=0.30.0",
+    kernelVersion: ">=0.30.0",
   };
   const manifestB: UiModuleManifest = {
     id: "module-b",
     name: "Module B",
     version: "2.0.0",
-    frameworkVersion: ">=0.33.0",
+    kernelVersion: ">=0.33.0",
   };
 
   it("loads and activates compatible module zip", () => {
@@ -92,13 +111,13 @@ describe("UiModuleManager", () => {
     expect(manager.getActiveModule()?.manifest.id).toBe("module-a");
   });
 
-  it("rejects incompatible framework version", () => {
+  it("rejects incompatible kernel version", () => {
     const zipB = packageUiModule(manifestB);
     const res = manager.loadAndActivateZipModule(zipB, "0.31.0");
 
     expect(res.success).toBe(false);
     if (!res.success) {
-      expect(res.error).toContain('requires catalyst framework ">=0.33.0"');
+      expect(res.error).toContain('requires catalyst kernel ">=0.33.0"');
     }
     // Active module remains unchanged
     expect(manager.getActiveModule()?.manifest.id).toBe("module-a");

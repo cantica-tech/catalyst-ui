@@ -26,7 +26,14 @@ describe("remote-module-store", () => {
     expect(loc1.repo).toBe("cantica-tech");
     expect(loc1.branch).toBe("main");
     expect(loc1.moduleSubpath).toBe("catalyst/modules");
-    expect(loc1.frameworkSubpath).toBe("catalyst/framework");
+    expect(loc1.kernelSubpath).toBe("catalyst/kernel");
+
+    // The pre-0.35.0 "framework" release folder still maps onto the kernel.
+    const legacy = parseArtifactSourceLocation(
+      "git@github.com:oliben67/cantica-tech.git/catalyst/framework/",
+    );
+    expect(legacy.kernelSubpath).toBe("catalyst/kernel");
+    expect(legacy.moduleSubpath).toBe("catalyst/modules");
 
     const loc2 = parseArtifactSourceLocation(
       "https://github.com/myorg/myrepo/tree/dev/custom-path",
@@ -67,7 +74,7 @@ describe("remote-module-store", () => {
         id: "software-engineering",
         name: "Software Engineering Process Module",
         version: "1.0.0",
-        frameworkVersion: ">=0.34.0",
+        kernelVersion: ">=0.34.0",
       };
       writeFileSync(
         join(vDir, "manifest.json"),
@@ -134,7 +141,7 @@ describe("remote-module-store", () => {
       name: "Software Engineering Process Module",
       version: "1.0.0",
       description: "Standard module",
-      frameworkVersion: ">=0.34.0",
+      kernelVersion: ">=0.34.0",
     };
 
     const mockFetch = vi.fn().mockImplementation((url: string) => {
@@ -168,7 +175,7 @@ describe("remote-module-store", () => {
         id: "test-module",
         name: "Test Module",
         version: "1.0.0",
-        frameworkVersion: ">=0.33.0",
+        kernelVersion: ">=0.33.0",
       };
       const zipBuf = packageUiModule(manifest);
 
