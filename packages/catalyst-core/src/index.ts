@@ -75,5 +75,11 @@ export {
   type UiModuleLoadResult,
   type UiModuleManifest,
 } from "./ui-module-manager.js";
+export {
+  fetchRemoteUiModules,
+  loadLocalSavedModule,
+  saveModuleLocally,
+  type RemoteModuleInfo,
+} from "./remote-module-store.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";

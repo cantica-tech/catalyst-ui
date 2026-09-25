@@ -10,6 +10,7 @@ import type {
   IamRole,
   IamUser,
   Proposal,
+  RemoteModuleInfo,
   RoadmapNode,
   Run,
   RunStep,
@@ -26,8 +27,10 @@ import {
   defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
+  fetchRemoteUiModules,
   hasCatalystPointer,
   joinCriterionRepo,
+  loadLocalSavedModule,
   meetsRequiredFrameworkVersion,
   nextProposalId,
   openProposalsByTarget,
@@ -39,6 +42,7 @@ import {
   readEntityDefinition,
   REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
+  saveModuleLocally,
   suggestCriterionBranch,
   UiModuleManager,
   watchCorpus,
@@ -107,6 +111,7 @@ const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
 const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
 const SELECT_FRAMEWORK_VERSION_COMMAND = "catalyst.selectFrameworkVersion";
+const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -322,6 +327,10 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   removeDeployment(corpusRoot: string): void {
     this.deployments.delete(corpusRoot);
+    this.changeEmitter.fire();
+  }
+
+  refreshTree(): void {
     this.changeEmitter.fire();
   }
 
@@ -1426,8 +1435,18 @@ function discoverCommandCandidates(): CommandCandidate[] {
 export function activate(context: vscode.ExtensionContext): void {
   const uiModuleManager = new UiModuleManager();
   let inMemoryFrameworkVersion: string | null = null;
+  const storagePath = context.globalStorageUri.fsPath;
 
   const provider = new ChainInspectorProvider(context.extensionUri);
+
+  // Attempt automatic activation from saved local module
+  const initialFwVer = REQUIRED_FRAMEWORK_VERSION;
+  const localRes = loadLocalSavedModule(storagePath, uiModuleManager, initialFwVer);
+  if (localRes && localRes.success) {
+    void vscode.window.showInformationMessage(
+      `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`
+    );
+  }
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(VIEW_ID, provider),
   );
@@ -1449,6 +1468,10 @@ export function activate(context: vscode.ExtensionContext): void {
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
     if (!hasCatalystPointer(folder.uri.fsPath)) {
       void offerToInstall(context, folder);
+      // Auto-trigger module selection if no active module is loaded yet
+      if (!uiModuleManager.getActiveModule()) {
+        void promptAndSwitchUiModule();
+      }
       return;
     }
     const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
@@ -1791,6 +1814,9 @@ export function activate(context: vscode.ExtensionContext): void {
       const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentFrameworkVersion);
 
       if (res.success) {
+        saveModuleLocally(storagePath, readFileSync(zipPath));
+        refreshAllDetailPanels();
+        provider.refreshTree();
         void vscode.window.showInformationMessage(
           `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`
         );
@@ -1809,6 +1835,140 @@ export function activate(context: vscode.ExtensionContext): void {
       detailPanels.clear();
     },
   });
+
+  function refreshAllDetailPanels(): void {
+    for (const [key, panel] of detailPanels.entries()) {
+      if (key.startsWith("node:")) {
+        const parts = key.split(":");
+        const corpusRoot = parts[1];
+        const nodeId = parts[2];
+        const model = provider.getModel(corpusRoot);
+        if (model) {
+          const payload = buildNodeDetail(
+            model,
+            nodeId,
+            provider.getPendingTargets(corpusRoot)
+          );
+          if (payload) {
+            panel.webview.html = renderWebviewHtml(
+              panel.webview.asWebviewUri(
+                vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js")
+              ),
+              {
+                type: "node",
+                frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+                ...payload,
+              }
+            );
+          }
+        }
+      }
+    }
+  }
+
+  async function promptAndSwitchUiModule(): Promise<void> {
+    let currentFrameworkVersion = inMemoryFrameworkVersion;
+    if (!currentFrameworkVersion) {
+      for (const root of provider.getCorpusRoots()) {
+        const v = readDeployedFrameworkVersion(root);
+        if (v) {
+          currentFrameworkVersion = v;
+          break;
+        }
+      }
+    }
+    if (!currentFrameworkVersion) {
+      currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
+    }
+
+    const remoteModules = await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: "Fetching available UI modules from cantica-tech...",
+      },
+      async () => fetchRemoteUiModules()
+    );
+
+    const items: Array<{
+      label: string;
+      description?: string;
+      detail?: string;
+      module?: RemoteModuleInfo;
+      isLocal?: boolean;
+    }> = remoteModules.map((m) => ({
+      label: `$(symbol-module) ${m.name} (v${m.version})`,
+      description: `Requires framework ${m.frameworkVersion}`,
+      detail: m.description || `Module ID: ${m.id}`,
+      module: m,
+    }));
+
+    items.push({
+      label: "$(file-zip) Browse local .zip module file...",
+      description: "Select a custom .zip module file from disk",
+      isLocal: true,
+    });
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: `Select a Catalyst Process UI Module to download & activate (framework ${currentFrameworkVersion}):`,
+    });
+
+    if (!selected) return;
+
+    if (selected.isLocal) {
+      await vscode.commands.executeCommand(LOAD_UI_MODULE_COMMAND);
+      return;
+    }
+
+    if (selected.module) {
+      const mod = selected.module;
+      try {
+        const zipBuffer = await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: `Downloading UI module "${mod.name}" v${mod.version}...`,
+          },
+          async () => {
+            const res = await fetch(mod.downloadUrl);
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status} downloading module zip`);
+            }
+            const arrayBuf = await res.arrayBuffer();
+            return Buffer.from(arrayBuf);
+          }
+        );
+
+        const loadRes = uiModuleManager.loadAndActivateZipModule(
+          zipBuffer,
+          currentFrameworkVersion
+        );
+
+        if (loadRes.success) {
+          saveModuleLocally(storagePath, zipBuffer);
+          refreshAllDetailPanels();
+          provider.refreshTree();
+          void vscode.window.showInformationMessage(
+            `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`
+          );
+        } else {
+          void vscode.window.showErrorMessage(
+            `Failed to activate downloaded module: ${loadRes.error}`
+          );
+        }
+      } catch (err) {
+        void vscode.window.showErrorMessage(
+          `Failed to download module: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+      }
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SWITCH_UI_MODULE_COMMAND, async () => {
+      await promptAndSwitchUiModule();
+    })
+  );
 
   /**
    * Shared by every command that opens the single bundled webview (node/

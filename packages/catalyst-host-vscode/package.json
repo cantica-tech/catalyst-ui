@@ -93,10 +93,20 @@
       {
         "command": "catalyst.selectFrameworkVersion",
         "title": "Catalyst: Load Specific Framework Version in Memory…"
+      },
+      {
+        "command": "catalyst.switchUiModule",
+        "title": "Catalyst: Switch Process UI Module…",
+        "icon": "$(extensions)"
       }
     ],
     "menus": {
       "view/title": [
+        {
+          "command": "catalyst.switchUiModule",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@0"
+        },
         {
           "command": "catalyst.refreshChainInspector",
           "when": "view == catalystChainInspector",
