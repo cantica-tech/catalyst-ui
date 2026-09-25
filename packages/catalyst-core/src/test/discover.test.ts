@@ -6,9 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   hasCatalystPointer,
+  meetsRequiredFrameworkVersion,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
+  REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
 } from "../discover.js";
 
@@ -162,6 +164,25 @@ describe("readDeployedFrameworkVersion", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(join(projectRoot, "version.txt"), "   \n");
     expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
+  });
+});
+
+describe("meetsRequiredFrameworkVersion", () => {
+  it("is described as a version specifier, not a bare number", () => {
+    expect(REQUIRED_FRAMEWORK_VERSION).toMatch(/^(>=|<=|==|!=|>|<)/);
+  });
+
+  it("returns true for a deployment at or above the required floor", () => {
+    expect(meetsRequiredFrameworkVersion("0.31.0")).toBe(true);
+    expect(meetsRequiredFrameworkVersion("0.32.0")).toBe(true);
+  });
+
+  it("returns false for a deployment below the required floor", () => {
+    expect(meetsRequiredFrameworkVersion("0.30.0")).toBe(false);
+  });
+
+  it("treats null (can't safely compare) as satisfying the requirement", () => {
+    expect(meetsRequiredFrameworkVersion(null)).toBe(true);
   });
 });
 

@@ -1,6 +1,7 @@
 export const VERSION = "0.19.0";
 
 export * from "./types.js";
+export * from "./module-loader.js";
 export {
   AGENT_PRESETS,
   declaresCommand,
@@ -21,9 +22,11 @@ export { buildChainModel } from "./graph.js";
 export {
   claudeCodeStoragePath,
   hasCatalystPointer,
+  meetsRequiredFrameworkVersion,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
+  REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
 } from "./discover.js";
 export {
@@ -56,6 +59,21 @@ export {
 export { parseRuns, hasDrift } from "./runs.js";
 export { composeSlashCommand } from "./slash-command.js";
 export { validate } from "./validator.js";
-export { compareVersions } from "./versioning.js";
+export {
+  compareVersions,
+  parseVersionSpecifier,
+  satisfiesVersionSpecifier,
+  satisfiesUvVersionSpecifier,
+} from "./versioning.js";
+export {
+  createZipArchive,
+  readZipArchive,
+  packageUiModule,
+  parseUiModuleFromZip,
+  UiModuleManager,
+  type ActiveUiModule,
+  type UiModuleLoadResult,
+  type UiModuleManifest,
+} from "./ui-module-manager.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";

@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.22.0",
+  "version": "0.24.1",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -85,6 +85,14 @@
         "command": "catalyst.refreshChainInspector",
         "title": "Catalyst: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "catalyst.loadUiModule",
+        "title": "Catalyst: Load Zipped UI Module…"
+      },
+      {
+        "command": "catalyst.selectFrameworkVersion",
+        "title": "Catalyst: Load Specific Framework Version in Memory…"
       }
     ],
     "menus": {
@@ -143,7 +151,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
-    "catalyst-core": "^0.22.0"
+    "catalyst-core": "*"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",

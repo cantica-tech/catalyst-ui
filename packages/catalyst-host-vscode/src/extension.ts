@@ -1,11 +1,12 @@
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
   AgentBinding,
   ChainModel,
   ChainNode,
+  FrameworkVersionInfo,
   IamRole,
   IamUser,
   Proposal,
@@ -13,6 +14,7 @@ import type {
   Run,
   RunStep,
   SlashCommandSpec,
+  UiModuleManifest,
   ValidationIssue,
   ValidationReport,
   WatcherHandle,
@@ -26,15 +28,19 @@ import {
   discoverSlashCommands,
   hasCatalystPointer,
   joinCriterionRepo,
+  meetsRequiredFrameworkVersion,
   nextProposalId,
   openProposalsByTarget,
+  packageUiModule,
   parseChatAgents,
   parseJournal,
   readCatalystPointer,
   readDeployedFrameworkVersion,
   readEntityDefinition,
+  REQUIRED_FRAMEWORK_VERSION,
   resolveCorpusRoot,
   suggestCriterionBranch,
+  UiModuleManager,
   watchCorpus,
 } from "catalyst-core";
 import * as vscode from "vscode";
@@ -99,6 +105,8 @@ const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
+const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
+const SELECT_FRAMEWORK_VERSION_COMMAND = "catalyst.selectFrameworkVersion";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -163,10 +171,10 @@ const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
   requirement: "requirements",
   bug: "bug",
   "house-keeping": "house-keeping",
+  step: "step",
   test: "test",
   domain: "domain",
   feature: "features",
-  step: "step",
 };
 
 /**
@@ -179,10 +187,10 @@ const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   requirement: ["requirement"],
   bug: ["bug"],
   "house-keeping": ["house-keeping"],
+  step: ["step"],
   test: ["test"],
   domain: ["domain"],
   feature: ["feature"],
-  step: ["step"],
 };
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -571,19 +579,24 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   /**
    * Which reverse-edge node kinds nest under a given node in the tree, for
-   * discoverability on top of that kind's own flat top-level section — a
-   * requirement's or bug's steps (`Rules-of-Rules.md` §21, single required
-   * parent, so a step only ever nests under the one requirement or bug it
-   * names) and both a requirement's/bug's and a step's tests
-   * (`Rules-of-Rules.md` §22, `(0,n)` many-to-many, so the same test can
-   * legitimately nest under more than one parent, or under none).
+   * discoverability on top of that kind's own flat section under "Dev
+   * Artifacts". Steps deliberately do **not** nest here, even though a
+   * step names exactly one parent requirement or bug
+   * (`Rules-of-Rules.md` §21) — a step is assembled under the flat
+   * "Steps" section and nowhere else, never duplicated as a nested
+   * child too. Tests still nest under both a requirement's/bug's and a
+   * step's own tree node (`Rules-of-Rules.md` §22, `(0,n)` many-to-many,
+   * so the same test can legitimately nest under more than one parent,
+   * or under none) — that's on top of the flat "Tests" section, not a
+   * duplicate of it, since `(0,n)` doesn't single out one owner the way
+   * a step's own required parent does.
    */
   private childKindsFor(node: ChainNode): Array<"step" | "test"> {
     if (
       node.kind === "dev-artifact" &&
       (node.artifactType === "requirement" || node.artifactType === "bug")
     ) {
-      return ["step", "test"];
+      return ["test"];
     }
     if (node.kind === "step") return ["test"];
     return [];
@@ -1008,6 +1021,12 @@ async function offerToInstall(
   const pick = await vscode.window.showQuickPick(
     [
       {
+        label: "Load a specific framework version in memory",
+        detail:
+          "Select a specific Catalyst framework version to load into extension memory and activate a matching UI module.",
+        action: "version" as const,
+      },
+      {
         label: "Connect to an existing criterion repo",
         detail:
           "Clone an already-repoed deployment's branch — a git clone and a pointer file, no agent involved.",
@@ -1024,7 +1043,9 @@ async function offerToInstall(
   );
   if (!pick) return;
 
-  if (pick.action === "connect") {
+  if (pick.action === "version") {
+    await vscode.commands.executeCommand(SELECT_FRAMEWORK_VERSION_COMMAND);
+  } else if (pick.action === "connect") {
     await connectExistingCriterionRepo(folder);
   } else {
     await offerAgentDrivenInstantiation(folder);
@@ -1148,6 +1169,16 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  * includes the target version, so a future bump of
  * `MAX_COMPATIBLE_FRAMEWORK_VERSION` re-prompts even if an earlier
  * offer was dismissed.
+ *
+ * One notification path covers both thresholds on the same scale —
+ * never two separate popups for what's really one situation. Below
+ * `REQUIRED_FRAMEWORK_VERSION` (`catalyst-core`'s declared floor, a
+ * version specifier the same way a `uv.lock`'s `requires-python` states
+ * one) the wording says so explicitly, since parsing may actually be
+ * wrong, not just missing newer sections; between the required floor
+ * and `MAX_COMPATIBLE_FRAMEWORK_VERSION` the wording stays the softer
+ * "supports syncing to" — a deployment there parses correctly today,
+ * syncing just gets it the newer entity types.
  */
 async function offerToSyncFramework(
   context: vscode.ExtensionContext,
@@ -1163,8 +1194,12 @@ async function offerToSyncFramework(
 
   if (compareVersions(deployed, MAX_COMPATIBLE_FRAMEWORK_VERSION) >= 0) return;
 
+  const message = meetsRequiredFrameworkVersion(deployed)
+    ? `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`
+    : `"${folder.name}" is on catalyst ${deployed}, below the ${REQUIRED_FRAMEWORK_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}?`;
+
   const choice = await vscode.window.showInformationMessage(
-    `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_FRAMEWORK_VERSION}.`,
+    message,
     "Sync now",
     "Don't ask again",
   );
@@ -1389,6 +1424,9 @@ function discoverCommandCandidates(): CommandCandidate[] {
 }
 
 export function activate(context: vscode.ExtensionContext): void {
+  const uiModuleManager = new UiModuleManager();
+  let inMemoryFrameworkVersion: string | null = null;
+
   const provider = new ChainInspectorProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider(VIEW_ID, provider),
@@ -1673,20 +1711,126 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
-  let detailPanel: vscode.WebviewPanel | undefined;
-  context.subscriptions.push({ dispose: () => detailPanel?.dispose() });
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SELECT_FRAMEWORK_VERSION_COMMAND, async () => {
+      const picks = [
+        { label: "0.33.0", description: "Latest Catalyst Framework release (v0.33.0)" },
+        { label: "0.31.0", description: "Catalyst Framework v0.31.0" },
+        { label: "0.30.0", description: "Catalyst Framework v0.30.0" },
+        { label: "Specify custom version...", description: "Enter a custom framework version string" },
+      ];
+      const pick = await vscode.window.showQuickPick(picks, {
+        placeHolder: "Select a Catalyst Framework version to load into extension memory:",
+      });
+      if (!pick) return;
+
+      let version = pick.label;
+      if (pick.label.startsWith("Specify")) {
+        const input = await vscode.window.showInputBox({
+          prompt: "Enter framework version",
+          value: "0.33.0",
+          placeHolder: "e.g. 0.33.0",
+        });
+        if (!input) return;
+        version = input.trim();
+      }
+
+      inMemoryFrameworkVersion = version;
+
+      const defaultManifest: UiModuleManifest = {
+        id: "software-engineering-ui",
+        name: "Software Engineering Process UI Module",
+        version: "1.0.0",
+        description: "UI components for software engineering processes",
+        frameworkVersion: `>=${version}`,
+        entry: "dist/webview.js",
+      };
+
+      const zipBuf = packageUiModule(defaultManifest);
+      const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
+
+      if (res.success) {
+        void vscode.window.showInformationMessage(
+          `Loaded Catalyst Framework v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.frameworkVersion}).`
+        );
+      } else {
+        void vscode.window.showWarningMessage(
+          `Loaded Catalyst Framework v${version}, but UI module activation failed: ${res.error}`
+        );
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(LOAD_UI_MODULE_COMMAND, async () => {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFiles: true,
+        canSelectFolders: false,
+        canSelectMany: false,
+        filters: { "Zip Modules": ["zip"] },
+        title: "Select Zipped Catalyst UI Module",
+      });
+      if (!uris || uris.length === 0) return;
+
+      const zipPath = uris[0].fsPath;
+
+      let currentFrameworkVersion = inMemoryFrameworkVersion;
+      if (!currentFrameworkVersion) {
+        for (const root of provider.getCorpusRoots()) {
+          const v = readDeployedFrameworkVersion(root);
+          if (v) {
+            currentFrameworkVersion = v;
+            break;
+          }
+        }
+      }
+      if (!currentFrameworkVersion) {
+        currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
+      }
+
+      const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentFrameworkVersion);
+
+      if (res.success) {
+        void vscode.window.showInformationMessage(
+          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`
+        );
+      } else {
+        void vscode.window.showErrorMessage(
+          `Failed to load UI module: ${res.error}`
+        );
+      }
+    }),
+  );
+
+  const detailPanels = new Map<string, vscode.WebviewPanel>();
+  context.subscriptions.push({
+    dispose: () => {
+      for (const panel of detailPanels.values()) panel.dispose();
+      detailPanels.clear();
+    },
+  });
 
   /**
-   * Shared by every command that opens the single bundled webview
-   * (node/IAM detail, journal). Reuses the one panel the same way node
-   * detail always has — opening one replaces whatever was showing.
+   * Shared by every command that opens the single bundled webview (node/
+   * IAM detail, journal, backlog) — but never a single shared panel
+   * across *different* things: `key` identifies the specific thing being
+   * opened (a node id, a user/role name, "journal", "backlog", each
+   * scoped to its own `corpusRoot` since ids are only unique within one
+   * corpus). Opening the same thing again reveals/updates its own
+   * existing panel; opening something different always gets its own new
+   * panel, never clobbering what was already showing.
    */
-  function showDetailPanel(title: string, payload: WebviewPayload): void {
-    if (detailPanel) {
-      detailPanel.title = title;
-      detailPanel.reveal(undefined, true);
+  function showDetailPanel(
+    key: string,
+    title: string,
+    payload: WebviewPayload,
+  ): void {
+    let panel = detailPanels.get(key);
+    if (panel) {
+      panel.title = title;
+      panel.reveal(undefined, true);
     } else {
-      detailPanel = vscode.window.createWebviewPanel(
+      panel = vscode.window.createWebviewPanel(
         "catalystNodeDetail",
         title,
         vscode.ViewColumn.Beside,
@@ -1694,16 +1838,36 @@ export function activate(context: vscode.ExtensionContext): void {
           enableScripts: true,
         },
       );
-      detailPanel.onDidDispose(() => {
-        detailPanel = undefined;
+      detailPanels.set(key, panel);
+      panel.onDidDispose(() => {
+        detailPanels.delete(key);
       });
     }
 
-    const scriptUri = detailPanel.webview.asWebviewUri(
+    const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
     );
-    detailPanel.webview.html = renderWebviewHtml(scriptUri, payload);
+    panel.webview.html = renderWebviewHtml(scriptUri, payload);
   }
+
+function getFrameworkVersionInfo(corpusRoot: string): FrameworkVersionInfo {
+  const version = readDeployedFrameworkVersion(corpusRoot);
+  const meets = meetsRequiredFrameworkVersion(version);
+  let explanation: string | undefined;
+  if (!version) {
+    explanation = `Framework version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_FRAMEWORK_VERSION}.`;
+  } else if (!meets) {
+    explanation = `Framework version ${version} does not match expected required version (${REQUIRED_FRAMEWORK_VERSION}). Some entities may fail to parse or validate correctly.`;
+  } else {
+    explanation = `Framework version ${version} meets expected requirement (${REQUIRED_FRAMEWORK_VERSION}).`;
+  }
+  return {
+    version,
+    requiredVersion: REQUIRED_FRAMEWORK_VERSION,
+    meetsRequirement: meets,
+    explanation,
+  };
+}
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -1717,7 +1881,11 @@ export function activate(context: vscode.ExtensionContext): void {
           provider.getPendingTargets(corpusRoot),
         );
         if (!payload) return;
-        showDetailPanel(`Node: ${nodeId}`, { type: "node", ...payload });
+        showDetailPanel(`node:${corpusRoot}:${nodeId}`, `Node: ${nodeId}`, {
+          type: "node",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          ...payload,
+        });
       },
     ),
   );
@@ -1726,6 +1894,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       SHOW_IAM_DETAIL_COMMAND,
       (corpusRoot: string, kind: "user" | "role", name: string) => {
+        const frameworkVersionInfo = getFrameworkVersionInfo(corpusRoot);
         if (kind === "user") {
           const user = provider
             .getUsers(corpusRoot)
@@ -1735,7 +1904,11 @@ export function activate(context: vscode.ExtensionContext): void {
             user,
             provider.getRoles(corpusRoot),
           );
-          showDetailPanel(`User: ${name}`, { type: "iam-user", ...detail });
+          showDetailPanel(`iam-user:${corpusRoot}:${name}`, `User: ${name}`, {
+            type: "iam-user",
+            frameworkVersionInfo,
+            ...detail,
+          });
         } else {
           const role = provider
             .getRoles(corpusRoot)
@@ -1745,7 +1918,11 @@ export function activate(context: vscode.ExtensionContext): void {
             role,
             provider.getUsers(corpusRoot),
           );
-          showDetailPanel(`Role: ${name}`, { type: "iam-role", ...detail });
+          showDetailPanel(`iam-role:${corpusRoot}:${name}`, `Role: ${name}`, {
+            type: "iam-role",
+            frameworkVersionInfo,
+            ...detail,
+          });
         }
       },
     ),
@@ -1760,7 +1937,11 @@ export function activate(context: vscode.ExtensionContext): void {
         // by project lifetime, not unbounded, so shipping it all up front is
         // cheap and simpler than the alternative.
         const entries = parseJournal(corpusRoot);
-        showDetailPanel("Journal", { type: "journal", entries });
+        showDetailPanel(`journal:${corpusRoot}`, "Journal", {
+          type: "journal",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          entries,
+        });
       },
     ),
   );
@@ -1768,11 +1949,9 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       OPEN_BACKLOG_COMMAND,
-      async (corpusRoot: string) => {
-        const backlogPath = vscode.Uri.file(
-          join(corpusRoot, "development", "BACKLOG.md"),
-        );
-        if (!existsSync(backlogPath.fsPath)) {
+      (corpusRoot: string) => {
+        const backlogPath = join(corpusRoot, "development", "BACKLOG.md");
+        if (!existsSync(backlogPath)) {
           void vscode.window.showWarningMessage(
             "No BACKLOG.md found — run /show-backlog first.",
           );
@@ -1780,10 +1959,18 @@ export function activate(context: vscode.ExtensionContext): void {
         }
         // Rendered, not raw source — BACKLOG.md is generated prose for a
         // human to read, not something authored/edited by hand in place.
-        await vscode.commands.executeCommand(
-          "markdown.showPreview",
-          backlogPath,
-        );
+        // Through the same keyed panel mechanism as node/IAM/journal
+        // detail, not `markdown.showPreview` — that command's own
+        // built-in preview tab is a VS Code singleton shared across
+        // *any* markdown file previewed anywhere in the workspace, which
+        // is exactly the "everything lands in the same place" problem
+        // this mechanism exists to avoid.
+        const markdown = readFileSync(backlogPath, "utf8");
+        showDetailPanel(`backlog:${corpusRoot}`, "Backlog", {
+          type: "backlog",
+          frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
+          markdown,
+        });
       },
     ),
   );

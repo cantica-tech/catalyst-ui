@@ -5,7 +5,7 @@ argument-hint: <name> <field> <value>
 
 Edit a registered user's record. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `development-framework/templates/users.template.json`.
+template: `framework/templates/users.template.json`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <field> <value>`. If any part is

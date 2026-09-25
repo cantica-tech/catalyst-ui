@@ -218,16 +218,27 @@ export function formatNodeLabel(node: ChainNode): string {
  * rule is still `kind: "rule"`), but the roadmap's "four layers" framing
  * calls it out as its own tree section, so it's split out here for
  * display only. Dev-artifact nodes are grouped under one "Dev Artifacts"
- * parent folder, itself split by the node's own `artifactType`
- * (`requirement`/`bug`/`house-keeping`/`test`) into four sub-sections, each
- * getting its own entity-type identity (icon, tooltip). Work items are
- * omitted entirely: no project-management plugin is active in this
- * deployment, so the model never has any.
+ * parent folder, itself split into five sub-sections: three by the
+ * node's own `artifactType` (`requirement`/`bug`/`house-keeping`), plus
+ * `test` (the fourth `artifactType`) and `step` (its own `NodeKind`, not
+ * an `artifactType`, but grouped here too — display-only, catalyst-ui's
+ * own choice, not a framework distinction) — each getting its own
+ * entity-type identity (icon, tooltip). Work items are omitted entirely:
+ * no project-management plugin is active in this deployment, so the
+ * model never has any.
+ *
+ * A `STEP-NNNNNN` is assembled under this flat "Steps" section and
+ * **nowhere else** — unlike a test (which additionally nests under
+ * whichever requirement/bug/step it verifies, on top of its own flat
+ * "Tests" section, since `(0,n)` doesn't single out one owner), a step
+ * never appears a second time as a nested child under its one parent
+ * requirement or bug (`extension.ts`'s `childKindsFor` deliberately
+ * excludes it) — one place to look for every step, never a duplicate
+ * listing.
  */
 export type DevArtifactSectionKind =
-  "requirement" | "bug" | "house-keeping" | "test";
-export type TreeSectionKind =
-  DevArtifactSectionKind | "domain" | "feature" | "step";
+  "requirement" | "bug" | "house-keeping" | "step" | "test";
+export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
 
 export interface TreeSection {
   kind: TreeSectionKind;
@@ -235,7 +246,7 @@ export interface TreeSection {
   nodes: ChainNode[];
 }
 
-/** The "Dev Artifacts" parent folder, wrapping its three artifactType sub-sections. */
+/** The "Dev Artifacts" parent folder, wrapping its five sub-sections. */
 export interface DevArtifactGroup {
   label: string;
   sections: TreeSection[];
@@ -263,20 +274,21 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   requirement: "Requirements",
   bug: "Bugs",
   "house-keeping": "House-keeping",
+  step: "Steps",
   test: "Tests",
   domain: "Domains",
   feature: "Features",
-  step: "Steps",
 };
 
 const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
   "requirement",
   "bug",
   "house-keeping",
+  "step",
   "test",
 ];
 
-const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature", "step"];
+const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature"];
 
 export function ruleTypeLabel(prefix: string): string {
   const p = prefix.toLowerCase();
@@ -301,16 +313,16 @@ export function buildTreeSections(model: ChainModel): TreeSections {
       const list = devArtifactsByKind.get(node.artifactType) ?? [];
       list.push(node);
       devArtifactsByKind.set(node.artifactType, list);
+    } else if (node.kind === "step") {
+      const list = devArtifactsByKind.get("step") ?? [];
+      list.push(node);
+      devArtifactsByKind.set("step", list);
     } else if (node.kind === "rule") {
       const prefix = node.docPrefix || "rule";
       const list = rulesByPrefix.get(prefix) ?? [];
       list.push(node);
       rulesByPrefix.set(prefix, list);
-    } else if (
-      node.kind === "domain" ||
-      node.kind === "feature" ||
-      node.kind === "step"
-    ) {
+    } else if (node.kind === "domain" || node.kind === "feature") {
       const list = otherByKind.get(node.kind) ?? [];
       list.push(node);
       otherByKind.set(node.kind, list);

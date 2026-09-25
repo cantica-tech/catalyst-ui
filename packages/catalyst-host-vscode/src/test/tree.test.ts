@@ -31,19 +31,19 @@ describe("buildTreeSections", () => {
     assert.strictEqual(devArtifacts.label, "Dev Artifacts");
     assert.deepStrictEqual(
       devArtifacts.sections.map((s) => s.kind),
-      ["requirement", "bug", "house-keeping", "test"],
+      ["requirement", "bug", "house-keeping", "step", "test"],
     );
     assert.ok(devArtifacts.sections.every((s) => s.nodes.length === 0));
     assert.strictEqual(rules.label, "Rules");
     assert.strictEqual(rules.sections.length, 0);
     assert.deepStrictEqual(
       sections.map((s) => s.kind),
-      ["domain", "feature", "step"],
+      ["domain", "feature"],
     );
     assert.ok(sections.every((s) => s.nodes.length === 0));
   });
 
-  it("groups step nodes into their own Steps section", () => {
+  it("groups step nodes into their own Steps sub-section, under Dev Artifacts", () => {
     const stepNode: ChainNode = {
       id: "STEP-000001",
       kind: "step",
@@ -58,10 +58,10 @@ describe("buildTreeSections", () => {
       content: "",
     } as ChainNode;
 
-    const { sections } = buildTreeSections(
+    const { devArtifacts } = buildTreeSections(
       modelOf([stepNode, node({ id: "REQ-000001" })]),
     );
-    const stepSection = sections.find((s) => s.kind === "step")!;
+    const stepSection = devArtifacts.sections.find((s) => s.kind === "step")!;
     assert.strictEqual(stepSection.label, "Steps");
     assert.deepStrictEqual(
       stepSection.nodes.map((n) => n.id),
