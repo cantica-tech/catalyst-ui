@@ -98,6 +98,11 @@
         "command": "catalyst.switchUiModule",
         "title": "Catalyst: Switch Process UI Module…",
         "icon": "$(extensions)"
+      },
+      {
+        "command": "catalyst.openSettings",
+        "title": "Catalyst: Open Settings",
+        "icon": "$(settings-gear)"
       }
     ],
     "menus": {
@@ -121,6 +126,11 @@
           "command": "catalyst.configureCriterion",
           "when": "view == catalystChainInspector",
           "group": "navigation@3"
+        },
+        {
+          "command": "catalyst.openSettings",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@4"
         }
       ]
     },
