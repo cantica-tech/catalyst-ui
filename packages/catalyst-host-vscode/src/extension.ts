@@ -1229,8 +1229,6 @@ async function offerToSyncKernel(
     return;
   }
 
-  // `/sync-framework` rather than `/sync-kernel`: deployments older than
-  // catalyst 0.35.0 only know the old name, and 0.35.0+ keeps it as an alias.
   await resolveAndInvoke(
     agentDef,
     "/sync-framework",
