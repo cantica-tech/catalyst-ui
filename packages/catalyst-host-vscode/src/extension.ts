@@ -112,6 +112,7 @@ const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
 const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
 const SELECT_FRAMEWORK_VERSION_COMMAND = "catalyst.selectFrameworkVersion";
 const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
+const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
@@ -1735,6 +1736,15 @@ export function activate(context: vscode.ExtensionContext): void {
       for (const registered of registeredDeployments.values()) {
         registered.handle.refresh();
       }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(OPEN_SETTINGS_COMMAND, () => {
+      void vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "catalyst",
+      );
     }),
   );
 
