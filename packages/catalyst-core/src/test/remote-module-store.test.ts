@@ -99,7 +99,13 @@ describe("remote-module-store", () => {
       const mockFetch = vi.fn().mockImplementation(() =>
         Promise.resolve({
           ok: true,
-          arrayBuffer: () => Promise.resolve(sampleData.buffer),
+          arrayBuffer: () =>
+            Promise.resolve(
+              sampleData.buffer.slice(
+                sampleData.byteOffset,
+                sampleData.byteOffset + sampleData.byteLength,
+              ),
+            ),
         }),
       );
 
