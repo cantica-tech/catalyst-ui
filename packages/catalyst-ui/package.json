@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
-    "build:webview": "esbuild src/webview-entry.tsx --bundle --minify --outfile=dist/webview.js --format=iife --platform=browser --main-fields=module,main --jsx=automatic",
+    "build:webview": "NODE_PATH=node_modules:../../node_modules esbuild src/webview-entry.tsx --bundle --minify --outfile=dist/webview.js --format=iife --platform=browser --main-fields=module,main --jsx=automatic",
     "test": "vitest run"
   },
   "dependencies": {
