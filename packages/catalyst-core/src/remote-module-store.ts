@@ -381,15 +381,20 @@ export async function fetchRemoteUiModules(
         };
         if (data.tree) {
           const prefix = `${loc.moduleSubpath}/`;
+          const altPrefix = loc.moduleSubpath.endsWith("s")
+            ? `${loc.moduleSubpath.slice(0, -1)}/`
+            : `${loc.moduleSubpath}s/`;
+
+          const isMatchingPrefix = (p: string) =>
+            p.startsWith(prefix) || p.startsWith(altPrefix);
+
           const manifestPaths = data.tree
             .map((item) => item.path)
-            .filter(
-              (p) => p.startsWith(prefix) && p.endsWith("/manifest.json"),
-            );
+            .filter((p) => isMatchingPrefix(p) && p.endsWith("/manifest.json"));
 
           const zipFiles = new Map<string, string>();
           for (const item of data.tree) {
-            if (item.path.startsWith(prefix) && item.path.endsWith(".zip")) {
+            if (isMatchingPrefix(item.path) && item.path.endsWith(".zip")) {
               const dir = item.path.substring(0, item.path.lastIndexOf("/"));
               zipFiles.set(dir, item.path);
             }
@@ -402,13 +407,16 @@ export async function fetchRemoteUiModules(
               0,
               manifestPath.lastIndexOf("/"),
             );
-            const relative = manifestPath.slice(prefix.length);
+            const matchedPrefix = manifestPath.startsWith(prefix)
+              ? prefix
+              : altPrefix;
+            const relative = manifestPath.slice(matchedPrefix.length);
             const parts = relative.split("/");
             if (parts.length === 3) {
               const moduleId = parts[0];
               const versionDir = parts[1]; // v1.0.0
               const rawUrl = `${loc.rawBaseUrl}/${manifestPath}`;
-              let zipUrl = `${loc.rawBaseUrl}/${loc.moduleSubpath}/${moduleId}/${versionDir}/${moduleId}-${versionDir}.zip`;
+              let zipUrl = `${loc.rawBaseUrl}/${matchedPrefix}${moduleId}/${versionDir}/${moduleId}-${versionDir}.zip`;
 
               if (zipFiles.has(dir)) {
                 zipUrl = `${loc.rawBaseUrl}/${zipFiles.get(dir)}`;
