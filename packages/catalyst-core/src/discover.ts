@@ -162,9 +162,7 @@ export function hasCatalystPointer(projectRoot: string): boolean {
  * `null` if missing, empty, or unreadable — callers should treat that as
  * "can't safely compare," not as any particular version.
  */
-export function readDeployedFrameworkVersion(
-  corpusRoot: string,
-): string | null {
+export function readDeployedKernelVersion(corpusRoot: string): string | null {
   const versionFile = join(corpusRoot, "version.txt");
   if (!existsSync(versionFile)) return null;
 
@@ -177,30 +175,30 @@ export function readDeployedFrameworkVersion(
 }
 
 /**
- * The oldest catalyst framework version this `catalyst-core` build can
+ * The oldest catalyst kernel version this `catalyst-core` build can
  * correctly parse — a version specifier (`versioning.ts`), the same way
  * a `uv.lock`'s `requires-python` field states its floor, rather than a
  * bare number. Below `0.31.0`, a step's parent field is still named
  * `Requirement` everywhere (this parser reads that as a fallback, so it
- * degrades gracefully) — but `0.31.0` is the newest framework version
+ * degrades gracefully) — but `0.31.0` is the newest kernel version
  * this build's parser/graph/validator logic (`TEST-`, a step's `Parent`
  * accepting a bug) was actually written and tested against, so it's the
  * declared floor: below it, this build hasn't been verified, not just
  * "might render fewer sections."
  */
-export const REQUIRED_FRAMEWORK_VERSION = ">=0.31.0";
+export const REQUIRED_KERNEL_VERSION = ">=0.31.0";
 
 /**
- * Whether a resolved deployment's own framework version satisfies
- * `REQUIRED_FRAMEWORK_VERSION`. `null` (from `readDeployedFrameworkVersion`,
+ * Whether a resolved deployment's own kernel version satisfies
+ * `REQUIRED_KERNEL_VERSION`. `null` (from `readDeployedKernelVersion`,
  * e.g. a missing/unreadable `version.txt`) is treated as satisfying it —
  * "can't safely compare" must never itself become a false failure.
  */
-export function meetsRequiredFrameworkVersion(
+export function meetsRequiredKernelVersion(
   deployedVersion: string | null,
 ): boolean {
   if (!deployedVersion) return true;
-  return satisfiesVersionSpecifier(deployedVersion, REQUIRED_FRAMEWORK_VERSION);
+  return satisfiesVersionSpecifier(deployedVersion, REQUIRED_KERNEL_VERSION);
 }
 
 /**

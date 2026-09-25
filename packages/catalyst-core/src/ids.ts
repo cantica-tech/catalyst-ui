@@ -3,8 +3,8 @@ import type { DevArtifactType } from "./types.js";
 /**
  * ID shapes, per Rules-of-Rules.md §3 (rules: `(DOC_PREFIX)-(DOMAIN)-(NNNNNN)[-parent]-(userid)`)
  * and §6 (dev artifacts: `(BUG|REQ|HK|TEST)-(NNNNNN)-(userid)`, `TEST-` added
- * framework 0.30.0, §22), plus §9's separate FEAT- scheme and §20's
- * userid-suffix mechanism (framework 0.26.0).
+ * kernel 0.30.0, §22), plus §9's separate FEAT- scheme and §20's
+ * userid-suffix mechanism (kernel 0.26.0).
  * Kept as bare pattern source strings so they can be composed into other regexes.
  *
  * `USERID_SUFFIX_PATTERN` requires the 8 characters right after the

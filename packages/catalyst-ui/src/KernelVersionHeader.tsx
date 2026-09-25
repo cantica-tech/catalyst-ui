@@ -1,12 +1,12 @@
-import type { FrameworkVersionInfo } from "catalyst-core";
+import type { KernelVersionInfo } from "catalyst-core";
 import { useState } from "react";
 import { VersionControlIcon } from "./VersionControlIcon.js";
 
 export interface FrameworkVersionHeaderProps {
-  versionInfo?: FrameworkVersionInfo;
+  versionInfo?: KernelVersionInfo;
 }
 
-export function FrameworkVersionHeader({
+export function KernelVersionHeader({
   versionInfo,
 }: FrameworkVersionHeaderProps) {
   const meets = versionInfo ? versionInfo.meetsRequirement : true;
@@ -17,8 +17,8 @@ export function FrameworkVersionHeader({
   const explanation =
     versionInfo?.explanation ||
     (!meets
-      ? `Framework version ${versionDisplay} does not match expected version requirement (${requiredDisplay}).`
-      : `Framework version ${versionDisplay} meets expected requirement (${requiredDisplay}).`);
+      ? `Kernel version ${versionDisplay} does not match expected version requirement (${requiredDisplay}).`
+      : `Kernel version ${versionDisplay} meets expected requirement (${requiredDisplay}).`);
 
   return (
     <header
@@ -41,7 +41,7 @@ export function FrameworkVersionHeader({
           <button
             type="button"
             onClick={() => setOpen((prev) => !prev)}
-            title="Toggle Catalyst Framework Version Info"
+            title="Toggle Catalyst Kernel Version Info"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -66,7 +66,7 @@ export function FrameworkVersionHeader({
               size={14}
               fill={meets ? "currentColor" : "#fca5a5"}
             />
-            <span>Framework Version</span>
+            <span>Kernel Version</span>
             {!meets ? (
               <span
                 style={{
@@ -133,7 +133,7 @@ export function FrameworkVersionHeader({
             ) : null}
             <div>
               <p style={{ margin: "0 0 4px 0", fontWeight: "bold" }}>
-                Catalyst Framework Version: {versionDisplay} (Expected:{" "}
+                Catalyst Kernel Version: {versionDisplay} (Expected:{" "}
                 {requiredDisplay})
               </p>
               <p style={{ margin: 0 }}>{explanation}</p>

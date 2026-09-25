@@ -6,11 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   hasCatalystPointer,
-  meetsRequiredFrameworkVersion,
+  meetsRequiredKernelVersion,
   readCatalystPointer,
-  readDeployedFrameworkVersion,
+  readDeployedKernelVersion,
   readEntityDefinition,
-  REQUIRED_FRAMEWORK_VERSION,
+  REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
 } from "../discover.js";
 
@@ -148,41 +148,41 @@ describe("hasCatalystPointer", () => {
   });
 });
 
-describe("readDeployedFrameworkVersion", () => {
+describe("readDeployedKernelVersion", () => {
   it("reads and trims a deployment's version.txt", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(join(projectRoot, "version.txt"), "0.19.0\n");
-    expect(readDeployedFrameworkVersion(projectRoot)).toBe("0.19.0");
+    expect(readDeployedKernelVersion(projectRoot)).toBe("0.19.0");
   });
 
   it("returns null when version.txt doesn't exist", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
+    expect(readDeployedKernelVersion(projectRoot)).toBeNull();
   });
 
   it("returns null when version.txt is empty", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(join(projectRoot, "version.txt"), "   \n");
-    expect(readDeployedFrameworkVersion(projectRoot)).toBeNull();
+    expect(readDeployedKernelVersion(projectRoot)).toBeNull();
   });
 });
 
-describe("meetsRequiredFrameworkVersion", () => {
+describe("meetsRequiredKernelVersion", () => {
   it("is described as a version specifier, not a bare number", () => {
-    expect(REQUIRED_FRAMEWORK_VERSION).toMatch(/^(>=|<=|==|!=|>|<)/);
+    expect(REQUIRED_KERNEL_VERSION).toMatch(/^(>=|<=|==|!=|>|<)/);
   });
 
   it("returns true for a deployment at or above the required floor", () => {
-    expect(meetsRequiredFrameworkVersion("0.31.0")).toBe(true);
-    expect(meetsRequiredFrameworkVersion("0.32.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.31.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.32.0")).toBe(true);
   });
 
   it("returns false for a deployment below the required floor", () => {
-    expect(meetsRequiredFrameworkVersion("0.30.0")).toBe(false);
+    expect(meetsRequiredKernelVersion("0.30.0")).toBe(false);
   });
 
   it("treats null (can't safely compare) as satisfying the requirement", () => {
-    expect(meetsRequiredFrameworkVersion(null)).toBe(true);
+    expect(meetsRequiredKernelVersion(null)).toBe(true);
   });
 });
 

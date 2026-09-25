@@ -2,7 +2,7 @@ import type { WebviewPayload } from "catalyst-core";
 import { createRoot } from "react-dom/client";
 
 import { Backlog } from "./Backlog.js";
-import { FrameworkVersionHeader } from "./FrameworkVersionHeader.js";
+import { KernelVersionHeader } from "./KernelVersionHeader.js";
 import { IamRoleDetail, IamUserDetail } from "./IamDetail.js";
 import { Journal } from "./Journal.js";
 import { NodeDetail } from "./NodeDetail.js";
@@ -43,7 +43,7 @@ if (container) {
 
     root.render(
       <div className="catalyst-ui-root">
-        <FrameworkVersionHeader versionInfo={payload.frameworkVersionInfo} />
+        <KernelVersionHeader versionInfo={payload.kernelVersionInfo} />
         <div style={{ padding: "0 16px 16px 16px" }}>{content}</div>
       </div>,
     );

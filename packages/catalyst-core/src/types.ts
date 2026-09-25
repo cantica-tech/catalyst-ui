@@ -101,7 +101,7 @@ export interface FeatureNode extends ChainNodeBase {
 export type StepStatus = "planned" | "in-progress" | "done" | "abandoned";
 
 /**
- * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, framework 0.29.0, widened to a
+ * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, kernel 0.29.0, widened to a
  * bug parent at 0.31.0) — one concrete unit of implementation work
  * performed toward a specific requirement or bug. Never rule-linked (no
  * `targets`/`domain` of its own — it inherits its parent's); `parent`
@@ -136,7 +136,7 @@ export interface RoadmapNode extends ChainNodeBase {
   roadmapName: string;
   /** True iff the owning roadmap file's header carries a `**Retired:**` field. */
   roadmapRetired: boolean;
-  /** A sentence or two summarizing the item — distinct from `title`'s short label (framework `0.20.0`+ shape). */
+  /** A sentence or two summarizing the item — distinct from `title`'s short label (kernel `0.20.0`+ shape). */
   description: string;
   status: RoadmapStatus;
   /** The row's `Linked` cell's `FEAT-`/`REQ-` id, if any — also present in `references`. */
@@ -321,7 +321,7 @@ export interface NodeDetailPayload {
   openProposals: Proposal[];
 }
 
-export interface FrameworkVersionInfo {
+export interface KernelVersionInfo {
   version: string | null;
   requiredVersion: string;
   meetsRequirement: boolean;
@@ -336,7 +336,7 @@ export interface FrameworkVersionInfo {
  * `detail.ts`) are unaffected by the IAM/journal/backlog additions.
  */
 export type WebviewPayload = {
-  frameworkVersionInfo?: FrameworkVersionInfo;
+  kernelVersionInfo?: KernelVersionInfo;
 } & (
   | ({ type: "node" } & NodeDetailPayload)
   | { type: "iam-user"; user: IamUser; roles: IamRole[] }

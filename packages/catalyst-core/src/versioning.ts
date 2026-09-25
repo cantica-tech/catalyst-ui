@@ -39,7 +39,7 @@ export interface VersionSpecifier {
  * Longer operators are checked first so `>=`/`<=`/`==`/`!=` aren't
  * mistaken for `>`/`<`. Throws on anything else — a malformed
  * catalyst-core-authored constant should fail loudly, unlike a
- * deployment's own `version.txt` (`readDeployedFrameworkVersion`),
+ * deployment's own `version.txt` (`readDeployedKernelVersion`),
  * which is untrusted input and never throws.
  */
 export function parseVersionSpecifier(specifier: string): VersionSpecifier {
@@ -83,12 +83,12 @@ export function satisfiesVersionSpecifier(
 }
 
 /**
- * Evaluates whether `frameworkVersion` satisfies a UV-style version constraint string,
+ * Evaluates whether `kernelVersion` satisfies a UV-style version constraint string,
  * such as `">=0.33.0"`, `">=0.1.0, <1.0.0"`, `"==0.33.0"`, or `"~=0.33.0"`.
  * Supports multi-clause comma-separated specifiers.
  */
 export function satisfiesUvVersionSpecifier(
-  frameworkVersion: string,
+  kernelVersion: string,
   specifierString: string,
 ): boolean {
   const trimmed = specifierString.trim();
@@ -110,13 +110,13 @@ export function satisfiesUvVersionSpecifier(
         nextParts[nextParts.length - 2] += 1;
         const upperLimit = nextParts.slice(0, -1).join(".");
         return (
-          compareVersions(frameworkVersion, baseVersion) >= 0 &&
-          compareVersions(frameworkVersion, upperLimit) < 0
+          compareVersions(kernelVersion, baseVersion) >= 0 &&
+          compareVersions(kernelVersion, upperLimit) < 0
         );
       }
-      return compareVersions(frameworkVersion, baseVersion) >= 0;
+      return compareVersions(kernelVersion, baseVersion) >= 0;
     }
 
-    return satisfiesVersionSpecifier(frameworkVersion, clause);
+    return satisfiesVersionSpecifier(kernelVersion, clause);
   });
 }

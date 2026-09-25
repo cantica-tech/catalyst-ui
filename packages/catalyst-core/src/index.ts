@@ -22,11 +22,11 @@ export { buildChainModel } from "./graph.js";
 export {
   claudeCodeStoragePath,
   hasCatalystPointer,
-  meetsRequiredFrameworkVersion,
+  meetsRequiredKernelVersion,
   readCatalystPointer,
-  readDeployedFrameworkVersion,
+  readDeployedKernelVersion,
   readEntityDefinition,
-  REQUIRED_FRAMEWORK_VERSION,
+  REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
 } from "./discover.js";
 export {
@@ -70,8 +70,10 @@ export {
   readZipArchive,
   packageUiModule,
   parseUiModuleFromZip,
+  readManifestKernelVersion,
   UiModuleManager,
   type ActiveUiModule,
+  type RawUiModuleManifest,
   type UiModuleLoadResult,
   type UiModuleManifest,
 } from "./ui-module-manager.js";
