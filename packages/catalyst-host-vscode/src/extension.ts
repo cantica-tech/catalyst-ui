@@ -1906,78 +1906,71 @@ export function activate(context: vscode.ExtensionContext): void {
       async () => fetchRemoteUiModules(),
     );
 
+    if (remoteModules.length === 0) {
+      void vscode.window.showErrorMessage(
+        "No process UI modules found in git@github.com:oliben67/cantica-tech.git",
+      );
+      return;
+    }
+
     const items: Array<{
       label: string;
       description?: string;
       detail?: string;
-      module?: RemoteModuleInfo;
-      isLocal?: boolean;
+      module: RemoteModuleInfo;
     }> = remoteModules.map((m) => ({
       label: `$(symbol-module) ${m.name} (v${m.version})`,
-      description: `Requires framework ${m.frameworkVersion}`,
+      description: `[${m.id}] Framework ${m.frameworkVersion}`,
       detail: m.description || `Module ID: ${m.id}`,
       module: m,
     }));
 
-    items.push({
-      label: "$(file-zip) Browse local .zip module file...",
-      description: "Select a custom .zip module file from disk",
-      isLocal: true,
-    });
-
     const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: `Select a Catalyst Process UI Module to download & activate (framework ${currentFrameworkVersion}):`,
+      placeHolder: `Select a Catalyst Process UI Module to download & activate from cantica-tech (framework ${currentFrameworkVersion}):`,
     });
 
     if (!selected) return;
 
-    if (selected.isLocal) {
-      await vscode.commands.executeCommand(LOAD_UI_MODULE_COMMAND);
-      return;
-    }
+    const mod = selected.module;
+    try {
+      const zipBuffer = await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Downloading UI module "${mod.name}" v${mod.version}...`,
+        },
+        async () => {
+          const res = await fetch(mod.downloadUrl);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status} downloading module zip`);
+          }
+          const arrayBuf = await res.arrayBuffer();
+          return Buffer.from(arrayBuf);
+        },
+      );
 
-    if (selected.module) {
-      const mod = selected.module;
-      try {
-        const zipBuffer = await vscode.window.withProgress(
-          {
-            location: vscode.ProgressLocation.Notification,
-            title: `Downloading UI module "${mod.name}" v${mod.version}...`,
-          },
-          async () => {
-            const res = await fetch(mod.downloadUrl);
-            if (!res.ok) {
-              throw new Error(`HTTP ${res.status} downloading module zip`);
-            }
-            const arrayBuf = await res.arrayBuffer();
-            return Buffer.from(arrayBuf);
-          },
+      const loadRes = uiModuleManager.loadAndActivateZipModule(
+        zipBuffer,
+        currentFrameworkVersion,
+      );
+
+      if (loadRes.success) {
+        saveModuleLocally(storagePath, zipBuffer);
+        refreshAllDetailPanels();
+        provider.refreshTree();
+        void vscode.window.showInformationMessage(
+          `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`,
         );
-
-        const loadRes = uiModuleManager.loadAndActivateZipModule(
-          zipBuffer,
-          currentFrameworkVersion,
-        );
-
-        if (loadRes.success) {
-          saveModuleLocally(storagePath, zipBuffer);
-          refreshAllDetailPanels();
-          provider.refreshTree();
-          void vscode.window.showInformationMessage(
-            `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`,
-          );
-        } else {
-          void vscode.window.showErrorMessage(
-            `Failed to activate downloaded module: ${loadRes.error}`,
-          );
-        }
-      } catch (err) {
+      } else {
         void vscode.window.showErrorMessage(
-          `Failed to download module: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+          `Failed to activate downloaded module: ${loadRes.error}`,
         );
       }
+    } catch (err) {
+      void vscode.window.showErrorMessage(
+        `Failed to download module: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
   }
 
