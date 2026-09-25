@@ -109,7 +109,9 @@ export function FrameworkVersionHeader({
               : "#f87171",
           }}
         >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+          <div
+            style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}
+          >
             {!meets ? (
               <span
                 style={{
@@ -131,7 +133,8 @@ export function FrameworkVersionHeader({
             ) : null}
             <div>
               <p style={{ margin: "0 0 4px 0", fontWeight: "bold" }}>
-                Catalyst Framework Version: {versionDisplay} (Expected: {requiredDisplay})
+                Catalyst Framework Version: {versionDisplay} (Expected:{" "}
+                {requiredDisplay})
               </p>
               <p style={{ margin: 0 }}>{explanation}</p>
             </div>

@@ -16,8 +16,12 @@ describe("satisfiesUvVersionSpecifier", () => {
   });
 
   it("evaluates multi-clause comma separated specifiers", () => {
-    expect(satisfiesUvVersionSpecifier("0.33.0", ">=0.30.0, <0.40.0")).toBe(true);
-    expect(satisfiesUvVersionSpecifier("0.45.0", ">=0.30.0, <0.40.0")).toBe(false);
+    expect(satisfiesUvVersionSpecifier("0.33.0", ">=0.30.0, <0.40.0")).toBe(
+      true,
+    );
+    expect(satisfiesUvVersionSpecifier("0.45.0", ">=0.30.0, <0.40.0")).toBe(
+      false,
+    );
   });
 
   it("evaluates compatible release operator ~=", () => {
@@ -94,7 +98,7 @@ describe("UiModuleManager", () => {
 
     expect(res.success).toBe(false);
     if (!res.success) {
-      expect(res.error).toContain("requires catalyst framework \">=0.33.0\"");
+      expect(res.error).toContain('requires catalyst framework ">=0.33.0"');
     }
     // Active module remains unchanged
     expect(manager.getActiveModule()?.manifest.id).toBe("module-a");

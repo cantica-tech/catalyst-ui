@@ -1,6 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseUiModuleFromZip, UiModuleManager, type UiModuleLoadResult, type UiModuleManifest } from "./ui-module-manager.js";
+import {
+  UiModuleManager,
+  type UiModuleLoadResult,
+  type UiModuleManifest,
+} from "./ui-module-manager.js";
 
 export interface RemoteModuleInfo {
   id: string;
@@ -11,15 +15,17 @@ export interface RemoteModuleInfo {
   downloadUrl: string;
 }
 
-export const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/oliben67/cantica-tech/main/catalyst/module";
-export const GITHUB_API_TREE_URL = "https://api.github.com/repos/oliben67/cantica-tech/git/trees/main?recursive=1";
+export const GITHUB_RAW_BASE =
+  "https://raw.githubusercontent.com/oliben67/cantica-tech/main/catalyst/module";
+export const GITHUB_API_TREE_URL =
+  "https://api.github.com/repos/oliben67/cantica-tech/git/trees/main?recursive=1";
 
 /**
  * Fetches available UI modules from git@github.com:oliben67/cantica-tech.git
  * by listing the remote directory structure via GitHub REST API / raw contents.
  */
 export async function fetchRemoteUiModules(
-  fetchFn: typeof fetch = globalThis.fetch
+  fetchFn: typeof fetch = globalThis.fetch,
 ): Promise<RemoteModuleInfo[]> {
   try {
     const res = await fetchFn(GITHUB_API_TREE_URL, {
@@ -28,13 +34,17 @@ export async function fetchRemoteUiModules(
     if (!res.ok) {
       throw new Error(`GitHub API returned HTTP ${res.status}`);
     }
-    const data = (await res.json()) as { tree?: Array<{ path: string; type: string }> };
+    const data = (await res.json()) as {
+      tree?: Array<{ path: string; type: string }>;
+    };
     if (!data.tree) return [];
 
     // Filter paths matching catalyst/module/<module_id>/<vX.Y.Z>/manifest.json
     const manifestPaths = data.tree
       .map((item) => item.path)
-      .filter((p) => p.startsWith("catalyst/module/") && p.endsWith("/manifest.json"));
+      .filter(
+        (p) => p.startsWith("catalyst/module/") && p.endsWith("/manifest.json"),
+      );
 
     const modules: RemoteModuleInfo[] = [];
 
@@ -80,7 +90,10 @@ export async function fetchRemoteUiModules(
 /**
  * Persists the active UI module zip buffer locally to globalStorageUri.
  */
-export function saveModuleLocally(storageDir: string, zipBuffer: Buffer): string {
+export function saveModuleLocally(
+  storageDir: string,
+  zipBuffer: Buffer,
+): string {
   if (!existsSync(storageDir)) {
     mkdirSync(storageDir, { recursive: true });
   }
@@ -95,7 +108,7 @@ export function saveModuleLocally(storageDir: string, zipBuffer: Buffer): string
 export function loadLocalSavedModule(
   storageDir: string,
   manager: UiModuleManager,
-  currentFrameworkVersion: string
+  currentFrameworkVersion: string,
 ): UiModuleLoadResult | null {
   const filePath = join(storageDir, "active-module.zip");
   if (!existsSync(filePath)) return null;

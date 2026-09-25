@@ -94,12 +94,17 @@ export function satisfiesUvVersionSpecifier(
   const trimmed = specifierString.trim();
   if (!trimmed || trimmed === "*") return true;
 
-  const clauses = trimmed.split(",").map((c) => c.trim()).filter(Boolean);
+  const clauses = trimmed
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 
   return clauses.every((clause) => {
     if (clause.startsWith("~=")) {
       const baseVersion = clause.slice(2).trim();
-      const parts = baseVersion.split(".").map((p) => Number.parseInt(p, 10) || 0);
+      const parts = baseVersion
+        .split(".")
+        .map((p) => Number.parseInt(p, 10) || 0);
       if (parts.length >= 2) {
         const nextParts = [...parts];
         nextParts[nextParts.length - 2] += 1;

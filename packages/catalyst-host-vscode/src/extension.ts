@@ -1441,10 +1441,14 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Attempt automatic activation from saved local module
   const initialFwVer = REQUIRED_FRAMEWORK_VERSION;
-  const localRes = loadLocalSavedModule(storagePath, uiModuleManager, initialFwVer);
+  const localRes = loadLocalSavedModule(
+    storagePath,
+    uiModuleManager,
+    initialFwVer,
+  );
   if (localRes && localRes.success) {
     void vscode.window.showInformationMessage(
-      `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`
+      `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
   }
   context.subscriptions.push(
@@ -1735,53 +1739,63 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(SELECT_FRAMEWORK_VERSION_COMMAND, async () => {
-      const picks = [
-        { label: "0.33.0", description: "Latest Catalyst Framework release (v0.33.0)" },
-        { label: "0.31.0", description: "Catalyst Framework v0.31.0" },
-        { label: "0.30.0", description: "Catalyst Framework v0.30.0" },
-        { label: "Specify custom version...", description: "Enter a custom framework version string" },
-      ];
-      const pick = await vscode.window.showQuickPick(picks, {
-        placeHolder: "Select a Catalyst Framework version to load into extension memory:",
-      });
-      if (!pick) return;
-
-      let version = pick.label;
-      if (pick.label.startsWith("Specify")) {
-        const input = await vscode.window.showInputBox({
-          prompt: "Enter framework version",
-          value: "0.33.0",
-          placeHolder: "e.g. 0.33.0",
+    vscode.commands.registerCommand(
+      SELECT_FRAMEWORK_VERSION_COMMAND,
+      async () => {
+        const picks = [
+          {
+            label: "0.33.0",
+            description: "Latest Catalyst Framework release (v0.33.0)",
+          },
+          { label: "0.31.0", description: "Catalyst Framework v0.31.0" },
+          { label: "0.30.0", description: "Catalyst Framework v0.30.0" },
+          {
+            label: "Specify custom version...",
+            description: "Enter a custom framework version string",
+          },
+        ];
+        const pick = await vscode.window.showQuickPick(picks, {
+          placeHolder:
+            "Select a Catalyst Framework version to load into extension memory:",
         });
-        if (!input) return;
-        version = input.trim();
-      }
+        if (!pick) return;
 
-      inMemoryFrameworkVersion = version;
+        let version = pick.label;
+        if (pick.label.startsWith("Specify")) {
+          const input = await vscode.window.showInputBox({
+            prompt: "Enter framework version",
+            value: "0.33.0",
+            placeHolder: "e.g. 0.33.0",
+          });
+          if (!input) return;
+          version = input.trim();
+        }
 
-      const defaultManifest: UiModuleManifest = {
-        id: "software-engineering-ui",
-        name: "Software Engineering Process UI Module",
-        version: "1.0.0",
-        description: "UI components for software engineering processes",
-        frameworkVersion: `>=${version}`,
-        entry: "dist/webview.js",
-      };
+        inMemoryFrameworkVersion = version;
 
-      const zipBuf = packageUiModule(defaultManifest);
-      const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
+        const defaultManifest: UiModuleManifest = {
+          id: "software-engineering-ui",
+          name: "Software Engineering Process UI Module",
+          version: "1.0.0",
+          description: "UI components for software engineering processes",
+          frameworkVersion: `>=${version}`,
+          entry: "dist/webview.js",
+        };
 
-      if (res.success) {
-        void vscode.window.showInformationMessage(
-          `Loaded Catalyst Framework v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.frameworkVersion}).`
-        );
-      } else {
-        void vscode.window.showWarningMessage(
-          `Loaded Catalyst Framework v${version}, but UI module activation failed: ${res.error}`
-        );
-      }
-    }),
+        const zipBuf = packageUiModule(defaultManifest);
+        const res = uiModuleManager.loadAndActivateZipModule(zipBuf, version);
+
+        if (res.success) {
+          void vscode.window.showInformationMessage(
+            `Loaded Catalyst Framework v${version} into extension memory. Activated UI module "${res.module.manifest.name}" (v${res.module.manifest.version}, requires ${res.module.manifest.frameworkVersion}).`,
+          );
+        } else {
+          void vscode.window.showWarningMessage(
+            `Loaded Catalyst Framework v${version}, but UI module activation failed: ${res.error}`,
+          );
+        }
+      },
+    ),
   );
 
   context.subscriptions.push(
@@ -1811,18 +1825,21 @@ export function activate(context: vscode.ExtensionContext): void {
         currentFrameworkVersion = REQUIRED_FRAMEWORK_VERSION;
       }
 
-      const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentFrameworkVersion);
+      const res = uiModuleManager.loadAndActivateZipModule(
+        zipPath,
+        currentFrameworkVersion,
+      );
 
       if (res.success) {
         saveModuleLocally(storagePath, readFileSync(zipPath));
         refreshAllDetailPanels();
         provider.refreshTree();
         void vscode.window.showInformationMessage(
-          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`
+          `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for framework version ${currentFrameworkVersion}.`,
         );
       } else {
         void vscode.window.showErrorMessage(
-          `Failed to load UI module: ${res.error}`
+          `Failed to load UI module: ${res.error}`,
         );
       }
     }),
@@ -1847,18 +1864,18 @@ export function activate(context: vscode.ExtensionContext): void {
           const payload = buildNodeDetail(
             model,
             nodeId,
-            provider.getPendingTargets(corpusRoot)
+            provider.getPendingTargets(corpusRoot),
           );
           if (payload) {
             panel.webview.html = renderWebviewHtml(
               panel.webview.asWebviewUri(
-                vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js")
+                vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
               ),
               {
                 type: "node",
                 frameworkVersionInfo: getFrameworkVersionInfo(corpusRoot),
                 ...payload,
-              }
+              },
             );
           }
         }
@@ -1886,7 +1903,7 @@ export function activate(context: vscode.ExtensionContext): void {
         location: vscode.ProgressLocation.Notification,
         title: "Fetching available UI modules from cantica-tech...",
       },
-      async () => fetchRemoteUiModules()
+      async () => fetchRemoteUiModules(),
     );
 
     const items: Array<{
@@ -1934,12 +1951,12 @@ export function activate(context: vscode.ExtensionContext): void {
             }
             const arrayBuf = await res.arrayBuffer();
             return Buffer.from(arrayBuf);
-          }
+          },
         );
 
         const loadRes = uiModuleManager.loadAndActivateZipModule(
           zipBuffer,
-          currentFrameworkVersion
+          currentFrameworkVersion,
         );
 
         if (loadRes.success) {
@@ -1947,18 +1964,18 @@ export function activate(context: vscode.ExtensionContext): void {
           refreshAllDetailPanels();
           provider.refreshTree();
           void vscode.window.showInformationMessage(
-            `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`
+            `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`,
           );
         } else {
           void vscode.window.showErrorMessage(
-            `Failed to activate downloaded module: ${loadRes.error}`
+            `Failed to activate downloaded module: ${loadRes.error}`,
           );
         }
       } catch (err) {
         void vscode.window.showErrorMessage(
           `Failed to download module: ${
             err instanceof Error ? err.message : String(err)
-          }`
+          }`,
         );
       }
     }
@@ -1967,7 +1984,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(SWITCH_UI_MODULE_COMMAND, async () => {
       await promptAndSwitchUiModule();
-    })
+    }),
   );
 
   /**
@@ -2010,24 +2027,24 @@ export function activate(context: vscode.ExtensionContext): void {
     panel.webview.html = renderWebviewHtml(scriptUri, payload);
   }
 
-function getFrameworkVersionInfo(corpusRoot: string): FrameworkVersionInfo {
-  const version = readDeployedFrameworkVersion(corpusRoot);
-  const meets = meetsRequiredFrameworkVersion(version);
-  let explanation: string | undefined;
-  if (!version) {
-    explanation = `Framework version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_FRAMEWORK_VERSION}.`;
-  } else if (!meets) {
-    explanation = `Framework version ${version} does not match expected required version (${REQUIRED_FRAMEWORK_VERSION}). Some entities may fail to parse or validate correctly.`;
-  } else {
-    explanation = `Framework version ${version} meets expected requirement (${REQUIRED_FRAMEWORK_VERSION}).`;
+  function getFrameworkVersionInfo(corpusRoot: string): FrameworkVersionInfo {
+    const version = readDeployedFrameworkVersion(corpusRoot);
+    const meets = meetsRequiredFrameworkVersion(version);
+    let explanation: string | undefined;
+    if (!version) {
+      explanation = `Framework version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_FRAMEWORK_VERSION}.`;
+    } else if (!meets) {
+      explanation = `Framework version ${version} does not match expected required version (${REQUIRED_FRAMEWORK_VERSION}). Some entities may fail to parse or validate correctly.`;
+    } else {
+      explanation = `Framework version ${version} meets expected requirement (${REQUIRED_FRAMEWORK_VERSION}).`;
+    }
+    return {
+      version,
+      requiredVersion: REQUIRED_FRAMEWORK_VERSION,
+      meetsRequirement: meets,
+      explanation,
+    };
   }
-  return {
-    version,
-    requiredVersion: REQUIRED_FRAMEWORK_VERSION,
-    meetsRequirement: meets,
-    explanation,
-  };
-}
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
