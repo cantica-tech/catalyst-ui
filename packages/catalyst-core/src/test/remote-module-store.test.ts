@@ -16,6 +16,14 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// Keep the suite hermetic: without this, fetchRemoteUiModules shallow-clones
+// the real cantica-tech repo before reaching the mocked GitHub API.
+vi.mock("node:child_process", () => ({
+  execFileSync: () => {
+    throw new Error("git is disabled in unit tests");
+  },
+}));
+
 describe("remote-module-store", () => {
   it("parses various source URL formats cleanly", () => {
     const loc1 = parseArtifactSourceLocation(
@@ -160,7 +168,9 @@ describe("remote-module-store", () => {
       return Promise.resolve({ ok: false });
     });
 
+    // A repo with no local clone cache, so only the mocked API can answer.
     const modules = await fetchRemoteUiModules(
+      "https://github.com/test-owner/test-repo/tree/main/catalyst/",
       mockFetch as unknown as typeof fetch,
     );
     expect(modules.length).toBe(1);
