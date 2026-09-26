@@ -394,6 +394,8 @@ export interface CatalystPointer {
   project_name: string;
   agent?: string;
   "agent-source": string;
+  /** The active process module's id (MODULE-SPECIFICATION), if declared. */
+  module?: string;
   repoed?: boolean;
   catalyst_repo?: string;
   catalyst_repo_url?: string;

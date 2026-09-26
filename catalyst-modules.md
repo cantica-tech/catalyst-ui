@@ -1,6 +1,6 @@
 # How Modules Work in Catalyst UI
 
-_As of 2026-09-25: catalyst 0.35.2, catalyst UI 0.31.0._
+_As of 2026-09-26: catalyst 0.36.0, software-engineering module 2.0.0, catalyst UI 0.32.0._
 
 A module is a versioned zip bundle for one process domain, built from its own
 `catalyst-<module-id>` repository. The catalyst UI VS Code extension finds it
@@ -32,11 +32,11 @@ sources/
 
 The sibling layout is load-bearing. Three things look for a module there:
 
-| Consumer                                      | Where it looks                                                                                                                               |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task release` (`scripts/package_release.py`) | `../catalyst-software-engineering/`; skips the module with a warning if it is missing                                                        |
-| `scripts/module_loader.py`                    | `.criterion/modules/<id>`, then `framework/modules/<id>`, then `../catalyst-<id>/`; falls back to the built-in software-engineering manifest |
-| Module `ui/tsconfig.json`                     | `../../catalyst-ui/` for `catalyst-core` types (built `dist/index.d.ts`), `react` and `marked`                                               |
+| Consumer                                      | Where it looks                                                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `task release` (`scripts/package_release.py`) | `../catalyst-<id>/` for each module in `framework/modules/catalog.md`; skips any that is not checked out                                 |
+| `scripts/module_loader.py`                    | `.criterion/modules/<id>`, then `framework/modules/<id>`, then `../catalyst-<id>/`; no built-in module, returns nothing if none is found |
+| Module `ui/tsconfig.json`                     | `../../catalyst-ui/` for `catalyst-core` types (built `dist/index.d.ts`), `react` and `marked`                                           |
 
 `.vscode/catalyst.code-workspace` opens all four folders together.
 
@@ -44,11 +44,17 @@ The sibling layout is load-bearing. Three things look for a module there:
 
 ```
 catalyst-software-engineering/
-├── module.yaml        # process manifest: id, version, grounding_type, entity_types, commands, templates
-├── version.txt        # module version (1.0.0), read by the release task
-├── schemas/           # one ETD per entity type: BUG, REQ, HK, TEST, STEP, FEAT, RM, WORKFLOW, RECON
-├── templates/         # <entity>.template.md
-├── commands/          # slash-command specs: create-req, create-bug, create-test, ...
+├── module.yaml                 # manifest: entity_types, commands, templates, definitions, required_paths, contributions
+├── version.txt                 # module version (2.0.0), read by the release task
+├── schemas/                    # one ETD per entity type: BUG, REQ, HK, TEST, STEP, FEAT, RM
+├── templates/                  # <entity>.template.md, index and backlog templates
+├── definitions/                # DEFINITION-<PREFIX>-vN.md per entity type
+├── commands/                   # slash-command specs: create-req, create-bug, roadmap-add, ...
+├── rules-of-rules.module.md    # module meta-rules, appended to the deployed Rules-of-Rules
+├── code-of-conduct.module.md   # module document types and commands (CODE-OF-CONDUCT §3/§4)
+├── INVARIANTS.module.md        # module invariants
+├── Taskfile.module.yml         # one dispatch task per module command
+├── migrations/                 # module migrations + migrations.md
 ├── ui/                # npm package @catalyst-modules/software-engineering-ui
 │   ├── index.ts       # exports Backlog, RoadmapDetails
 │   ├── Backlog.tsx
@@ -68,9 +74,9 @@ fields.
 | ------------------ | -------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`               | Yes      | `software-engineering`                | Unique id; also the folder name on cantica-tech                                                                                                                                                                |
 | `name`             | Yes      | `Software Engineering Process Module` | Label in the module picker                                                                                                                                                                                     |
-| `version`          | Yes      | `1.0.0`                               | Module version; release folder is `v<version>`                                                                                                                                                                 |
-| `kernelVersion`    | Yes      | `>=0.35.2`                            | UV-style specifier the active kernel must satisfy.                                                                                                                                                             |
-| `frameworkVersion` | Legacy   | `>=0.35.2`                            | Old name of `kernelVersion`, written with the same value. Extension builds before 0.31.0 read only this field. catalyst UI 0.31.0+ prefers `kernelVersion` and falls back to it (`readManifestKernelVersion`). |
+| `version`          | Yes      | `2.0.0`                               | Module version; release folder is `v<version>`                                                                                                                                                                 |
+| `kernelVersion`    | Yes      | `>=0.36.0`                            | UV-style specifier the active kernel must satisfy.                                                                                                                                                             |
+| `frameworkVersion` | Legacy   | `>=0.36.0`                            | Old name of `kernelVersion`, written with the same value. Extension builds before 0.31.0 read only this field. catalyst UI 0.31.0+ prefers `kernelVersion` and falls back to it (`readManifestKernelVersion`). |
 | `description`      | No       |                                       | Picker detail line                                                                                                                                                                                             |
 | `entry`            | No       | `ui/index.js`                         | Entry script for the UI code (declared, not executed yet)                                                                                                                                                      |
 | `components`       | No       |                                       | Reserved                                                                                                                                                                                                       |
@@ -139,11 +145,14 @@ catalyst UI does not run it yet.
 | Setting | `catalyst.moduleSourceUrl`     | Where modules are listed (default `cantica-tech.git/catalyst/`)                                |
 | Setting | `catalyst.kernelSourceUrl`     | Where kernel releases are listed (default `cantica-tech.git/catalyst/kernel/`)                 |
 
-On the kernel side, `resolveModuleId` reads `module:` from
-`.criterion/config.yaml` or `id:` from `.criterion/module.yaml`, falling back
-to `software-engineering`. The `*.catalyst` pointer also carries `module`.
-catalyst-core's `loadModule` still returns the built-in software-engineering
-manifest for every id.
+On the kernel side, catalyst-core's `resolveModuleId` reads the `*.catalyst`
+pointer's `module` field, then `.criterion/config.yaml` `module:` or
+`.criterion/module.yaml` `id:`, and returns `undefined` when none is declared;
+there is no default module. `loadModule` reads the module's own `module.yaml`
+and ETD schemas from the deployment's `modules/<id>/` (or a sibling
+`catalyst-<id>/` checkout). Since catalyst 0.36.0 the kernel itself names no
+module: reconciliation (`RECON-`) and workflows (`WORKFLOW-`) are kernel
+entities, and everything else comes from the module (MODULE-SPECIFICATION §6).
 
 **Rendering.** A compile-time link (the module's `ui/` as an npm workspace of
 catalyst UI, `eff7eb8`) was tried and reverted in `0616dbc`. It tied catalyst
@@ -156,10 +165,11 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 
 `task release` in catalyst runs `scripts/package_release.py`:
 
-1. **Module.** From `../catalyst-software-engineering/`, it writes
+1. **Modules.** For each module in catalyst's `framework/modules/catalog.md`
+   checked out as `../catalyst-<id>/`, it writes
    `manifest.json` (`kernelVersion` and legacy `frameworkVersion`, both
    `">=<kernel version>"`, and `entry: "ui/index.js"`) and zips the repo into
-   `catalyst/modules/software-engineering/v<version>/`. It skips dotfiles,
+   `catalyst/modules/<id>/v<version>/`. It skips dotfiles,
    `node_modules`, `dist` and `catalyst/`, then commits and pushes to the
    module repo's `main`.
 2. **Kernel.** Zips `framework/kernel/` into
@@ -170,9 +180,18 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 
 ```
 cantica-tech/catalyst/
-├── kernel/v0.34.0 … v0.35.2/{manifest.json, kernel-v<version>.zip}
-└── modules/software-engineering/v1.0.0/{manifest.json, software-engineering-v1.0.0.zip}
+├── kernel/v0.34.0 … v0.36.0/{manifest.json, kernel-v<version>.zip}
+└── modules/software-engineering/v1.0.0, v2.0.0/{manifest.json, software-engineering-v<version>.zip}
 ```
+
+| Date       | Release            | What it published                                                                                     |
+| ---------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| 2026-09-26 | catalyst UI 0.32.0 | Extension with catalyst-core's module loader reading module.yaml (no built-in module)                 |
+| 2026-09-26 | catalyst 0.36.0    | `kernel-v0.36.0.zip`; module-agnostic kernel; software-engineering module 2.0.0, requiring `>=0.36.0` |
+| 2026-09-25 | catalyst 0.35.2    | `kernel-v0.35.2.zip`; module 1.0.0 manifest with both fields, requiring `>=0.36.0`                    |
+| 2026-09-25 | catalyst 0.35.1    | `kernel-v0.35.1.zip`; `/sync-kernel` withdrawn, `/sync-framework` kept                                |
+| 2026-09-25 | catalyst 0.35.0    | First kernel release; `catalyst/framework/` renamed `catalyst/kernel/` on cantica-tech                |
+| 2026-09-25 | catalyst UI 0.31.0 | Extension on the Marketplace with the kernel settings and commands                                    |
 
 ## Authoring a new module
 
@@ -191,11 +210,9 @@ cantica-tech/catalyst/
 | Saved module restored against the wrong version | `activate()` passes `REQUIRED_KERNEL_VERSION` (`">=0.31.0"`, a specifier) as a version         | Read as 0.31.0, so a saved module needing `>=0.34.0` silently fails to restore on every start                                                                                            |
 | Same fallback in the load commands              | `loadUiModule`, `switchUiModule`                                                               | A workspace with no deployment is checked as 0.31.0                                                                                                                                      |
 | Build depends on sibling checkouts              | Module `ui/tsconfig.json` → `../../catalyst-ui`; types come from catalyst-core's built `dist/` | Build catalyst-ui first; the module won't compile outside the sibling layout                                                                                                             |
-| Single-module release                           | `package_release.py`                                                                           | A second module is neither packaged nor deployed                                                                                                                                         |
-| Kernel ignores the module id                    | `loadModule` in catalyst-core                                                                  | Every id loads the built-in software-engineering ETDs                                                                                                                                    |
 | Components duplicated                           | `catalyst-ui/src` vs the module's `ui/`                                                        | Fixes must land twice until runtime rendering exists                                                                                                                                     |
 | Legacy release folder                           | Module repo still tracks `catalyst/module/` (singular)                                         | Dead copy of v1.0.0; discovery accepts both spellings                                                                                                                                    |
-| Requirement follows the latest kernel           | `package_release.py` writes `>=<current kernel>` and republishes module 1.0.0 in place         | Each catalyst release raises the published requirement (now `>=0.35.2`), so projects on older kernels can no longer activate the module                                                  |
+| Requirement follows the latest kernel           | `package_release.py` writes `>=<current kernel>`                                               | Re-releasing a module without bumping its version raises the requirement in place (v1.0.0 did this until 0.35.2); bump the module version on every release                               |
 | Dropping `frameworkVersion` hides the module    | Manifest fields                                                                                | catalyst 0.35.0–0.35.1 published only `kernelVersion`, and extensions before 0.31.0 reported "No process UI modules found". Fixed in 0.35.2; keep writing both until old builds are gone |
 
 ## Open questions
