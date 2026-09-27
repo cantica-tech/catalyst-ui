@@ -1,0 +1,30 @@
+---
+description: Create a new requirement artifact and register it in requirements/requirements.md
+argument-hint: <description> [--targets <rule-id>...] [--domain <CODE>]
+---
+
+Create a new requirement artifact. Sources:
+`.criterion/CODE-OF-CONDUCT.md` §3/§4, template: the highest-versioned
+`.criterion/requirements/templates/TEMPLATE-REQUIREMENT-vN.md`.
+First run `catalyst spec create-req` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
+Input: $ARGUMENTS
+
+1. Must be vetted against every rule document (`Rules-of-Rules.md` §1) and
+   always carries a `Domain` and `Targets`/proposed rule(s) — none of
+   those three are optional. Ask for domain/target rule if not inferable.
+2. Resolve who is signing this per §2 and fill `Signed-off-by`.
+3. Allocate the ID with `catalyst id next REQ --as <signer>` — never
+   guess, compute by hand, or reuse a number.
+4. Copy the current `TEMPLATE-REQUIREMENT-vN.md`, fill every field, save as
+   `requirements/<ID>-<short-summary>.md`, `Status: Draft`.
+5. Register it: `catalyst index regen` rebuilds `requirements/requirements.md`.
+6. Journal it: `catalyst journal append --command /create-req --action create
+   --tier feature --artifact <ID> --target <rule-id> ... --intent "<goal>" --file <each touched file>`.
+7. Report the result. Do not commit or push on your own: the working copy (`.criterion/`)
+   and the product repository are committed only with the user's assent.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).
