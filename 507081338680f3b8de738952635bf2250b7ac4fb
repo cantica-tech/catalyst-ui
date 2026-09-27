@@ -1,0 +1,134 @@
+# catalyst-ui's own operations. Mirrors .github/workflows/ci.yml exactly, so
+# `task ci` is what CI runs, runnable locally.
+#
+# Catalyst-operation dispatch tasks (create-bug, check-rules, sync-framework,
+# ...) come from Taskfile.common.yml, deployed inside .criterion/ (agent-owned
+# space, INV-6 — not this repo's own tree) from catalyst's development-
+# framework/templates/Taskfile.common.template.yml, refreshed by
+# /sync-framework, not hand-edited here. See catalyst's framework/
+# migrations/0.19.0/taskfile-into-criterion.md for why it moved out of this
+# repo's own root.
+
+version: "3"
+
+dotenv: [".env"]
+
+vars:
+  # Falls back to the macOS app bundle when the `code` shim hasn't been
+  # installed on PATH (Command Palette: Shell Command: Install 'code' command
+  # in PATH is the permanent fix — this just unblocks tasks in the meantime).
+  CODE_BIN:
+    sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+  # This deployment's *.catalyst pointer's own agent-source field (INV-6),
+  # copied here as a literal — NOT `sh:`-computed. Task resolves an
+  # `includes.taskfile` path before dynamic (`sh:`) vars are evaluated, so
+  # a dynamic value here silently produces an empty path and "no Taskfile
+  # found" (confirmed by hand in catalyst's own self-deployment). Update by
+  # hand (or via /sync-framework) if agent-source ever changes.
+  CRITERION_DIR: "/Users/oliviersteck/.claude/projects/-Users-oliviersteck-sources-catalyst-ui/.criterion"
+  # Resolves the deployed agent's CLI binary from the pointer's "agent"
+  # field. "claude-code" is the one known id whose CLI binary name differs
+  # from the id itself (mirrors catalyst-ui's own agent-launch.ts); any
+  # other agent id is assumed to already be its own binary name. Falls
+  # back to "claude" — today's only known agent — when no pointer/field is
+  # found. Safe to compute dynamically, unlike CRITERION_DIR above — this
+  # only feeds ordinary task commands, not an include path.
+  AGENT_ID:
+    sh: |
+      f=$(ls *.catalyst 2>/dev/null | head -1)
+      [ -n "$f" ] && grep -oE '"agent"[[:space:]]*:[[:space:]]*"[^"]*"' "$f" | head -1 | sed -E 's/.*"([^"]*)"$/\1/'
+  AGENT_BIN: '{{if eq .AGENT_ID "claude-code"}}claude{{else if .AGENT_ID}}{{.AGENT_ID}}{{else}}claude{{end}}'
+  # Full override escape hatch for an agent needing different flags than
+  # `<bin> -p "<prompt>"` entirely (e.g. a non-Claude CLI).
+  AGENT_CMD: '{{.AGENT_CMD_OVERRIDE | default (printf "%s -p" .AGENT_BIN)}}'
+
+includes:
+  common:
+    taskfile: "{{.CRITERION_DIR}}/Taskfile.common.yml"
+    flatten: true
+    vars:
+      AGENT_CMD: "{{.AGENT_CMD}}"
+
+tasks:
+  install:
+    desc: "Install npm workspace dependencies"
+    cmds:
+      - npm ci
+
+  lint:
+    desc: "Lint all workspaces"
+    cmds:
+      - npm run lint
+
+  format:check:
+    desc: "Check formatting across all workspaces"
+    cmds:
+      - npm run format:check
+
+  typecheck:
+    desc: "Type-check all workspaces (tsc --build; also emits output, since every package is composite)"
+    cmds:
+      - npm run typecheck
+
+  build:
+    desc: "Build all workspaces (alias of typecheck: TS project references emit on build)"
+    cmds:
+      - npm run typecheck
+
+  test:
+    desc: "Run tests across all workspaces"
+    cmds:
+      - npm test
+
+  ci:
+    desc: "Run everything CI runs: lint, format:check, typecheck, test"
+    cmds:
+      - task: lint
+      - task: format:check
+      - task: typecheck
+      - task: test
+
+  build:vscode-extension:
+    desc: "Package catalyst-host-vscode into a self-contained .vsix (bundles catalyst-core and the webview script — no monorepo dependency at install time)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - npm run package
+
+  install:vscode-extension:
+    desc: "Build and install catalyst-host-vscode into the local VS Code (requires the 'code' CLI on PATH — Command Palette: Shell Command: Install 'code' command in PATH)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - task: build:vscode-extension
+      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
+
+  install:vscode-extension:unsigned:
+    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for local test builds (one-time sets extensions.verifySignature: false in your real VS Code user settings, since VS Code has no per-install CLI flag for this)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - task: build:vscode-extension
+      - node scripts/enable-unsigned-install.js
+      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
+
+  publish:vscode-extension:
+    desc: "Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage for package.json's registered publisher — see marketplace.visualstudio.com/manage)"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - npm run publish
+
+  publish:vscode-extension:release:
+    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension"
+    dir: packages/catalyst-host-vscode
+    cmds:
+      - |
+        set -e
+        TAG="$(git describe --tags --exact-match HEAD 2>/dev/null)" || {
+          echo "HEAD is not an exact release tag — cut the release first (tags the release branch), or check out the release tag before publishing." >&2
+          exit 1
+        }
+        PKG_VERSION="$(node -p "require('./package.json').version")"
+        if [ "$TAG" != "$PKG_VERSION" ]; then
+          echo "Release tag ($TAG) doesn't match package.json version ($PKG_VERSION) — refusing to publish a mismatched build." >&2
+          exit 1
+        fi
+        echo "HEAD is release $TAG, matching package.json — proceeding to publish."
+      - task: publish:vscode-extension

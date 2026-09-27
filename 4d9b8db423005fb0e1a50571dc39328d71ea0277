@@ -1,0 +1,13 @@
+{
+  "project_name": "catalyst-ui",
+  "framework_version": "0.32.0",
+  "agent": "claude-code",
+  "agent-source": "/Users/oliviersteck/.claude/projects/-Users-oliviersteck-sources-catalyst-ui/.criterion",
+  "repoed": true,
+  "catalyst_repo": "catalyst-ui-criterion",
+  "catalyst_repo_url": "git@github.com:oliben67/catalyst-ui-criterion.git",
+  "created_by": "Olivier Steck",
+  "criterion_branch": "criterion",
+  "created": "2026-09-05",
+  "updated": "2026-09-21"
+}
