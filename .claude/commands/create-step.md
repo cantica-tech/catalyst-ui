@@ -3,20 +3,27 @@ description: Create a new step against an existing requirement or bug, recording
 argument-hint: <REQ-id|BUG-id> <short description>
 ---
 
-Create a new step. Full spec:
-`.criterion/CODE-OF-CONDUCT.md` §4, template: `.criterion/steps/templates/TEMPLATE-STEP-v3.md`.
+Create a new step. Full spec: `.criterion/CODE-OF-CONDUCT.md` §4,
+template: `.criterion/steps/templates/TEMPLATE-STEP-v3.md`.
 Input: $ARGUMENTS
 
 1. Refuse with a clear message if `<REQ-id|BUG-id>` doesn't resolve to an
    existing file under `requirements/` or `development/bugs/`.
-2. Resolve the next sequential `STEP-NNNNNN` ID from `steps/steps.md` plus
-   a directory listing of `steps/` — never guess or reuse a number.
+2. Resolve who is signing this per §2, then allocate the ID with
+   `catalyst id next STEP --as <signer>` — never guess, compute by hand,
+   or reuse a number.
 3. Create the step file from the template, `Parent` set to
    `<REQ-id|BUG-id>`, `Status: planned` (or `in-progress` if the user
    says work is already underway). Do not prompt for a domain or rule
    target — neither field exists on this artifact type; it inherits
    `<REQ-id|BUG-id>`'s.
-4. Register it in `steps/steps.md`, and append its ID to
-   `<REQ-id|BUG-id>`'s own `Steps` field (creating the field if this is
-   its first step).
-5. Report the new step's ID and filename.
+4. Append its ID to `<REQ-id|BUG-id>`'s own `Steps` field (creating the
+   field if this is its first step), then `catalyst index regen` to
+   rebuild `steps/steps.md`.
+5. Journal it: `catalyst journal append --command /create-step --action create
+   --artifact <ID> --intent "<goal>" --file <step file> --file <parent file>
+   --file <each regenerated index>`.
+6. Report the new step's ID and filename. Do not commit or push.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

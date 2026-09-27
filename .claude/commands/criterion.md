@@ -83,8 +83,9 @@ this user's old `name` to their new `git_username` — from here on, every
 `Signed-off-by`/journal `actor` written for them uses `git_username`,
 never `name`. **Never rewrite the journal itself** — entries are
 immutable (INV-17), no exception here either; instead append one new
-entry (`action: "update"`, `intent` describing the migration) covering
-every artifact file actually rewritten.
+entry with `catalyst journal append --command /criterion --action update`
+(`--intent` describing the migration) covering every artifact file
+actually rewritten.
 
 ## `push [--force]`
 
@@ -116,7 +117,8 @@ every artifact file actually rewritten.
         guided by `Rules-of-Rules.md` §1's conflict-check principle —
         never silently drop either side's rule-compliant intent. If
         that's itself contested, or genuinely irreconcilable, open a
-        `RECON-NNNNNN` instead of guessing which side wins
+        `RECON-NNNNNN` (ID from `catalyst id next RECON --as <actor>`,
+        then `catalyst index regen`) instead of guessing which side wins
         (`Rules-of-Rules.md` §16, `/reconcile` to resolve it later) —
         that one entity stays unmerged; everything else proceeds.
       - **Update both branches**: `criterion` gets the merge commit;
@@ -139,3 +141,6 @@ Not a replacement for `/sync-framework` (that syncs the framework
 across contributors), and not a substitute for the journal — a
 `criterion` merge is itself journaled like any other change once it
 lands locally.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

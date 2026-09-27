@@ -4,8 +4,8 @@ argument-hint: <name>
 ---
 
 Delete or retire a named roadmap. Full spec:
-`.criterion/CODE-OF-CONDUCT.md` §4, template:
-`.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-v1.md`.
+`.criterion/CODE-OF-CONDUCT.md` §4, template: the highest-versioned
+`.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-vN.md`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name>`. If missing, ask for it.
@@ -18,5 +18,11 @@ Input: $ARGUMENTS
    `roadmaps.md` row `retired`, and leave every row and `RM-NNNNNN` ID
    exactly as they are. Tell the user it was retired, not removed,
    because deleting it would break a live `FEAT-`/`REQ-` cross-reference.
-5. Report the result. Do not commit or push — leave changes unstaged
+5. Journal it: `catalyst journal append --command /roadmap-remove --action retire
+   --artifact <name> --intent "<goal>" --file <roadmap file> --file <roadmaps.md>`
+   (a deleted file is recorded with `after: null`).
+6. Report the result. Do not commit or push — leave changes unstaged
    unless the user asks otherwise.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

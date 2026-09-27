@@ -5,7 +5,7 @@ argument-hint: <RECON-id> accept | accept-with-edits | reject | propose <text>
 
 Resolve, or move toward resolving, an open reconciliation case. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §4, template:
-`.criterion/reconciliations/templates/TEMPLATE-RECONCILIATION-v1.md`,
+`.criterion/reconciliations/templates/TEMPLATE-RECONCILIATION-vN.md` (the latest),
 mechanism: `.criterion/rules/Rules-of-Rules.md` §16.
 Input: $ARGUMENTS
 
@@ -33,8 +33,14 @@ Input: $ARGUMENTS
 4. For the three resolving verbs, set `Status` to `Resolved-Accepted` /
    `Resolved-Accepted-with-Edits` / `Resolved-Rejected`, fill `Resolved`
    and `Resolver`, and fill in `## Resolution` with the rationale.
-5. Register the outcome in `reconciliations.md` and append one journal
-   entry covering both the `RECON-` file and the `Entity` file if it was
-   merged (INV-17) — never rewrite an earlier `## Revisions` row.
+5. `catalyst index regen` rebuilds `reconciliations.md`; then
+   `catalyst journal append --command /reconcile --action <status-change|close>
+   --artifact <RECON-id> --intent "<why>" --file <RECON file>
+   [--file <Entity file>] --file <reconciliations.md>` covers both the
+   `RECON-` file and the `Entity` file if it was merged (INV-17) — never
+   rewrite an earlier `## Revisions` row.
 6. Report the result. Do not commit or push — leave changes unstaged
    unless the user asks otherwise (INV-4).
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

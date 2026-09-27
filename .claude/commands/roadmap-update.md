@@ -4,8 +4,8 @@ argument-hint: <name> <file>
 ---
 
 Re-ingest a local file as the new full version of an existing named
-roadmap. Full spec: `.criterion/CODE-OF-CONDUCT.md`
-§4, template: `.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-v1.md`.
+roadmap. Full spec: `.criterion/CODE-OF-CONDUCT.md` §4, template: the highest-versioned
+`.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-vN.md`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <file>`. If either is missing, ask for it.
@@ -18,14 +18,20 @@ Input: $ARGUMENTS
    `ID`, including its `userid` suffix — that stays fixed for the life
    of the row per `Rules-of-Rules.md` §20). If it doesn't match any
    existing row, add a new row: resolve who is signing this re-ingest
-   (`CODE-OF-CONDUCT.md` §2), confirm they have a `userid` (registering
-   one first if not), and assign the next global `RM-NNNNNN-<userid>`,
-   its own `Description`, `Status: Not triaged`, `Signed-off-by` the
-   resolved signer.
+   (`CODE-OF-CONDUCT.md` §2) and take the next global ID from
+   `catalyst id next RM --as <signer>` (consecutive from there for
+   several new rows in one write; the CLI refuses if the signer has no
+   `userid` — register one first), with its own `Description`,
+   `Status: Not triaged`, `Signed-off-by` the resolved signer.
 5. For each existing row whose item no longer appears in `<file>`, flag it
    in `Notes` (e.g. "no longer present in latest source as of <date>") —
    never delete the row.
 6. Update the file's `Source` and `Last updated` fields to `<file>` and
    today.
-7. Report a short summary of what was added/updated/flagged. Do not
+7. Journal it: `catalyst journal append --command /roadmap-update --action update
+   --artifact <name> --intent "<goal>" --file <roadmap file>`.
+8. Report a short summary of what was added/updated/flagged. Do not
    commit or push — leave changes unstaged unless the user asks otherwise.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

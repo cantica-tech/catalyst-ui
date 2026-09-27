@@ -4,16 +4,22 @@ argument-hint: <description> [--targets <rule-id>...] [--severity Critical|High|
 ---
 
 Create a new bug artifact. Full spec: `.criterion/CODE-OF-CONDUCT.md`
-§3/§4, template: `.criterion/development/bugs/templates/TEMPLATE-BUG-v1.md`.
+§3/§4, template: the highest-versioned
+`.criterion/development/bugs/templates/TEMPLATE-BUG-vN.md`.
 Input: $ARGUMENTS
 
-1. Resolve the next `BUG-NNNNNN` ID from `bugs/bugs.md` + a directory
-   listing of `bugs/` — never guess or reuse a number.
-2. `Targets` is required and never empty (§1). If the domain/rule can't
+1. `Targets` is required and never empty (§1). If the domain/rule can't
    be inferred, ask for both before creating the artifact.
-3. Resolve who is signing this per §2 and fill `Signed-off-by`.
+2. Resolve who is signing this per §2 and fill `Signed-off-by`.
+3. Allocate the ID with `catalyst id next BUG --as <signer>` — never
+   guess, compute by hand, or reuse a number.
 4. Copy the current `TEMPLATE-BUG-vN.md`, fill every field, and save as
-   `bugs/BUG-NNNNNN-<short-summary>.md` — never a bare ID.
-5. Register it in `bugs/bugs.md`.
-6. Report the result. Do not commit or push — leave changes unstaged
+   `bugs/<ID>-<short-summary>.md` — never a bare ID.
+5. Register it: `catalyst index regen` rebuilds `bugs/bugs.md`.
+6. Journal it: `catalyst journal append --command /create-bug --action create
+   --artifact <ID> --target <rule-id> ... --intent "<goal>" --file <each touched file>`.
+7. Report the result. Do not commit or push — leave changes unstaged
    unless the user asks otherwise.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

@@ -4,8 +4,8 @@ argument-hint: <name> <update file>
 ---
 
 Fold a partial delta file into an existing named roadmap. Full spec:
-`.criterion/CODE-OF-CONDUCT.md` §4, template:
-`.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-v1.md`.
+`.criterion/CODE-OF-CONDUCT.md` §4, template: the highest-versioned
+`.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-vN.md`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <update file>`. If either is missing, ask
@@ -19,13 +19,19 @@ Input: $ARGUMENTS
    `ID`, including its `userid` suffix — that stays fixed for the life
    of the row per `Rules-of-Rules.md` §20). If it doesn't match any
    existing row, add a new row: resolve who is signing this merge
-   (`CODE-OF-CONDUCT.md` §2), confirm they have a `userid` (registering
-   one first if not), and assign the next global `RM-NNNNNN-<userid>`,
-   its own `Description`, `Status: Not triaged`, `Signed-off-by` the
-   resolved signer.
+   (`CODE-OF-CONDUCT.md` §2) and take the next global ID from
+   `catalyst id next RM --as <signer>` (consecutive from there for
+   several new rows in one write; the CLI refuses if the signer has no
+   `userid` — register one first), with its own `Description`,
+   `Status: Not triaged`, `Signed-off-by` the resolved signer.
 5. Unlike `/roadmap-update`, do not compare against or flag any existing
    row that `<update file>` doesn't mention — it's a delta, not the full
    roadmap. Do not change the file's `Source` field; only update `Last
    updated` to today.
-6. Report a short summary of what was added/updated. Do not commit or
+6. Journal it: `catalyst journal append --command /roadmap-merge --action update
+   --artifact <name> --intent "<goal>" --file <roadmap file>`.
+7. Report a short summary of what was added/updated. Do not commit or
    push — leave changes unstaged unless the user asks otherwise.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).
