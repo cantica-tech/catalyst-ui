@@ -26,8 +26,8 @@ Input: $ARGUMENTS
 3. `accept`: merge `Proposed` into the `Entity` it names, unchanged.
    `accept-with-edits`: ask for (or use already-supplied) revised
    content, append it as a new row in `## Revisions`, then merge that
-   instead. `reject`: leave the `Entity` unchanged on `criterion`, and
-   flag the proposer's local divergence for reverting. `propose <text>`:
+   instead. `reject`: leave the `Entity` unchanged on the shared branch;
+   the proposer drops or reworks their change. `propose <text>`:
    append `<text>` as a new row in `## Revisions` and move `Status` to
    `Under Review` — do not touch `Resolved`/`Resolver`.
 4. For the three resolving verbs, set `Status` to `Resolved-Accepted` /

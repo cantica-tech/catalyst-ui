@@ -71,15 +71,15 @@ be overwritten if this replaces an existing deployment, then:
    at the project root pointing at it, and gitignore `/.criterion`.
 4. Write `<app-name>.catalyst`, carrying the bundle's pointer fields
    over as-is (`repoed`, `catalyst_repo`, `catalyst_repo_url`,
-   `created_by`), with no path.
+   `created_by`, `criterion_branch`), with no path.
 5. Journal it: `catalyst journal append --command /project --action sync
    --artifact "<project name> import" --intent "<why>" --file <pointer>
    --file .gitignore`.
 6. Report the result.
 
-Not a replacement for `/criterion get` (that joins an already-repoed
-deployment's shared history via its dedicated repo; this installs from a
-standalone export file with no repo involved).
+Not a replacement for `/criterion get` (that checks out a shared
+deployment's `.criterion` submodule in a clone of the product; this
+installs from a standalone export file with no repo involved).
 
 `catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
 (`CODE-OF-CONDUCT.md` §4).

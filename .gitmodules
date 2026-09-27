@@ -1,0 +1,4 @@
+[submodule ".criterion"]
+	path = .criterion
+	url = git@github.com:oliben67/catalyst-ui-criterion.git
+	branch = criterion
