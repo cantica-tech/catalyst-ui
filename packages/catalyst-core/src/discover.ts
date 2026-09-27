@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
@@ -84,44 +84,62 @@ function findCorpusRootFromMemory(projectRoot: string): string | null {
 }
 
 /**
- * Claude Code's per-project data directory convention for a fresh
- * deployment's working copy: `~/.claude/projects/<slug>/.criterion`, where
- * `<slug>` is the project's absolute path with `/` and `:` collapsed to
- * `-`. Shared by `resolveCorpusRoot`'s fallback 2 (an existing deployment
- * that predates its own pointer) and by a brand-new deployment's default
- * `agent-source` (`join-criterion.ts`) — both need the exact same
+ * Claude Code's agent-owned per-project storage for a deployment's working
+ * copy: `~/.claude/projects/<slug>/.criterion`, where `<slug>` is the
+ * project's absolute path with every non-alphanumeric character replaced
+ * by `-` (Claude Code's own project-slug convention, so this is the parent
+ * of the project's auto-memory directory). Shared by `resolveCorpusRoot`'s
+ * Claude Code storage fallback and by a brand-new deployment's default
+ * working-copy location (`join-criterion.ts`) — both need the exact same
  * convention or the two would disagree about where the working copy lives.
+ * Computed per machine, never stored in a tracked file.
  */
 export function claudeCodeStoragePath(projectRoot: string): string {
-  const slug = projectRoot.replace(/[/:]/g, "-");
+  const slug = projectRoot.replace(/[^a-zA-Z0-9]/g, "-");
   return join(homedir(), ".claude", "projects", slug, ".criterion");
 }
 
+/** Whether `path` exists and is a directory, following symlinks (a dangling symlink is `false`). */
+function isDirectory(path: string): boolean {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Resolves which catalyst deployment to inspect for an opened project, the
- * same way catalyst's own scripts/check_deployment.py's find_deploy_root
- * does: a `*.catalyst` pointer file at the project root, whose
- * `agent-source` field names the real working copy (INV-6 — the working
- * copy lives in agent-owned space, never inside the project's own repo).
- * Falls back to in-project `.criterion`, Claude Code storage, or memory notes.
+ * Resolves which catalyst deployment to inspect for an opened project
+ * (kernel 0.37.0's working-copy location model), in order:
+ *
+ * 1. `<projectRoot>/.criterion` — the single access path: a gitignored
+ *    symlink into the running agent's agent-owned storage (INV-6), or the
+ *    real directory where the agent has no owned space / the platform has
+ *    no symlinks. Followed if it's a symlink; returned as the in-project
+ *    path either way.
+ * 2. Legacy: the `*.catalyst` pointer's `agent-source` field, if present
+ *    and an existing directory (pre-0.37.0 deployments, until migrated —
+ *    the pointer no longer carries a path).
+ * 3. Claude Code per-project storage (`claudeCodeStoragePath`).
+ * 4. Deployment targets recorded in persistent memory notes.
  */
 export function resolveCorpusRoot(projectRoot: string): string | null {
-  const pointer = readPointerFile(projectRoot);
-  const agentSource = pointer?.["agent-source"];
-  if (typeof agentSource === "string") {
-    const resolved = expandPath(agentSource, projectRoot);
-    if (existsSync(resolved)) return resolved;
+  // 1. <projectRoot>/.criterion (symlink followed, or real dir)
+  const inProject = join(projectRoot, ".criterion");
+  if (isDirectory(inProject)) return inProject;
+
+  // 2. Legacy pointer `agent-source` (pre-0.37.0)
+  const legacyAgentSource = readPointerFile(projectRoot)?.["agent-source"];
+  if (typeof legacyAgentSource === "string") {
+    const resolved = expandPath(legacyAgentSource, projectRoot);
+    if (isDirectory(resolved)) return resolved;
   }
 
-  // Fallback 1: in-project fallback (.criterion)
-  const inProject = join(projectRoot, ".criterion");
-  if (existsSync(inProject)) return inProject;
-
-  // Fallback 2: Claude Code per-project storage (~/.claude/projects/<slug>/.criterion)
+  // 3. Claude Code per-project storage (~/.claude/projects/<slug>/.criterion)
   const claudeCode = claudeCodeStoragePath(projectRoot);
-  if (existsSync(claudeCode)) return claudeCode;
+  if (isDirectory(claudeCode)) return claudeCode;
 
-  // Fallback 3: Thoroughly explore persistent memory for recorded deployment targets
+  // 4. Persistent memory notes recording a deployment target
   const fromMemory = findCorpusRootFromMemory(projectRoot);
   if (fromMemory) return fromMemory;
 

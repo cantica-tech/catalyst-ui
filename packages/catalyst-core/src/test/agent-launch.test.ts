@@ -41,7 +41,7 @@ describe("resolveAgentCommand", () => {
   });
 
   it("returns null when the pointer has no agent field", () => {
-    writePointer(JSON.stringify({ "agent-source": "/tmp/wherever" }));
+    writePointer(JSON.stringify({ project_name: "project" }));
     expect(resolveAgentCommand(root)).toBeNull();
   });
 });

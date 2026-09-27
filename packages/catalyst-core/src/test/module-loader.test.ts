@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -82,18 +88,26 @@ function writeModule(moduleDir: string): void {
   writeFileSync(join(moduleDir, "schemas", "item.yaml"), ITEM_YAML);
 }
 
-/** A project whose pointer's `agent-source` names an out-of-tree working copy. */
-function projectWithDeployment(pointerExtra: Record<string, unknown> = {}) {
+/**
+ * A project whose working copy lives out of tree, reached through a
+ * `.criterion` symlink (kernel 0.37.0) — or, with `legacy`, through a
+ * pre-0.37.0 pointer's `agent-source` field instead.
+ */
+function projectWithDeployment(
+  pointerExtra: Record<string, unknown> = {},
+  { legacy = false }: { legacy?: boolean } = {},
+) {
   const base = tempDir();
   const projectRoot = join(base, "app");
   const corpusRoot = join(base, "storage", ".criterion");
   mkdirSync(projectRoot, { recursive: true });
   mkdirSync(corpusRoot, { recursive: true });
+  if (!legacy) symlinkSync(corpusRoot, join(projectRoot, ".criterion"), "dir");
   writeFileSync(
     join(projectRoot, "app.catalyst"),
     JSON.stringify({
       project_name: "app",
-      "agent-source": corpusRoot,
+      ...(legacy ? { "agent-source": corpusRoot } : {}),
       ...pointerExtra,
     }),
   );
@@ -204,6 +218,15 @@ describe("loadModule", () => {
     expect(manifest?.templates).toEqual([
       { entityType: "ITEM", templatePath: "templates/item.template.md" },
     ]);
+  });
+
+  it("loads from a legacy (pre-0.37.0) pointer agent-source working copy", () => {
+    const { projectRoot, corpusRoot } = projectWithDeployment(
+      { module: "example-process" },
+      { legacy: true },
+    );
+    writeModule(join(corpusRoot, "modules", "example-process"));
+    expect(loadModule(projectRoot)?.id).toBe("example-process");
   });
 
   it("resolves registered commands", () => {

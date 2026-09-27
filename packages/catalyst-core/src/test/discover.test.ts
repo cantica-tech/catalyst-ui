@@ -1,10 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  claudeCodeStoragePath,
   hasCatalystPointer,
   meetsRequiredKernelVersion,
   readCatalystPointer,
@@ -22,7 +29,56 @@ afterEach(() => {
 });
 
 describe("resolveCorpusRoot", () => {
-  it("resolves agent-source from a *.catalyst pointer file", () => {
+  it("resolves <projectRoot>/.criterion when it is a symlink to agent-owned storage", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    const agentOwned = join(projectRoot, "agent-owned", ".criterion");
+    mkdirSync(agentOwned, { recursive: true });
+    symlinkSync(agentOwned, join(projectRoot, ".criterion"), "dir");
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({ project_name: "my-project" }),
+    );
+
+    expect(resolveCorpusRoot(projectRoot)).toBe(
+      join(projectRoot, ".criterion"),
+    );
+  });
+
+  it("prefers the .criterion symlink over a legacy pointer agent-source", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    const agentOwned = join(projectRoot, "agent-owned", ".criterion");
+    const legacy = join(projectRoot, "legacy-criterion");
+    mkdirSync(agentOwned, { recursive: true });
+    mkdirSync(legacy, { recursive: true });
+    symlinkSync(agentOwned, join(projectRoot, ".criterion"), "dir");
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({ project_name: "my-project", "agent-source": legacy }),
+    );
+
+    expect(resolveCorpusRoot(projectRoot)).toBe(
+      join(projectRoot, ".criterion"),
+    );
+  });
+
+  it("falls back to the legacy agent-source when .criterion is a dangling symlink", () => {
+    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+    const legacy = join(projectRoot, "legacy-criterion");
+    mkdirSync(legacy, { recursive: true });
+    symlinkSync(
+      join(projectRoot, "gone"),
+      join(projectRoot, ".criterion"),
+      "dir",
+    );
+    writeFileSync(
+      join(projectRoot, "my-project.catalyst"),
+      JSON.stringify({ project_name: "my-project", "agent-source": legacy }),
+    );
+
+    expect(resolveCorpusRoot(projectRoot)).toBe(legacy);
+  });
+
+  it("resolves a legacy (pre-0.37.0) agent-source from a *.catalyst pointer file", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     const agentSource = join(projectRoot, "agent-owned-criterion");
     mkdirSync(agentSource, { recursive: true });
@@ -48,7 +104,7 @@ describe("resolveCorpusRoot", () => {
     expect(resolveCorpusRoot(projectRoot)).toBeNull();
   });
 
-  it("returns null when agent-source does not exist on disk", () => {
+  it("returns null when a legacy agent-source does not exist on disk", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(
       join(projectRoot, "my-project.catalyst"),
@@ -61,6 +117,32 @@ describe("resolveCorpusRoot", () => {
     expect(
       resolveCorpusRoot(join(tmpdir(), "does-not-exist-at-all")),
     ).toBeNull();
+  });
+});
+
+describe("claudeCodeStoragePath", () => {
+  it("replaces every non-alphanumeric character of the project path with '-'", () => {
+    expect(claudeCodeStoragePath("/Users/me/src/my_app.v2")).toBe(
+      join(
+        homedir(),
+        ".claude",
+        "projects",
+        "-Users-me-src-my-app-v2",
+        ".criterion",
+      ),
+    );
+  });
+
+  it("slugs a Windows-style path the same way", () => {
+    expect(claudeCodeStoragePath("C:\\Users\\me\\my app")).toBe(
+      join(
+        homedir(),
+        ".claude",
+        "projects",
+        "C--Users-me-my-app",
+        ".criterion",
+      ),
+    );
   });
 });
 
@@ -99,10 +181,7 @@ describe("readCatalystPointer", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(
       join(projectRoot, "my-project.catalyst"),
-      JSON.stringify({
-        project_name: "my-project",
-        "agent-source": join(projectRoot, "criterion"),
-      }),
+      JSON.stringify({ project_name: "my-project" }),
     );
 
     expect(readCatalystPointer(projectRoot)?.repoed).toBeUndefined();
@@ -125,7 +204,7 @@ describe("hasCatalystPointer", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     writeFileSync(
       join(projectRoot, "my-project.catalyst"),
-      JSON.stringify({ project_name: "my-project", "agent-source": "/tmp" }),
+      JSON.stringify({ project_name: "my-project", agent: "claude-code" }),
     );
     expect(hasCatalystPointer(projectRoot)).toBe(true);
   });

@@ -37,7 +37,9 @@ export {
 } from "./ids.js";
 export { parseIamUsers, parseIamRoles } from "./iam.js";
 export {
+  CRITERION_GITIGNORE_ENTRY,
   defaultAgentSource,
+  ensureCriterionGitignored,
   joinCriterionRepo,
   repoNameFromUrl,
   writeCatalystPointer,

@@ -117,7 +117,7 @@ describe("defaultChatAgent", () => {
   });
 
   it("returns null when the pointer has no agent field", () => {
-    writePointer({ "agent-source": "/tmp/wherever" });
+    writePointer({ project_name: "project" });
     expect(defaultChatAgent(root)).toBeNull();
   });
 
