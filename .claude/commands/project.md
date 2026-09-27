@@ -17,35 +17,40 @@ though invoking this command already implies intent.**
 Refuses if a `<app-name>.catalyst` pointer or an in-project
 `.criterion/` already exists at this project's root — that's
 `import ... force`'s job, not this one's.
-1. Resolve `agent-source` (`BOOTSTRAP.md` §1): agent-owned per-project
-   storage if this agent has one, else the in-project fallback.
+1. Resolve the agent-owned location (`BOOTSTRAP.md` §1): agent-owned
+   per-project storage if this agent has one, else the in-project
+   fallback.
 2. Run the instantiation procedure (`INSTANTIATION-GUIDE.md`), building
-   the working copy at `agent-source`.
+   the working copy there.
 3. Write `<app-name>.catalyst` at this project's root, from
-   `templates/catalyst-pointer.template.json`, with `<project name>`
-   and the resolved `agent-source`.
-4. Report the result. Nothing is committed automatically (hard rule 4).
+   `templates/catalyst-pointer.template.json`, with `<project name>` —
+   no path in it.
+4. Create the `.criterion` symlink at the project root pointing at the
+   working copy (skip on the in-project fallback), and add `/.criterion`
+   to the project's `.gitignore` if absent.
+5. Report the result. Nothing is committed automatically (hard rule 4).
 
 ## `remove <project name> [force]`
 
-Without `force`: delete this project's `<app-name>.catalyst` only (and,
-on the in-project fallback, stop treating that `.criterion/` as
-active). The working copy, this agent's memory note, and any
+Without `force`: delete this project's `<app-name>.catalyst` and its
+`.criterion` symlink only (on the in-project fallback, stop treating
+that `.criterion/` as active). The working copy, this agent's memory note, and any
 `criterion` repo are left untouched — never delete, retire in place.
 
 With `force`: confirm explicitly first, then additionally delete the
-working copy at `agent-source` and this agent's memory note for the
+working copy and this agent's memory note for the
 project. Never deletes a `criterion` repo regardless — that's a
 separate, possibly multi-contributor, externally-hosted artifact outside
 a local removal's scope.
 
 ## `export <project name> [export filename]`
 
-1. Resolve `agent-source` for `<project name>`.
-2. Read every file under its working copy into one JSON bundle, keyed by
-   path relative to `.criterion/`, plus the pointer fields from
-   `<app-name>.catalyst` (all but `agent-source` — meaningless outside
-   this machine).
+1. Resolve the working copy for `<project name>` (the project-root
+   `.criterion`, or a legacy pointer's `agent-source`).
+2. Read every file under it into one JSON bundle, keyed by path
+   relative to `.criterion/`, plus the pointer fields from
+   `<app-name>.catalyst` (never a path — a legacy `agent-source` is
+   dropped, meaningless outside this machine).
 3. Write it to `<export filename>` if given, else
    `<project name>-catalyst-export-<UTC timestamp>.json` in the current
    directory.
@@ -60,12 +65,13 @@ root.
 With `force` (or when nothing exists yet): confirm explicitly what will
 be overwritten if this replaces an existing deployment, then:
 1. Parse the bundle.
-2. Resolve a **fresh** `agent-source` — never the exporting machine's
-   original.
-3. Materialize every bundled file there.
+2. Resolve this agent's own owned location on this machine — never the
+   exporting machine's.
+3. Materialize every bundled file there, create the `.criterion` symlink
+   at the project root pointing at it, and gitignore `/.criterion`.
 4. Write `<app-name>.catalyst`, carrying the bundle's pointer fields
    over as-is (`repoed`, `catalyst_repo`, `catalyst_repo_url`,
-   `created_by`), `agent-source` set to the new location.
+   `created_by`), with no path.
 5. Append one journal entry (`action: "import"`).
 6. Report the result.
 

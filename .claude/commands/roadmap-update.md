@@ -13,10 +13,15 @@ Input: $ARGUMENTS
    `/roadmap-add` instead.
 3. Read `<file>` and identify its distinct items.
 4. For each item: if it matches an existing row by title/description
-   similarity, update that row's `Title`/`Notes` — ask the user rather
-   than guessing when a match is ambiguous. If it doesn't match any
-   existing row, add a new row (next global `RM-NNNNNN`, `Status: Not
-   triaged`).
+   similarity, update that row's `Title`/`Description`/`Notes` — ask the
+   user rather than guessing when a match is ambiguous (never touch its
+   `ID`, including its `userid` suffix — that stays fixed for the life
+   of the row per `Rules-of-Rules.md` §20). If it doesn't match any
+   existing row, add a new row: resolve who is signing this re-ingest
+   (`CODE-OF-CONDUCT.md` §2), confirm they have a `userid` (registering
+   one first if not), and assign the next global `RM-NNNNNN-<userid>`,
+   its own `Description`, `Status: Not triaged`, `Signed-off-by` the
+   resolved signer.
 5. For each existing row whose item no longer appears in `<file>`, flag it
    in `Notes` (e.g. "no longer present in latest source as of <date>") —
    never delete the row.

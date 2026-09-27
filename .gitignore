@@ -6,3 +6,6 @@ out/
 *.vsix
 .DS_Store
 .env
+
+# catalyst working copy: symlink into agent-owned space (INV-6), never tracked
+/.criterion

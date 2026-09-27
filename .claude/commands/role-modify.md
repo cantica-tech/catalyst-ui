@@ -5,7 +5,7 @@ argument-hint: <role> <actions>
 
 Change an existing role's mapped actions. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `framework/templates/roles.template.json`.
+template: `framework/kernel/templates/roles.template.json`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<role> <actions>`. If either is missing, ask

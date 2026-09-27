@@ -5,17 +5,17 @@ argument-hint: <name>
 
 Deactivate a registered user. Full spec:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `framework/templates/users.template.json`.
+template: `framework/kernel/templates/users.template.json`.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name>`. If missing, ask for it.
 2. If `<name>` has no entry in `.criterion/IAM/users/users.json`, refuse and say
    so.
-3. If `<name>` is the only entry with `"active": true`, warn that
+3. If `<name>` is the only entry with `"active": true`, refuse —
    deactivating them would leave the project with zero active users (a
-   project must have at least one — hard rule) and ask for confirmation
-   before proceeding, or suggest running `/user-add` for a replacement
-   first.
+   project must have at least one — hard rule, INV-25's
+   fundamental-invariant exception to acting without asking) — and point
+   at `/user-add` for a replacement first.
 4. Otherwise set that entry's `"active"` field to `false`. Never delete
    the entry — existing `Signed-off-by` references on already-signed
    artifacts must stay resolvable to a name that's still listed.

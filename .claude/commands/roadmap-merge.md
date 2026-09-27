@@ -14,10 +14,15 @@ Input: $ARGUMENTS
    `/roadmap-add` instead.
 3. Read `<update file>` and identify its distinct items.
 4. For each item: if it matches an existing row by title/description
-   similarity, update that row's `Title`/`Notes` — ask the user rather
-   than guessing when a match is ambiguous. If it doesn't match any
-   existing row, add a new row (next global `RM-NNNNNN`, `Status: Not
-   triaged`).
+   similarity, update that row's `Title`/`Description`/`Notes` — ask the
+   user rather than guessing when a match is ambiguous (never touch its
+   `ID`, including its `userid` suffix — that stays fixed for the life
+   of the row per `Rules-of-Rules.md` §20). If it doesn't match any
+   existing row, add a new row: resolve who is signing this merge
+   (`CODE-OF-CONDUCT.md` §2), confirm they have a `userid` (registering
+   one first if not), and assign the next global `RM-NNNNNN-<userid>`,
+   its own `Description`, `Status: Not triaged`, `Signed-off-by` the
+   resolved signer.
 5. Unlike `/roadmap-update`, do not compare against or flag any existing
    row that `<update file>` doesn't mention — it's a delta, not the full
    roadmap. Do not change the file's `Source` field; only update `Last
