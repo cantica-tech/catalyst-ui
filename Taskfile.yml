@@ -123,16 +123,20 @@ tasks:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}"
 
   release:vsix:publish:
-    desc: "release:vsix for a cut release, then commit and push PUBLISH_DIR — refuses unless HEAD is exactly a release tag matching package.json's version"
+    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR. The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion"
     requires:
       vars: [PUBLISH_DIR]
     cmds:
-      - task: build:vscode-extension
-      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push
+      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push {{if .KERNEL_VERSION}}--kernel-version '{{.KERNEL_VERSION}}'{{end}} {{.CLI_ARGS}}
 
   publish:vscode-extension:release:
-    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension"
+    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension, then leaves a copy of the release's .vsix in cantica-tech (release:vsix:publish; PUBLISH_DIR defaults to ../cantica-tech, KERNEL_VERSION to package.json's catalyst.kernelVersion)"
     dir: packages/catalyst-host-vscode
+    vars:
+      PUBLISH_DIR: '{{.PUBLISH_DIR | default "../cantica-tech"}}'
+      KERNEL_VERSION:
+        sh: |
+          {{if .KERNEL_VERSION}}echo '{{.KERNEL_VERSION}}'{{else}}node -p "require('./package.json').catalyst?.kernelVersion ?? ''"{{end}}
     cmds:
       - |
         set -e
@@ -147,3 +151,7 @@ tasks:
         fi
         echo "HEAD is release $TAG, matching package.json — proceeding to publish."
       - task: publish:vscode-extension
+      - task: release:vsix:publish
+        vars:
+          PUBLISH_DIR: "{{.PUBLISH_DIR}}"
+          KERNEL_VERSION: "{{.KERNEL_VERSION}}"
