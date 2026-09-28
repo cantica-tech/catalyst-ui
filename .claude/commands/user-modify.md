@@ -3,9 +3,13 @@ description: Edit a registered user's notes or reactivate them in .criterion/IAM
 argument-hint: <name> <field> <value>
 ---
 
-Edit a registered user's record. Full spec:
+Edit a registered user's record. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `framework/templates/users.template.json`.
+template: `framework/kernel/templates/users.template.json`.
+First run `catalyst spec user-modify` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <field> <value>`. If any part is

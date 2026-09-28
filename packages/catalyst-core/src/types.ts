@@ -384,16 +384,23 @@ export interface DetectedAgent {
 
 /**
  * The full `*.catalyst` pointer file a target project commits at its
- * root — one JSON object naming the agent-owned working copy (INV-6) and,
- * for a "repoed" deployment (`Rules-of-Rules.md` §13), the dedicated repo
- * its `.criterion/` mirrors through. Most consumers only need
- * `agent-source` (see `resolveCorpusRoot`); this is the full shape for
- * anything that needs the repoed-criterion fields too.
+ * root — one JSON object declaring the deployment and, for a "repoed"
+ * deployment (`Rules-of-Rules.md` §13), the dedicated repo its
+ * `.criterion/` mirrors through. Since kernel 0.37.0 it carries no path:
+ * the working copy is reached through the project's gitignored
+ * `.criterion` (see `resolveCorpusRoot`).
  */
 export interface CatalystPointer {
   project_name: string;
   agent?: string;
-  "agent-source": string;
+  /**
+   * @deprecated Legacy (pre-0.37.0): an absolute, machine-specific path to
+   * the agent-owned working copy. Read only as a `resolveCorpusRoot`
+   * fallback for not-yet-migrated deployments; never written.
+   */
+  "agent-source"?: string;
+  /** The deployment's catalyst kernel version, if declared. */
+  kernel_version?: string;
   /** The active process module's id (MODULE-SPECIFICATION), if declared. */
   module?: string;
   repoed?: boolean;

@@ -15,8 +15,8 @@ const KNOWN_AGENT_COMMANDS: Record<string, string> = {
 /**
  * Resolves the shell command that launches the coding agent running this
  * deployment, read from the workspace folder's `*.catalyst` pointer file
- * (same lookup `resolveCorpusRoot` uses, but reading the `agent` field
- * instead of `agent-source`). Returns `null` if no pointer file, invalid
+ * (the same pointer `resolveCorpusRoot` reads, but only its `agent`
+ * field — no path is read or written here). Returns `null` if no pointer file, invalid
  * JSON, or no `agent` field is found — callers should surface that
  * rather than silently guessing a default.
  */
