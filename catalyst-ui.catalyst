@@ -1,6 +1,7 @@
 {
   "project_name": "catalyst-ui",
-  "kernel_version": "0.40.0",
+  "format": "1.0-rc",
+  "kernel_version": "0.41.0",
   "module": "software-engineering",
   "agent": "claude-code",
   "repoed": true,
