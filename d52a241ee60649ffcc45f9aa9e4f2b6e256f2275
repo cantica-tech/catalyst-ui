@@ -1,0 +1,25 @@
+{
+  "name": "catalyst-host-electron",
+  "version": "0.33.0",
+  "private": true,
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc --build --force",
+    "prebuild": "npm run build:renderer",
+    "build:renderer": "esbuild src/renderer-entry.tsx --bundle --minify --outfile=dist/renderer.js --format=iife --platform=browser --jsx=automatic",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "catalyst-core": "*",
+    "catalyst-ui": "*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "electron": "^30.0.0",
+    "esbuild": "^0.21.5",
+    "vitest": "^1.4.0"
+  }
+}
