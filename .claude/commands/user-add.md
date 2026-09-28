@@ -3,10 +3,14 @@ description: Register a new user in .criterion/IAM/users/users.json with an init
 argument-hint: <name> <role>
 ---
 
-Register a new user. Full spec:
+Register a new user. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4, templates: the highest-versioned
 `.criterion/IAM/users/templates/TEMPLATE-USERS-vN.json` and
 `.criterion/IAM/roles/templates/TEMPLATE-ROLES-vN.json`.
+First run `catalyst spec user-add` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <role>`. If either is missing, ask for it.

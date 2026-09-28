@@ -3,11 +3,15 @@ description: Synchronize this deployment with the latest (or a specific) catalys
 argument-hint: "[latest|<version>] [--force <scope>]"
 ---
 
-Synchronize the deployed framework. Full spec:
+Synchronize the deployed framework. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4, this framework's own
 `framework/kernel/SYNCHRONIZE.md` (not part of the deployed
 project — fetch if not already available this session, referring to it
 only by repository name, never a local path).
+First run `catalyst spec sync-framework` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Resolve the target version: `latest` from the `release` branch, a

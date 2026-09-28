@@ -3,9 +3,13 @@ description: Attach a lightweight comment/version/link-to annotation to an exist
 argument-hint: <artifact-id> --key comment|version|link-to --value <value>
 ---
 
-Create a new meta-tag artifact. Full spec:
+Create a new meta-tag artifact. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §3/§4, template: the highest-versioned
 `.criterion/development/meta-tags/templates/TEMPLATE-META-TAG-vN.md`.
+First run `catalyst spec meta-tag` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. If the key isn't supplied explicitly, prompt for it — one of

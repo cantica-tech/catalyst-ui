@@ -3,10 +3,14 @@ description: Share the working copy through a criterion repository — create (m
 argument-hint: create <url> | get | push <message> | sync | status
 ---
 
-Share this deployment's working copy through a criterion repository. Full
-spec: `.criterion/CODE-OF-CONDUCT.md` §4 (`/criterion` and its procedure
+Share this deployment's working copy through a criterion repository.
+Sources: `.criterion/CODE-OF-CONDUCT.md` §4 (`/criterion` and its procedure
 paragraphs), mechanism: `.criterion/rules/Rules-of-Rules.md` §13, commands:
 `catalyst criterion --help`.
+First run `catalyst spec criterion` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Dispatch on the first word — `create <url>`, `get`, `push <message>`,

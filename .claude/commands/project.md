@@ -3,9 +3,13 @@ description: Create, remove, export, or import a catalyst deployment (agent-owne
 argument-hint: create <project name> | remove <project name> [force] | export <project name> [export filename] | import <export filename> [force]
 ---
 
-Manage this project's catalyst deployment lifecycle. Full spec:
+Manage this project's catalyst deployment lifecycle. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4, mechanism:
 `.criterion/rules/Rules-of-Rules.md` §14.
+First run `catalyst spec project` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 **`remove ... force` and `import ... force` are destructive and

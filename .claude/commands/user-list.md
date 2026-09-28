@@ -3,9 +3,13 @@ description: List registered users from .criterion/IAM/users/users.json, optiona
 argument-hint: "[--role <role>] [--active-only]"
 ---
 
-List registered users. Full spec:
+List registered users. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
 template: `framework/kernel/templates/users.template.json`.
+First run `catalyst spec user-list` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. If `.criterion/IAM/users/users.json` doesn't exist, say so rather than

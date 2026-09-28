@@ -3,8 +3,12 @@ description: Update an artifact or work item's Status field
 argument-hint: <artefact-id> <status> [force]
 ---
 
-Update an artifact's `Status` field. Full spec:
+Update an artifact's `Status` field. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4.
+First run `catalyst spec status` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. If the artifact ID doesn't resolve, say it cannot be found.

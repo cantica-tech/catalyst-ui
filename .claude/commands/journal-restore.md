@@ -3,9 +3,13 @@ description: Reconstruct the tree as it stood at a given timestamp into a side d
 argument-hint: <timestamp>
 ---
 
-Point-in-time reconstruction from the journal. Full spec:
+Point-in-time reconstruction from the journal. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4/§9, mechanism:
 `.criterion/rules/Rules-of-Rules.md` §12.
+First run `catalyst spec journal-restore` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `<timestamp>` as ISO 8601 UTC (e.g. `2026-09-27T18:00:00Z`); ask

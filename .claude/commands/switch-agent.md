@@ -3,8 +3,12 @@ description: Force the agent-switch procedure to run now, syncing <app-name>.cat
 argument-hint: "[agent-id]"
 ---
 
-Force a resync to the running agent, or to `<agent-id>` if given. Full spec:
+Force a resync to the running agent, or to `<agent-id>` if given. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4.
+First run `catalyst spec switch-agent` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Resolve the target agent identifier: `$ARGUMENTS` if given, else the

@@ -3,8 +3,12 @@ description: Update a deployed entity definition to a specific version, only if 
 argument-hint: <entity-type> <version>
 ---
 
-Move a deployed entity definition forward. Full spec:
+Move a deployed entity definition forward. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4.
+First run `catalyst spec migrate-definition` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Confirm `<entity-type>` names a real entity type (this framework's

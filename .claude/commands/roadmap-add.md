@@ -3,9 +3,13 @@ description: Ingest a new named roadmap from a local file into .criterion/develo
 argument-hint: <name> <file>
 ---
 
-Ingest a new named roadmap from a local file. Full spec:
+Ingest a new named roadmap from a local file. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4, template: the highest-versioned
 `.criterion/development/roadmaps/templates/TEMPLATE-ROADMAP-vN.md`.
+First run `catalyst spec roadmap-add` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<name> <file>`. If either is missing, ask for it.
@@ -37,8 +41,8 @@ Input: $ARGUMENTS
    (a hand-edited row — roadmaps have no generated index).
 8. Journal it: `catalyst journal append --command /roadmap-add --action create
    --artifact <name> --intent "<goal>" --file <roadmap file> --file <roadmaps.md>`.
-9. Report the roadmap name and the IDs assigned. Do not commit or push —
-   leave changes unstaged unless the user asks otherwise.
+9. Report the roadmap name and the IDs assigned. Do not commit or push on your own: the working copy (`.criterion/`)
+   and the product repository are committed only with the user's assent.
 
 `catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
 (`CODE-OF-CONDUCT.md` §4).

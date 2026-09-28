@@ -3,8 +3,12 @@ description: Read-only filter/report over development/journal.jsonl (never appen
 argument-hint: "[--since <date>] [--artifact <id>] [--actor <name>] [--rule <id>] [--verify]"
 ---
 
-Query the journal. Full spec: `.criterion/CODE-OF-CONDUCT.md` §4/§9,
+Query the journal. Sources: `.criterion/CODE-OF-CONDUCT.md` §4/§9,
 schema: `.criterion/rules/Rules-of-Rules.md` §12.
+First run `catalyst spec journal` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. If `.criterion/development/journal.jsonl` doesn't exist or is

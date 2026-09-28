@@ -3,10 +3,14 @@ description: Resolve a RECON- reconciliation case by accepting, accepting with e
 argument-hint: <RECON-id> accept | accept-with-edits | reject | propose <text>
 ---
 
-Resolve, or move toward resolving, an open reconciliation case. Full spec:
+Resolve, or move toward resolving, an open reconciliation case. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4, template:
 `.criterion/reconciliations/templates/TEMPLATE-RECONCILIATION-vN.md` (the latest),
 mechanism: `.criterion/rules/Rules-of-Rules.md` §16.
+First run `catalyst spec reconcile` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Load the named `RECON-NNNNNN`; refuse if its `Status` is already

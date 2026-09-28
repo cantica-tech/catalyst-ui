@@ -3,9 +3,13 @@ description: Change an existing role's mapped actions in .criterion/IAM/roles/ro
 argument-hint: <role> <actions>
 ---
 
-Change an existing role's mapped actions. Full spec:
+Change an existing role's mapped actions. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
 template: `framework/kernel/templates/roles.template.json`.
+First run `catalyst spec role-modify` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<role> <actions>`. If either is missing, ask
