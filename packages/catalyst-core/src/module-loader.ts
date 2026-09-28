@@ -370,8 +370,9 @@ export function resolveModuleId(projectRoot?: string): string | undefined {
 /**
  * Candidate directories holding module `<id>`'s `module.yaml`, most
  * authoritative first: the deployment's own `modules/<id>/` (working copy
- * resolved through the pointer's `agent-source`, then the in-project
- * `.criterion/`), then a sibling `catalyst-<id>/` checkout of the module's
+ * resolved by `resolveCorpusRoot` — the project's `.criterion`, else the
+ * legacy pointer `agent-source` and further fallbacks — then the
+ * in-project `.criterion/`), then a sibling `catalyst-<id>/` checkout of the module's
  * own repository.
  */
 function moduleSearchDirs(projectRoot: string, moduleId: string): string[] {

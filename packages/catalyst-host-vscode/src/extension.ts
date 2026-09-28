@@ -1040,7 +1040,7 @@ async function offerToInstall(
       {
         label: "Connect to an existing criterion repo",
         detail:
-          "Clone an already-repoed deployment's branch — a git clone and a pointer file, no agent involved.",
+          "Clone an already-repoed deployment's branch — a git clone, a .criterion link and a pointer file, no agent involved.",
         action: "connect" as const,
       },
       {
@@ -1065,8 +1065,9 @@ async function offerToInstall(
 
 /**
  * `/criterion get`'s mechanical half, done in code rather than handed to
- * an agent: cloning a branch and writing a pointer file needs no judgment
- * calls. Deliberately skips that command's identity-migration half
+ * an agent: cloning a branch into agent-owned storage, linking it as the
+ * project's gitignored `.criterion` and writing a (path-free) pointer file
+ * needs no judgment calls. Deliberately skips that command's identity-migration half
  * (rewriting existing artifacts' `Signed-off-by` fields) — a project with
  * no deployment a moment ago has no local artifacts to migrate.
  */

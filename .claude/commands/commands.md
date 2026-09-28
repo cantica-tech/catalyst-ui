@@ -3,8 +3,12 @@ description: List every slash command available in this instance
 argument-hint: "list [--filter ...]"
 ---
 
-List available commands. Full spec:
+List available commands. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4.
+First run `catalyst spec commands` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. List every slash command documented in `.criterion/CODE-OF-CONDUCT.md`

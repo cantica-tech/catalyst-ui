@@ -3,13 +3,18 @@ description: Manage plugin installation and activation (list, activate, download
 argument-hint: list | activate <name> <version|latest> | download <name> <version|latest> | deactivate <name> | upgrade <name|latest> | downgrade <name> <version>
 ---
 
-Manage plugin installation and activation. Full spec:
+Manage plugin installation and activation. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §4.
+First run `catalyst spec catalyzer` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 **Unlike every other command here, this one resolves plugins against
-`plugins/<type>/catalog.md` in the catalyst framework's own repository
-(currently `plugins/repository/catalog.md`), not against anything under
+`framework/kernel/plugins/<type>/catalog.md` in the catalyst framework's own
+repository (currently `framework/kernel/plugins/repository/catalog.md`), not
+against anything under
 `.criterion/`.** A plugin name with no matching catalog entry is
 unregistered — refuse the subcommand and say so.
 

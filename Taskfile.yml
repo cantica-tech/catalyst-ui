@@ -3,11 +3,11 @@
 #
 # Catalyst-operation dispatch tasks (create-bug, check-rules, sync-framework,
 # ...) come from Taskfile.common.yml, deployed inside .criterion/ (agent-owned
-# space, INV-6 — not this repo's own tree) from catalyst's development-
-# framework/templates/Taskfile.common.template.yml, refreshed by
-# /sync-framework, not hand-edited here. See catalyst's framework/
-# migrations/0.19.0/taskfile-into-criterion.md for why it moved out of this
-# repo's own root.
+# space, INV-6 — not this repo's own tree) from catalyst's framework/kernel/
+# templates/Taskfile.common.template.yml plus the active module's
+# Taskfile.module.yml, refreshed by /sync-framework, not hand-edited here. See
+# catalyst's framework/kernel/migrations/0.19.0/taskfile-into-criterion.md and
+# 0.37.0/computed-working-copy-location.md.
 
 version: "3"
 
@@ -19,20 +19,13 @@ vars:
   # in PATH is the permanent fix — this just unblocks tasks in the meantime).
   CODE_BIN:
     sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
-  # This deployment's *.catalyst pointer's own agent-source field (INV-6),
-  # copied here as a literal — NOT `sh:`-computed. Task resolves an
-  # `includes.taskfile` path before dynamic (`sh:`) vars are evaluated, so
-  # a dynamic value here silently produces an empty path and "no Taskfile
-  # found" (confirmed by hand in catalyst's own self-deployment). Update by
-  # hand (or via /sync-framework) if agent-source ever changes.
-  CRITERION_DIR: "/Users/oliviersteck/.claude/projects/-Users-oliviersteck-sources-catalyst-ui/.criterion"
   # Resolves the deployed agent's CLI binary from the pointer's "agent"
   # field. "claude-code" is the one known id whose CLI binary name differs
   # from the id itself (mirrors catalyst-ui's own agent-launch.ts); any
   # other agent id is assumed to already be its own binary name. Falls
   # back to "claude" — today's only known agent — when no pointer/field is
-  # found. Safe to compute dynamically, unlike CRITERION_DIR above — this
-  # only feeds ordinary task commands, not an include path.
+  # found. Safe to compute dynamically — this only feeds ordinary task
+  # commands, not an include path.
   AGENT_ID:
     sh: |
       f=$(ls *.catalyst 2>/dev/null | head -1)
@@ -44,7 +37,13 @@ vars:
 
 includes:
   common:
-    taskfile: "{{.CRITERION_DIR}}/Taskfile.common.yml"
+    # The gitignored .criterion symlink at the project root, pointing into
+    # agent-owned space (INV-6) — the same relative path on every machine,
+    # so no machine-specific path lands in this tracked file. Optional, so a
+    # clone without a working copy (CI, a new contributor) still runs this
+    # project's own tasks.
+    taskfile: .criterion/Taskfile.common.yml
+    optional: true
     flatten: true
     vars:
       AGENT_CMD: "{{.AGENT_CMD}}"
@@ -115,9 +114,29 @@ tasks:
     cmds:
       - npm run publish
 
+  release:vsix:
+    desc: "Package the extension and copy the .vsix, with a manifest.json naming the catalyst kernel versions it works with (package.json catalyst.kernelVersion), into PUBLISH_DIR/catalyst/vsix/v<version>/ (a distribution repository checkout) — no commit, no push"
+    requires:
+      vars: [PUBLISH_DIR]
+    cmds:
+      - task: build:vscode-extension
+      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}"
+
+  release:vsix:publish:
+    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR. The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion"
+    requires:
+      vars: [PUBLISH_DIR]
+    cmds:
+      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push {{if .KERNEL_VERSION}}--kernel-version '{{.KERNEL_VERSION}}'{{end}} {{.CLI_ARGS}}
+
   publish:vscode-extension:release:
-    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension"
+    desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension, then leaves a copy of the release's .vsix in cantica-tech (release:vsix:publish; PUBLISH_DIR defaults to ../cantica-tech, KERNEL_VERSION to package.json's catalyst.kernelVersion)"
     dir: packages/catalyst-host-vscode
+    vars:
+      PUBLISH_DIR: '{{.PUBLISH_DIR | default "../cantica-tech"}}'
+      KERNEL_VERSION:
+        sh: |
+          {{if .KERNEL_VERSION}}echo '{{.KERNEL_VERSION}}'{{else}}node -p "require('./package.json').catalyst?.kernelVersion ?? ''"{{end}}
     cmds:
       - |
         set -e
@@ -126,9 +145,13 @@ tasks:
           exit 1
         }
         PKG_VERSION="$(node -p "require('./package.json').version")"
-        if [ "$TAG" != "$PKG_VERSION" ]; then
+        if [ "${TAG#v}" != "$PKG_VERSION" ]; then
           echo "Release tag ($TAG) doesn't match package.json version ($PKG_VERSION) — refusing to publish a mismatched build." >&2
           exit 1
         fi
         echo "HEAD is release $TAG, matching package.json — proceeding to publish."
       - task: publish:vscode-extension
+      - task: release:vsix:publish
+        vars:
+          PUBLISH_DIR: "{{.PUBLISH_DIR}}"
+          KERNEL_VERSION: "{{.KERNEL_VERSION}}"

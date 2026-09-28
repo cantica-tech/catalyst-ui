@@ -19,3 +19,29 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+
+  catalyst-trace:
+    # Every new commit cites an artifact or rule ID of the catalyst deployment
+    # (the .criterion submodule), or is marked `chore:`.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check out the .criterion submodule (public, over https)
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init .criterion
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: catalyst trace
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            range="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            range="${{ github.event.before }}..${{ github.sha }}"
+          else
+            range="${{ github.sha }}~1..${{ github.sha }}"
+          fi
+          python3 .criterion/bin/catalyst.pyz trace "$range"

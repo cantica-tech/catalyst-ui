@@ -3,9 +3,13 @@ description: Add a new role definition to .criterion/IAM/roles/roles.json
 argument-hint: <role> <actions>
 ---
 
-Add a new role definition. Full spec:
+Add a new role definition. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `framework/templates/roles.template.json`.
+template: `framework/kernel/templates/roles.template.json`.
+First run `catalyst spec role-add` and follow it: it prints this command's
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
+above in full only when the spec points elsewhere or a judgment needs
+the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Parse `$ARGUMENTS` as `<role> <actions>` (`<actions>` is a list of
@@ -13,7 +17,7 @@ Input: $ARGUMENTS
    fine, matching the shape of the existing entries in
    `.criterion/IAM/roles/roles.json`). If either is missing, ask for it.
 2. If `.criterion/IAM/roles/roles.json` doesn't exist yet, create it from
-   `framework/templates/roles.template.json` (filled in with
+   `framework/kernel/templates/roles.template.json` (filled in with
    its default agile-role mapping) first.
 3. If `<role>` already has an entry, refuse and point to `/role-modify`
    instead.
