@@ -17,6 +17,14 @@ Code extension is published on the
 [Marketplace](https://marketplace.visualstudio.com/items?itemName=CanticaTech.catalyst-host-vscode)
 as **Catalyst framework**.
 
+Each release's `.vsix` is also kept on cantica-tech under
+`catalyst/vsix/v<version>/`, next to a `manifest.json` whose
+`kernelVersion` names the catalyst kernel versions it works with (set in
+`packages/catalyst-host-vscode/package.json`, `catalyst.kernelVersion`).
+After cutting a release: `task release:vsix:publish
+PUBLISH_DIR=<cantica-tech checkout>` (`release:vsix` copies without
+committing).
+
 ## Packages
 
 - `packages/catalyst-core` — TypeScript, no DOM. Parses the corpus,

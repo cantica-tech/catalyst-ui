@@ -26,6 +26,9 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "catalyst": {
+    "kernelVersion": ">=0.36.0"
+  },
   "main": "dist/extension.js",
   "contributes": {
     "viewsContainers": {

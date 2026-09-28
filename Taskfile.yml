@@ -114,6 +114,22 @@ tasks:
     cmds:
       - npm run publish
 
+  release:vsix:
+    desc: "Package the extension and copy the .vsix, with a manifest.json naming the catalyst kernel versions it works with (package.json catalyst.kernelVersion), into PUBLISH_DIR/catalyst/vsix/v<version>/ (a distribution repository checkout) — no commit, no push"
+    requires:
+      vars: [PUBLISH_DIR]
+    cmds:
+      - task: build:vscode-extension
+      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}"
+
+  release:vsix:publish:
+    desc: "release:vsix for a cut release, then commit and push PUBLISH_DIR — refuses unless HEAD is exactly a release tag matching package.json's version"
+    requires:
+      vars: [PUBLISH_DIR]
+    cmds:
+      - task: build:vscode-extension
+      - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push
+
   publish:vscode-extension:release:
     desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension"
     dir: packages/catalyst-host-vscode
@@ -125,7 +141,7 @@ tasks:
           exit 1
         }
         PKG_VERSION="$(node -p "require('./package.json').version")"
-        if [ "$TAG" != "$PKG_VERSION" ]; then
+        if [ "${TAG#v}" != "$PKG_VERSION" ]; then
           echo "Release tag ($TAG) doesn't match package.json version ($PKG_VERSION) — refusing to publish a mismatched build." >&2
           exit 1
         fi
