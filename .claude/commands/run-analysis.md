@@ -1,21 +1,26 @@
 ---
-description: Open and execute the analysis playbook to bootstrap rules from evidence
-argument-hint: (no arguments)
+description: Four-eyes analysis of existing code — infer domains, rules and defects, each accepted by the user
+argument-hint: "[<path>...] [--bootstrap|--incremental]"
 ---
 
-Run the analysis playbook. Sources: `.criterion/CODE-OF-CONDUCT.md`
-§4. This framework's own repository content
-(`framework/kernel/ANALYSIS-PLAYBOOK.md`), not part of the deployed
-project — fetch it if not already available this session, referring to
-it only by repository name, never a local path.
+Analyse existing code with the four-eyes process. Sources:
+`.criterion/CODE-OF-CONDUCT.md` §4 (`/run-analysis`),
+`.criterion/ANALYSIS-PLAYBOOK.md` (the phases, the pass and reconciliation
+prompts, the findings format), commands: `catalyst analysis --help`.
 First run `catalyst spec run-analysis` and follow it: it prints this command's
-part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
-above in full only when the spec points elsewhere or a judgment needs
-the Rules-of-Rules sections they cite.
+part of `CODE-OF-CONDUCT.md` §4, the canonical text. Then read
+`.criterion/ANALYSIS-PLAYBOOK.md` in full.
 Input: $ARGUMENTS
 
-1. If the playbook is missing, report that it's unavailable and do not
-   invent missing content.
-2. Otherwise open and execute `ANALYSIS-PLAYBOOK.md`'s steps against this
-   deployment.
-3. Return the resulting analysis summary.
+1. If `.criterion/ANALYSIS-PLAYBOOK.md` is missing, report that it is
+   unavailable (`/sync-framework` restores it) and do not invent missing
+   content.
+2. Resolve the signer (`CODE-OF-CONDUCT.md` §2), then run the playbook's
+   phases in order through `catalyst analysis` — start, two independent
+   passes (separate agents or fresh sessions, the same prompt, launched
+   together), diff, reconcile, decide, close. Never skip a phase or edit a
+   report to get past the CLI.
+3. Present every reconciled finding to the user and let them decide; write
+   an artifact only after they accept it, then record the decision with its
+   artifact ID.
+4. Report the closed analysis's summary.
