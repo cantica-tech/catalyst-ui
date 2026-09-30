@@ -180,12 +180,16 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 
 ```
 cantica-tech/catalyst/
-├── kernel/v0.34.0 … v0.42.1/{manifest.json, kernel-v<version>.zip}
+├── kernel/v0.34.0 … v0.44.0/{manifest.json, kernel-v<version>.zip}
 └── modules/software-engineering/v1.0.0, v2.0.0, v2.3.0/{manifest.json, software-engineering-v<version>.zip}
 ```
 
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-30 | catalyst UI 0.33.2 | Extension paired with kernel `>=0.44.0`; deployment synced to kernel 0.44.0                                                                                                     |
+| 2026-09-30 | catalyst 0.44.0    | `kernel-v0.44.0.zip`; four-eyes analysis of existing code (`ANALYSIS-`, `/run-analysis`), playbook deployed                                                                     |
+| 2026-09-30 | catalyst 0.43.0    | `kernel-v0.43.0.zip`; `criterion create` without a URL                                                                                                                          |
+| 2026-09-30 | catalyst 0.42.2    | `kernel-v0.42.2.zip`; reproducible release archives                                                                                                                             |
 | 2026-09-29 | catalyst UI 0.33.1 | Extension paired with kernel `>=0.42.1`; deployment synced to kernel 0.42.1                                                                                                     |
 | 2026-09-29 | catalyst 0.42.1    | `kernel-v0.42.1.zip`; module release archives always land on the module repo's `main`                                                                                           |
 | 2026-09-29 | catalyst 0.42.0    | `kernel-v0.42.0.zip` (0.37.0–0.42.0: `.criterion`, the catalyst CLI, criterion on git, tiers, traced commits, changes made outside catalyst); software-engineering module 2.3.0 |
