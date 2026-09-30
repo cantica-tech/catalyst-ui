@@ -1,7 +1,7 @@
 {
   "project_name": "catalyst-ui",
   "format": "1.0-rc",
-  "kernel_version": "0.42.1",
+  "kernel_version": "0.44.0",
   "journal_since": "c4bda0cc09dce981863b5c43ad124a1691c67142",
   "module": "software-engineering",
   "agent": "claude-code",
@@ -11,5 +11,5 @@
   "created_by": "Olivier Steck",
   "criterion_branch": "criterion",
   "created": "2026-09-05",
-  "updated": "2026-09-29"
+  "updated": "2026-09-30"
 }

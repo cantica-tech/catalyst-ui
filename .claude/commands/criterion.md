@@ -1,6 +1,6 @@
 ---
 description: Share the working copy through a criterion repository — create (make .criterion a submodule), get (join), push (pull request), sync, status
-argument-hint: create <url> | get | push <message> | sync | status
+argument-hint: create [<url>] | get | push <message> | sync | status
 ---
 
 Share this deployment's working copy through a criterion repository.
@@ -13,17 +13,20 @@ above in full only when the spec points elsewhere or a judgment needs
 the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
-1. Dispatch on the first word — `create <url>`, `get`, `push <message>`,
+1. Dispatch on the first word — `create [<url>]`, `get`, `push <message>`,
    `sync`, `status` — and follow that subcommand's procedure in
    `CODE-OF-CONDUCT.md` §4. Each runs the matching `catalyst criterion`
    command (`get` runs `catalyst criterion join`); never re-implement its
    git steps by hand.
 2. `push` resolves the signer first (`CODE-OF-CONDUCT.md` §2) and passes
    `--as <signer>`.
-3. If `push` stops on a conflict, nothing was pushed. Never apply a
+3. When `push`, `sync` or `get` reports that the deployment has no
+   criterion repository yet, ask the user for its URL and re-run the same
+   command with `--url <url>`; never guess one.
+4. If `push` stops on a conflict, nothing was pushed. Never apply a
    resolution yourself: report the files, and at most propose one as a
    `RECON-` case for a human to accept with `/reconcile`.
-4. Report the result. Do not commit the product repository's staged
+5. Report the result. Do not commit the product repository's staged
    changes or moved gitlink, and do not run `catalyst criterion protect
    --yes`, without the user's assent (INV-4).
 
