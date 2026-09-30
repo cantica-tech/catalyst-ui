@@ -1,0 +1,26 @@
+{
+  "name": "catalyst-ui",
+  "version": "0.33.2",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "build:webview": "NODE_PATH=node_modules:../../node_modules esbuild src/webview-entry.tsx --bundle --minify --outfile=dist/webview.js --format=iife --platform=browser --main-fields=module,main --jsx=automatic",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "catalyst-core": "*",
+    "marked": "^18.0.13",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "esbuild": "^0.21.5",
+    "jsdom": "^24.0.0",
+    "vitest": "^1.4.0"
+  }
+}
