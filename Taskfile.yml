@@ -37,11 +37,11 @@ vars:
 
 includes:
   common:
-    # The gitignored .criterion symlink at the project root, pointing into
-    # agent-owned space (INV-6) — the same relative path on every machine,
-    # so no machine-specific path lands in this tracked file. Optional, so a
-    # clone without a working copy (CI, a new contributor) still runs this
-    # project's own tasks.
+    # The .criterion submodule at the project root (the shared working copy,
+    # catalyst-ui-criterion) — the same relative path on every machine, so
+    # no machine-specific path lands in this tracked file. Optional, so a
+    # clone without the submodule checked out (CI, a new contributor) still
+    # runs this project's own tasks.
     taskfile: .criterion/Taskfile.common.yml
     optional: true
     flatten: true
