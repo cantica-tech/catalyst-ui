@@ -5,6 +5,7 @@ import type {
   IamUser,
   NodeDetailPayload,
   Proposal,
+  ReferenceInfo,
 } from "catalyst-core";
 
 function resolveAll(
@@ -70,4 +71,95 @@ export function buildIamRoleDetail(
       .filter((u) => u.roles.includes(role.name))
       .sort((a, b) => a.name.localeCompare(b.name)),
   };
+}
+
+const SUMMARY_MAX = 180;
+
+/**
+ * A one-line description of a node for a hover: its own description
+ * (`## Description` / `## Summary`, a rule's body, a domain's `## Scope`)
+ * with the markdown stripped, cut at the first sentence or SUMMARY_MAX.
+ */
+export function shortSummary(node: ChainNode): string {
+  const raw = "description" in node && node.description ? node.description : "";
+  const plain = raw
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_#>|]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const sentence = /^(.+?[.!?])(\s|$)/.exec(plain)?.[1] ?? plain;
+  return sentence.length > SUMMARY_MAX
+    ? `${sentence.slice(0, SUMMARY_MAX - 1).trimEnd()}…`
+    : sentence;
+}
+
+function info(node: ChainNode): ReferenceInfo {
+  return {
+    id: node.id,
+    kind: node.kind,
+    name: node.name || node.title,
+    summary: shortSummary(node),
+  };
+}
+
+const SHORT_ID = /^([A-Z][A-Z0-9]*-\d{3,6})-[A-Za-z0-9]{8}$/;
+
+/**
+ * The entities `texts` cite (`REQ-000014-UVqkd7cL`), keyed by the token
+ * that cites them: every node of the model whose full ID occurs in the
+ * text, plus a short form (`REQ-000014` for `REQ-000014-UVqkd7cL`) when it
+ * occurs and names exactly one node. `exclude` (the panel's own node) is
+ * left out. The webview links exactly these tokens.
+ */
+export function buildReferenceTable(
+  model: ChainModel,
+  texts: readonly string[],
+  exclude?: string,
+): Record<string, ReferenceInfo> {
+  const text = texts.join("\n");
+  const table: Record<string, ReferenceInfo> = {};
+  const shortForms = new Map<string, ChainNode | null>();
+  for (const node of model.nodes.values()) {
+    const short = SHORT_ID.exec(node.id)?.[1];
+    if (short) shortForms.set(short, shortForms.has(short) ? null : node);
+  }
+  const occurs = (token: string): boolean => {
+    let from = 0;
+    for (;;) {
+      const at = text.indexOf(token, from);
+      if (at < 0) return false;
+      const before = text[at - 1];
+      const after = text[at + token.length];
+      if (!(before && /[\w-]/.test(before)) && !(after && /[\w-]/.test(after)))
+        return true;
+      from = at + 1;
+    }
+  };
+  for (const node of model.nodes.values()) {
+    if (node.id !== exclude && occurs(node.id)) table[node.id] = info(node);
+  }
+  for (const [short, node] of shortForms) {
+    if (node && node.id !== exclude && occurs(short)) table[short] = info(node);
+  }
+  return table;
+}
+
+/** The references of a node panel: its content, and its upstream/downstream lists. */
+export function referencesForNode(
+  model: ChainModel,
+  payload: NodeDetailPayload,
+): Record<string, ReferenceInfo> {
+  const node = payload.node;
+  const text =
+    "content" in node && node.content
+      ? node.content
+      : "description" in node
+        ? node.description
+        : "";
+  const listed = [...payload.upstream, ...payload.downstream]
+    .map((n) => n.id)
+    .join(" ");
+  return buildReferenceTable(model, [text, listed], node.id);
 }

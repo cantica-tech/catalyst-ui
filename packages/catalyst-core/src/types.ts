@@ -335,8 +335,23 @@ export interface KernelVersionInfo {
  * know about node detail (e.g. `catalyst-host-electron`'s own independent
  * `detail.ts`) are unaffected by the IAM/journal/backlog additions.
  */
+/**
+ * One entity a panel's text cites (`REQ-000014-UVqkd7cL`): what a link to it
+ * shows on hover. Keyed by the token as it appears in the text — the full
+ * ID, or an unambiguous short form (`REQ-000014`) — so `id` is always the
+ * full ID to open.
+ */
+export interface ReferenceInfo {
+  id: string;
+  kind: NodeKind;
+  name: string;
+  summary: string;
+}
+
 export type WebviewPayload = {
   kernelVersionInfo?: KernelVersionInfo;
+  /** The entities the panel's text cites, by the token that cites them. */
+  references?: Record<string, ReferenceInfo>;
 } & (
   | ({ type: "node" } & NodeDetailPayload)
   | { type: "iam-user"; user: IamUser; roles: IamRole[] }

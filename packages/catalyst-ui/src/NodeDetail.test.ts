@@ -314,3 +314,36 @@ describe("NodeDetail", () => {
     expect(html).not.toContain("Details");
   });
 });
+
+describe("NodeDetail entity references (REQ-000014)", () => {
+  it("links cited IDs in the details and the upstream list, with the hover", () => {
+    const target = rule({
+      id: "env-RUNTIME-000001-Ab3xR9pQ",
+      title: "Node 20",
+    });
+    const html = renderToStaticMarkup(
+      NodeDetail({
+        node: bug({
+          id: "BUG-000001-Ab3xR9pQ",
+          content:
+            "Breaks `env-RUNTIME-000001-Ab3xR9pQ`.\n\n```\nenv-RUNTIME-000001-Ab3xR9pQ\n```",
+        }),
+        upstream: [target],
+        downstream: [],
+        openProposals: [],
+        references: {
+          "env-RUNTIME-000001-Ab3xR9pQ": {
+            id: "env-RUNTIME-000001-Ab3xR9pQ",
+            kind: "rule",
+            name: "Node 20",
+            summary: "The runtime is Node 20.",
+          },
+        },
+      }),
+    );
+    // the details and the upstream list; never inside the code block
+    expect(html.match(/class="catalyst-ref"/g)).toHaveLength(2);
+    expect(html).toContain('title="Node 20 — The runtime is Node 20."');
+    expect(html).toContain("<pre><code>env-RUNTIME-000001-Ab3xR9pQ");
+  });
+});

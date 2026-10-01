@@ -62,11 +62,19 @@ import {
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
 import { resolveDefinitionAt } from "./definitions.js";
+import {
+  PANEL_GROUPING_SETTING,
+  readGrouping,
+  targetColumn,
+  type OpenDetailPanel,
+} from "./panel-groups.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
 import {
   buildIamRoleDetail,
   buildIamUserDetail,
   buildNodeDetail,
+  buildReferenceTable,
+  referencesForNode,
 } from "./detail.js";
 import {
   buildInstantiationPrompt,
@@ -1855,6 +1863,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const detailPanels = new Map<string, vscode.WebviewPanel>();
+  // Which project each open detail panel belongs to, and when it was
+  // last focused — what targetColumn() places a new panel by.
+  const panelMeta = new Map<string, { project: string; lastActive: number }>();
+  let panelFocusClock = 0;
   context.subscriptions.push({
     dispose: () => {
       for (const panel of detailPanels.values()) panel.dispose();
@@ -1883,6 +1895,7 @@ export function activate(context: vscode.ExtensionContext): void {
               {
                 type: "node",
                 kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+                references: referencesForNode(model, payload),
                 ...payload,
               },
             );
@@ -2000,6 +2013,7 @@ export function activate(context: vscode.ExtensionContext): void {
    */
   function showDetailPanel(
     key: string,
+    project: string,
     title: string,
     payload: WebviewPayload,
   ): void {
@@ -2008,17 +2022,51 @@ export function activate(context: vscode.ExtensionContext): void {
       panel.title = title;
       panel.reveal(undefined, true);
     } else {
+      // At most one editor group per project (or one for all): only a
+      // project's first panel opens beside; later ones join its group as
+      // tabs (REQ-000013-UVqkd7cL, panel-groups.ts).
+      const grouping = readGrouping(
+        vscode.workspace
+          .getConfiguration("catalyst")
+          .get(PANEL_GROUPING_SETTING),
+      );
+      const open: OpenDetailPanel[] = [];
+      for (const [openKey, openPanel] of detailPanels.entries()) {
+        const meta = panelMeta.get(openKey);
+        if (meta) open.push({ ...meta, column: openPanel.viewColumn });
+      }
+      const target = targetColumn(open, project, grouping);
       panel = vscode.window.createWebviewPanel(
         "catalystNodeDetail",
         title,
-        vscode.ViewColumn.Beside,
+        target === "beside" ? vscode.ViewColumn.Beside : target,
         {
           enableScripts: true,
         },
       );
-      detailPanels.set(key, panel);
-      panel.onDidDispose(() => {
+      const created = panel;
+      detailPanels.set(key, created);
+      panelMeta.set(key, { project, lastActive: ++panelFocusClock });
+      created.onDidChangeViewState((event) => {
+        const meta = panelMeta.get(key);
+        if (meta && event.webviewPanel.active)
+          meta.lastActive = ++panelFocusClock;
+      });
+      // A click on an entity reference opens that entity, in this
+      // project (REQ-000014-UVqkd7cL); anything else is ignored.
+      created.webview.onDidReceiveMessage((message: unknown) => {
+        const msg = message as { type?: unknown; id?: unknown } | null;
+        if (msg?.type === "openReference" && typeof msg.id === "string") {
+          void vscode.commands.executeCommand(
+            SHOW_DETAIL_COMMAND,
+            project,
+            msg.id,
+          );
+        }
+      });
+      created.onDidDispose(() => {
         detailPanels.delete(key);
+        panelMeta.delete(key);
       });
     }
 
@@ -2059,11 +2107,17 @@ export function activate(context: vscode.ExtensionContext): void {
           provider.getPendingTargets(corpusRoot),
         );
         if (!payload) return;
-        showDetailPanel(`node:${corpusRoot}:${nodeId}`, `Node: ${nodeId}`, {
-          type: "node",
-          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-          ...payload,
-        });
+        showDetailPanel(
+          `node:${corpusRoot}:${nodeId}`,
+          corpusRoot,
+          `Node: ${nodeId}`,
+          {
+            type: "node",
+            kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+            references: referencesForNode(model, payload),
+            ...payload,
+          },
+        );
       },
     ),
   );
@@ -2082,11 +2136,16 @@ export function activate(context: vscode.ExtensionContext): void {
             user,
             provider.getRoles(corpusRoot),
           );
-          showDetailPanel(`iam-user:${corpusRoot}:${name}`, `User: ${name}`, {
-            type: "iam-user",
-            kernelVersionInfo,
-            ...detail,
-          });
+          showDetailPanel(
+            `iam-user:${corpusRoot}:${name}`,
+            corpusRoot,
+            `User: ${name}`,
+            {
+              type: "iam-user",
+              kernelVersionInfo,
+              ...detail,
+            },
+          );
         } else {
           const role = provider
             .getRoles(corpusRoot)
@@ -2096,11 +2155,16 @@ export function activate(context: vscode.ExtensionContext): void {
             role,
             provider.getUsers(corpusRoot),
           );
-          showDetailPanel(`iam-role:${corpusRoot}:${name}`, `Role: ${name}`, {
-            type: "iam-role",
-            kernelVersionInfo,
-            ...detail,
-          });
+          showDetailPanel(
+            `iam-role:${corpusRoot}:${name}`,
+            corpusRoot,
+            `Role: ${name}`,
+            {
+              type: "iam-role",
+              kernelVersionInfo,
+              ...detail,
+            },
+          );
         }
       },
     ),
@@ -2115,7 +2179,7 @@ export function activate(context: vscode.ExtensionContext): void {
         // by project lifetime, not unbounded, so shipping it all up front is
         // cheap and simpler than the alternative.
         const entries = parseJournal(corpusRoot);
-        showDetailPanel(`journal:${corpusRoot}`, "Journal", {
+        showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", {
           type: "journal",
           kernelVersionInfo: getKernelVersionInfo(corpusRoot),
           entries,
@@ -2144,9 +2208,13 @@ export function activate(context: vscode.ExtensionContext): void {
         // is exactly the "everything lands in the same place" problem
         // this mechanism exists to avoid.
         const markdown = readFileSync(backlogPath, "utf8");
-        showDetailPanel(`backlog:${corpusRoot}`, "Backlog", {
+        const backlogModel = provider.getModel(corpusRoot);
+        showDetailPanel(`backlog:${corpusRoot}`, corpusRoot, "Backlog", {
           type: "backlog",
           kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+          references: backlogModel
+            ? buildReferenceTable(backlogModel, [markdown])
+            : undefined,
           markdown,
         });
       },
