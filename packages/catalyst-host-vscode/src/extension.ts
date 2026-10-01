@@ -66,6 +66,7 @@ import {
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
 import { resolveDefinitionAt } from "./definitions.js";
+import { breadthFirst, childId, itemKey } from "./tree-ids.js";
 import {
   devcontainerMount,
   environmentLabel,
@@ -118,7 +119,14 @@ import {
 } from "./tree.js";
 
 const VIEW_ID = "catalystChainInspector";
+/** The chain inspector view slots, one per deployment (package.json `views`). */
+const INSPECTOR_VIEW_IDS = [
+  VIEW_ID,
+  ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${VIEW_ID}${n}`),
+];
 const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
+/** `catalyst.trackEntityInTree`: reveal the entity a detail panel shows (REQ-000017-UVqkd7cL). */
+const TRACK_SETTING = "trackEntityInTree";
 /** `catalyst.ignoredFolders`: folders this workspace leaves out of catalyst (REQ-000015-UVqkd7cL). */
 const IGNORED_FOLDERS_SETTING = "ignoredFolders";
 const SHOW_IAM_DETAIL_COMMAND = "catalyst.showIamDetail";
@@ -295,6 +303,32 @@ function nodeIconName(node: ChainNode): string | undefined {
  * own sections — node ids are only unique within one corpus, so every
  * item below the root carries which deployment it came from.
  */
+/**
+ * One chain inspector panel, showing one deployment (REQ-000017-UVqkd7cL):
+ * a view slot of its own, delegating to the shared provider.
+ */
+class InspectorPanelProvider implements vscode.TreeDataProvider<InspectorTreeItem> {
+  corpusRoot: string | undefined;
+  readonly onDidChangeTreeData: vscode.Event<void>;
+
+  constructor(private readonly shared: ChainInspectorProvider) {
+    this.onDidChangeTreeData = shared.onDidChangeTreeData;
+  }
+
+  getTreeItem(element: InspectorTreeItem): vscode.TreeItem {
+    return this.shared.getTreeItem(element);
+  }
+
+  getChildren(element?: InspectorTreeItem): InspectorTreeItem[] {
+    if (element) return this.shared.getChildren(element);
+    return this.corpusRoot ? this.shared.rootFor(this.corpusRoot) : [];
+  }
+
+  getParent(element: InspectorTreeItem): InspectorTreeItem | undefined {
+    return this.shared.getParent(element);
+  }
+}
+
 class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeItem> {
   private readonly deployments = new Map<string, DeploymentView>();
   private readonly changeEmitter = new vscode.EventEmitter<void>();
@@ -393,7 +427,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     return [...this.deployments.keys()];
   }
 
-  getTreeItem(element: InspectorTreeItem): vscode.TreeItem {
+  private treeItemOf(element: InspectorTreeItem): vscode.TreeItem {
     if (element.type === "deployment") {
       return new vscode.TreeItem(
         element.folderName,
@@ -563,12 +597,12 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     }
     if (element.type === "journal-entry") {
       const item = new vscode.TreeItem(
-        "Open Journal",
+        "Journal",
         vscode.TreeItemCollapsibleState.None,
       );
       item.command = {
         command: OPEN_JOURNAL_COMMAND,
-        title: "Open Journal",
+        title: "Journal",
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("journal");
@@ -577,12 +611,12 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     }
     if (element.type === "backlog-entry") {
       const item = new vscode.TreeItem(
-        "Open Backlog",
+        "Backlog",
         vscode.TreeItemCollapsibleState.None,
       );
       item.command = {
         command: OPEN_BACKLOG_COMMAND,
-        title: "Open Backlog",
+        title: "Backlog",
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("backlog");
@@ -731,13 +765,85 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       corpusRoot: view.corpusRoot,
       section: buildRoleSection(view.roles),
     });
-    sections.push({ type: "separator" });
     sections.push({ type: "journal-entry", corpusRoot: view.corpusRoot });
     sections.push({ type: "backlog-entry", corpusRoot: view.corpusRoot });
     return sections;
   }
 
+  // Stable identities, so TreeView.reveal can select a node
+  // (REQ-000017-UVqkd7cL): each child remembers its parent and gets an id
+  // from its parent's id and its structural key (tree-ids.ts).
+  private readonly parents = new WeakMap<
+    InspectorTreeItem,
+    InspectorTreeItem | undefined
+  >();
+  private readonly ids = new WeakMap<InspectorTreeItem, string>();
+
+  getTreeItem(element: InspectorTreeItem): vscode.TreeItem {
+    const item = this.treeItemOf(element);
+    const id = this.ids.get(element);
+    if (id) item.id = id;
+    return item;
+  }
+
   getChildren(element?: InspectorTreeItem): InspectorTreeItem[] {
+    const children = this.childrenOf(element);
+    const parentId = element ? (this.ids.get(element) ?? "") : "";
+    const taken = new Map<string, number>();
+    for (const child of children) {
+      const label = this.treeItemOf(child).label;
+      const text = typeof label === "string" ? label : (label?.label ?? "");
+      this.parents.set(child, element);
+      this.ids.set(
+        child,
+        childId(parentId, itemKey(child as never, text), taken),
+      );
+    }
+    return children;
+  }
+
+  getParent(element: InspectorTreeItem): InspectorTreeItem | undefined {
+    return this.parents.get(element);
+  }
+
+  /**
+   * The top level of one deployment's own chain inspector panel: its
+   * sections, with no parent (REQ-000017-UVqkd7cL — every deployment has a
+   * panel of its own).
+   */
+  rootFor(corpusRoot: string): InspectorTreeItem[] {
+    const view = this.deployments.get(corpusRoot);
+    const sections = view ? this.sectionsFor(view) : [];
+    const taken = new Map<string, number>();
+    for (const child of sections) {
+      const label = this.treeItemOf(child).label;
+      const text = typeof label === "string" ? label : (label?.label ?? "");
+      this.parents.set(child, undefined);
+      this.ids.set(
+        child,
+        childId(`panel:${corpusRoot}`, itemKey(child as never, text), taken),
+      );
+    }
+    return sections;
+  }
+
+  /** A node's first, shallowest occurrence in its deployment's panel. */
+  findNode(corpusRoot: string, nodeId: string): InspectorTreeItem | undefined {
+    return breadthFirst(
+      this.rootFor(corpusRoot),
+      (item) => {
+        if (item.type === "node") return []; // a node's own children never hold its first occurrence
+        if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
+        return this.getChildren(item);
+      },
+      (item) =>
+        item.type === "node" &&
+        item.corpusRoot === corpusRoot &&
+        item.node.id === nodeId,
+    );
+  }
+
+  private childrenOf(element?: InspectorTreeItem): InspectorTreeItem[] {
     if (!element) {
       const views = [...this.deployments.values()];
       if (views.length === 0) return [];
@@ -1504,9 +1610,57 @@ export function activate(context: vscode.ExtensionContext): void {
       `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
   }
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(VIEW_ID, provider),
-  );
+  // One chain inspector panel per deployment (REQ-000017-UVqkd7cL): view
+  // slots declared in package.json, slot 0 always shown, the others shown
+  // (context key catalyst.inspectorSlot<N>) as deployments are found. Each
+  // is a TreeView, so a node can be revealed in it.
+  const panels = INSPECTOR_VIEW_IDS.map((id) => {
+    const panelProvider = new InspectorPanelProvider(provider);
+    const view = vscode.window.createTreeView(id, {
+      treeDataProvider: panelProvider,
+    });
+    context.subscriptions.push(view);
+    return { provider: panelProvider, view };
+  });
+  let warnedTooMany = false;
+  function assignPanels(targets: Map<string, DeploymentTarget>): void {
+    const roots = [...targets.keys()];
+    panels.forEach((panel, index) => {
+      const root = roots[index];
+      panel.provider.corpusRoot = root;
+      panel.view.description = root ? targets.get(root)?.name : undefined;
+      void vscode.commands.executeCommand(
+        "setContext",
+        `catalyst.inspectorSlot${index}`,
+        index === 0 || !!root,
+      );
+    });
+    if (roots.length > panels.length && !warnedTooMany) {
+      warnedTooMany = true;
+      void vscode.window.showWarningMessage(
+        `catalyst shows ${panels.length} chain inspectors; ${roots.length - panels.length} more deployment(s) in this workspace are not shown.`,
+      );
+    }
+    provider.refreshTree();
+  }
+  /** Select a node in its deployment's panel — only while that panel is visible, never moving focus. */
+  function revealNode(corpusRoot: string, nodeId: string): void {
+    if (
+      !vscode.workspace
+        .getConfiguration("catalyst")
+        .get<boolean>(TRACK_SETTING, true)
+    )
+      return;
+    const panel = panels.find((p) => p.provider.corpusRoot === corpusRoot);
+    if (!panel || !panel.view.visible) return;
+    const element = provider.findNode(corpusRoot, nodeId);
+    if (element)
+      void panel.view.reveal(element, {
+        select: true,
+        focus: false,
+        expand: false,
+      });
+  }
 
   const diagnostics = vscode.languages.createDiagnosticCollection(
     DIAGNOSTIC_COLLECTION_NAME,
@@ -1634,6 +1788,7 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }
     updateStatusBar();
+    assignPanels(deploymentTargets);
   }
 
   function teardownDeployment(corpusRoot: string): void {
@@ -1656,6 +1811,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     folderDeployments.delete(folder.uri.toString());
     updateStatusBar();
+    assignPanels(deploymentTargets);
   }
 
   function reresolveAll(): void {
@@ -2229,21 +2385,25 @@ export function activate(context: vscode.ExtensionContext): void {
       const created = panel;
       detailPanels.set(key, created);
       panelMeta.set(key, { project, lastActive: ++panelFocusClock });
+      // The entity this panel shows, tracked in the tree when the panel
+      // comes to the front (REQ-000017-UVqkd7cL).
+      const shownNode = payload.type === "node" ? payload.node.id : undefined;
       created.onDidChangeViewState((event) => {
         const meta = panelMeta.get(key);
-        if (meta && event.webviewPanel.active)
+        if (meta && event.webviewPanel.active) {
           meta.lastActive = ++panelFocusClock;
+          if (shownNode) revealNode(project, shownNode);
+        }
       });
       // A click on an entity reference opens that entity, in this
       // project (REQ-000014-UVqkd7cL); anything else is ignored.
       created.webview.onDidReceiveMessage((message: unknown) => {
         const msg = message as { type?: unknown; id?: unknown } | null;
         if (msg?.type === "openReference" && typeof msg.id === "string") {
-          void vscode.commands.executeCommand(
-            SHOW_DETAIL_COMMAND,
-            project,
-            msg.id,
-          );
+          const target = msg.id;
+          void vscode.commands
+            .executeCommand(SHOW_DETAIL_COMMAND, project, target)
+            .then(() => revealNode(project, target));
         }
       });
       created.onDidDispose(() => {
