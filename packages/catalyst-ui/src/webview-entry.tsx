@@ -6,11 +6,29 @@ import { KernelVersionHeader } from "./KernelVersionHeader.js";
 import { IamRoleDetail, IamUserDetail } from "./IamDetail.js";
 import { Journal } from "./Journal.js";
 import { NodeDetail } from "./NodeDetail.js";
+import { referenceTarget } from "./references.js";
 
 declare global {
   interface Window {
     __CATALYST_INITIAL_PAYLOAD__?: WebviewPayload;
   }
+}
+
+/** VS Code's webview API — callable once; absent outside a VS Code webview. */
+declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
+
+const host =
+  typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
+
+/**
+ * A click on an entity reference (`REQ-000014-UVqkd7cL`) asks the host to
+ * open that entity; the views stay host-agnostic and only render links.
+ */
+function onClick(event: MouseEvent): void {
+  const id = referenceTarget(event.target);
+  if (!id) return;
+  event.preventDefault();
+  host?.postMessage({ type: "openReference", id });
 }
 
 const container = document.getElementById("root");
@@ -28,6 +46,7 @@ if (container) {
               upstream={payload.upstream}
               downstream={payload.downstream}
               openProposals={payload.openProposals}
+              references={payload.references}
             />
           );
         case "iam-user":
@@ -37,7 +56,12 @@ if (container) {
         case "journal":
           return <Journal entries={payload.entries} />;
         case "backlog":
-          return <Backlog markdown={payload.markdown} />;
+          return (
+            <Backlog
+              markdown={payload.markdown}
+              references={payload.references}
+            />
+          );
       }
     })();
 
@@ -54,6 +78,7 @@ if (container) {
   // Also listens for `message` (the standard VS Code webview channel) so
   // a later phase that pushes live updates has a protocol to send them
   // on without touching this file again.
+  container.addEventListener("click", onClick);
   if (window.__CATALYST_INITIAL_PAYLOAD__) {
     render(window.__CATALYST_INITIAL_PAYLOAD__);
   }

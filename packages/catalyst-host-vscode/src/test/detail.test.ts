@@ -12,6 +12,8 @@ import {
   buildIamRoleDetail,
   buildIamUserDetail,
   buildNodeDetail,
+  buildReferenceTable,
+  shortSummary,
 } from "../detail.js";
 
 const noProposals = new Map<string, Proposal[]>();
@@ -255,5 +257,78 @@ describe("buildIamRoleDetail", () => {
       user({ name: "alice", roles: ["Developer"] }),
     ]);
     assert.deepStrictEqual(detail.users, []);
+  });
+});
+
+describe("reference table (REQ-000014)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const node = (id: string, extra: Record<string, unknown> = {}): any => ({
+    id,
+    kind: "dev-artifact",
+    title: `${id} title`,
+    location: { file: "f.md", line: 1 },
+    references: [],
+    description: "",
+    ...extra,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const modelOf = (...nodes: any[]): ChainModel => ({
+    nodes: new Map(nodes.map((n) => [n.id, n])),
+    edges: new Map(),
+    reverseEdges: new Map(),
+    definitionsById: new Map(),
+  });
+
+  it("lists the entities the text cites, with name and summary", () => {
+    const model = modelOf(
+      node("REQ-000001-Ab3xR9pQ", {
+        name: "login-flow",
+        description: "Users log in. With a password.",
+      }),
+      node("REQ-000002-Ab3xR9pQ"),
+      node("BUG-000003-Ab3xR9pQ"),
+    );
+    const table = buildReferenceTable(model, [
+      "Fixes `REQ-000001-Ab3xR9pQ`; see BUG-000003.",
+    ]);
+    assert.deepStrictEqual(Object.keys(table).sort(), [
+      "BUG-000003",
+      "REQ-000001-Ab3xR9pQ",
+    ]);
+    assert.deepStrictEqual(table["REQ-000001-Ab3xR9pQ"], {
+      id: "REQ-000001-Ab3xR9pQ",
+      kind: "dev-artifact",
+      name: "login-flow",
+      summary: "Users log in.",
+    });
+    assert.strictEqual(table["BUG-000003"].id, "BUG-000003-Ab3xR9pQ");
+  });
+
+  it("never matches inside a longer token, an ambiguous short form, or the panel's own node", () => {
+    const model = modelOf(
+      node("REQ-000001-Ab3xR9pQ"),
+      node("REQ-000001-Zz9xR9pQ"),
+      node("STEP-000004-Ab3xR9pQ"),
+    );
+    const table = buildReferenceTable(
+      model,
+      ["XREQ-000001-Ab3xR9pQ and REQ-000001 and STEP-000004-Ab3xR9pQ"],
+      "STEP-000004-Ab3xR9pQ",
+    );
+    assert.deepStrictEqual(table, {});
+  });
+
+  it("summaries drop markdown and stay short", () => {
+    assert.strictEqual(
+      shortSummary(
+        node("X-000001-Ab3xR9pQ", {
+          description: "**Bold** `code` [link](http://x) rest",
+        }),
+      ),
+      "Bold code link rest",
+    );
+    const long = "word ".repeat(80);
+    const s = shortSummary(node("X-000001-Ab3xR9pQ", { description: long }));
+    assert.ok(s.length <= 180 && s.endsWith("…"));
   });
 });

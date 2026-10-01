@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.33.2",
+  "version": "0.34.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -154,6 +154,19 @@
           "type": "string",
           "default": "git@github.com:oliben67/cantica-tech.git/catalyst/kernel/",
           "description": "Source location URL for downloading Catalyst kernel releases."
+        },
+        "catalyst.detailPanelGroups": {
+          "type": "string",
+          "enum": [
+            "perProject",
+            "single"
+          ],
+          "default": "perProject",
+          "enumDescriptions": [
+            "Each project's detail panels open as tabs in one editor group of their own.",
+            "Every project's detail panels share one single editor group."
+          ],
+          "description": "Where entity detail panels open: at most one editor group per project (default), or one group for every project. A project's first panel opens beside the active editor; later ones join its group as tabs."
         }
       }
     },
