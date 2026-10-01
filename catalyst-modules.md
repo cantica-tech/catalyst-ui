@@ -186,6 +186,7 @@ cantica-tech/catalyst/
 
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-01 | catalyst UI 0.34.0 | Detail panels: one editor group per project (`catalyst.detailPanelGroups`); entity references are links with a hover                                                            |
 | 2026-09-30 | catalyst UI 0.33.2 | Extension paired with kernel `>=0.44.0`; deployment synced to kernel 0.44.0                                                                                                     |
 | 2026-09-30 | catalyst 0.44.0    | `kernel-v0.44.0.zip`; four-eyes analysis of existing code (`ANALYSIS-`, `/run-analysis`), playbook deployed                                                                     |
 | 2026-09-30 | catalyst 0.43.0    | `kernel-v0.43.0.zip`; `criterion create` without a URL                                                                                                                          |

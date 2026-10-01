@@ -1,7 +1,12 @@
+import type { ReferenceInfo } from "catalyst-core";
 import { marked } from "marked";
+
+import { linkifyReferences } from "./references.js";
 
 export interface BacklogProps {
   markdown: string;
+  /** The entities the backlog cites: linked, with a hover (REQ-000014-UVqkd7cL). */
+  references?: Record<string, ReferenceInfo>;
 }
 
 /**
@@ -13,8 +18,11 @@ export interface BacklogProps {
  * posture as `NodeDetail`: content always originates from a local,
  * trusted file.
  */
-export function Backlog({ markdown }: BacklogProps) {
-  const html = marked.parse(markdown, { async: false }) as string;
+export function Backlog({ markdown, references }: BacklogProps) {
+  const html = linkifyReferences(
+    marked.parse(markdown, { async: false }) as string,
+    references,
+  );
   return (
     <div>
       <h1>Backlog</h1>

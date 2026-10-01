@@ -1,11 +1,15 @@
-import type { ChainNode, Proposal } from "catalyst-core";
+import type { ChainNode, Proposal, ReferenceInfo } from "catalyst-core";
 import { marked } from "marked";
+
+import { REFERENCE_CLASS, hoverText, linkifyReferences } from "./references.js";
 
 export interface NodeDetailProps {
   node: ChainNode;
   upstream: ChainNode[];
   downstream: ChainNode[];
   openProposals: Proposal[];
+  /** The entities the content cites: linked, with a hover (REQ-000014-UVqkd7cL). */
+  references?: Record<string, ReferenceInfo>;
 }
 
 function statusOf(node: ChainNode): string | undefined {
@@ -31,7 +35,15 @@ function fullContentOf(node: ChainNode): string | undefined {
   return descriptionOf(node);
 }
 
-function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
+function NodeList({
+  title,
+  nodes,
+  references,
+}: {
+  title: string;
+  nodes: ChainNode[];
+  references?: Record<string, ReferenceInfo>;
+}) {
   return (
     <section>
       <h2>{title}</h2>
@@ -41,7 +53,19 @@ function NodeList({ title, nodes }: { title: string; nodes: ChainNode[] }) {
         <ul>
           {nodes.map((n) => (
             <li key={n.id}>
-              <code>{n.id}</code> — {n.title}
+              <code>
+                <a
+                  href="#"
+                  className={REFERENCE_CLASS}
+                  data-ref={n.id}
+                  title={
+                    references?.[n.id] ? hoverText(references[n.id]) : n.title
+                  }
+                >
+                  {n.id}
+                </a>
+              </code>{" "}
+              — {n.title}
             </li>
           ))}
         </ul>
@@ -98,10 +122,19 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
  * a remote or multi-tenant source), matching this codebase's existing
  * trust boundary.
  */
-function DetailsSection({ node }: { node: ChainNode }) {
+function DetailsSection({
+  node,
+  references,
+}: {
+  node: ChainNode;
+  references?: Record<string, ReferenceInfo>;
+}) {
   const content = fullContentOf(node);
   if (!content) return null;
-  const html = marked.parse(content, { async: false }) as string;
+  const html = linkifyReferences(
+    marked.parse(content, { async: false }) as string,
+    references,
+  );
   return (
     <section>
       <h2>Details</h2>
@@ -137,6 +170,7 @@ export function NodeDetail({
   upstream,
   downstream,
   openProposals,
+  references,
 }: NodeDetailProps) {
   const status = statusOf(node);
   return (
@@ -150,10 +184,18 @@ export function NodeDetail({
       {status ? <p>Status: {status}</p> : null}
       <SignedOffByDetails node={node} />
       <RoadmapDetails node={node} />
-      <DetailsSection node={node} />
+      <DetailsSection node={node} references={references} />
       <ProposalList proposals={openProposals} />
-      <NodeList title="Justified by (upstream)" nodes={upstream} />
-      <NodeList title="Produces (downstream)" nodes={downstream} />
+      <NodeList
+        title="Justified by (upstream)"
+        nodes={upstream}
+        references={references}
+      />
+      <NodeList
+        title="Produces (downstream)"
+        nodes={downstream}
+        references={references}
+      />
     </div>
   );
 }
