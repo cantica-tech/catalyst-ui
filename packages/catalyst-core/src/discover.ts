@@ -1,4 +1,11 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  readdirSync,
+  readlinkSync,
+  statSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
@@ -243,4 +250,34 @@ export function readEntityDefinition(
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether a deployment's working copy is reachable from where the extension
+ * runs (`REQ-000016-UVqkd7cL`): `reachable` (its `.criterion`, or a
+ * fallback location, resolves); `dangling` (`.criterion` is a symlink whose
+ * target does not exist here — typically the agent-owned space of another
+ * machine, as seen from a dev container, WSL or SSH); `missing` (no
+ * `.criterion` at all, and no fallback).
+ */
+export type WorkingCopyState =
+  | { state: "reachable"; path: string }
+  | { state: "dangling"; target: string }
+  | { state: "missing" };
+
+export function workingCopyState(projectRoot: string): WorkingCopyState {
+  const resolved = resolveCorpusRoot(projectRoot);
+  if (resolved) return { state: "reachable", path: resolved };
+  const link = join(projectRoot, ".criterion");
+  try {
+    if (lstatSync(link).isSymbolicLink()) {
+      return {
+        state: "dangling",
+        target: resolve(projectRoot, readlinkSync(link)),
+      };
+    }
+  } catch {
+    // no .criterion at all
+  }
+  return { state: "missing" };
 }
