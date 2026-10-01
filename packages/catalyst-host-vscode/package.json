@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -46,6 +46,48 @@
           "id": "catalystChainInspector",
           "name": "Chain Inspector",
           "icon": "resources/catalyst.svg"
+        },
+        {
+          "id": "catalystChainInspector1",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot1"
+        },
+        {
+          "id": "catalystChainInspector2",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot2"
+        },
+        {
+          "id": "catalystChainInspector3",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot3"
+        },
+        {
+          "id": "catalystChainInspector4",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot4"
+        },
+        {
+          "id": "catalystChainInspector5",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot5"
+        },
+        {
+          "id": "catalystChainInspector6",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot6"
+        },
+        {
+          "id": "catalystChainInspector7",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg",
+          "when": "catalyst.inspectorSlot7"
         }
       ]
     },
@@ -112,27 +154,27 @@
       "view/title": [
         {
           "command": "catalyst.switchUiModule",
-          "when": "view == catalystChainInspector",
+          "when": "view =~ /^catalystChainInspector/",
           "group": "navigation@0"
         },
         {
           "command": "catalyst.refreshChainInspector",
-          "when": "view == catalystChainInspector",
+          "when": "view =~ /^catalystChainInspector/",
           "group": "navigation@1"
         },
         {
           "command": "catalyst.sendToAgentChat",
-          "when": "view == catalystChainInspector",
+          "when": "view =~ /^catalystChainInspector/",
           "group": "navigation@2"
         },
         {
           "command": "catalyst.configureCriterion",
-          "when": "view == catalystChainInspector",
+          "when": "view =~ /^catalystChainInspector/",
           "group": "navigation@3"
         },
         {
           "command": "catalyst.openSettings",
-          "when": "view == catalystChainInspector",
+          "when": "view =~ /^catalystChainInspector/",
           "group": "navigation@4"
         }
       ]
@@ -176,6 +218,11 @@
           "default": [],
           "scope": "resource",
           "description": "Folders this workspace leaves out of catalyst — absolute paths, or paths relative to their workspace folder. No deployment is shown and no install is offered for them or anything below. To leave a folder out for everyone, commit an empty .catalystignore in it instead."
+        },
+        "catalyst.trackEntityInTree": {
+          "type": "boolean",
+          "default": true,
+          "description": "Select in the chain inspector the entity a detail panel shows — when it is opened from a link, or brought to the front. Only while the chain inspector is visible; it never opens the sidebar."
         }
       }
     },

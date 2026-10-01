@@ -60,7 +60,7 @@ function coerceEntry(value: unknown): JournalEntry | null {
  *
  * Deliberately not part of `WatchUpdate`/`watchCorpus` — the journal can
  * grow to thousands of lines over a project's life, and nothing in the
- * sidebar tree renders it continuously (only a static "Open Journal" row),
+ * sidebar tree renders it continuously (only a static "Journal" row),
  * so re-parsing it on every unrelated corpus edit would be pure waste.
  * Called only on demand, when that command actually runs.
  */

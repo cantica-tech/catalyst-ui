@@ -590,3 +590,51 @@ describe("extractSlugFromRuleId and cleanRuleTitle", () => {
     expect(detectRuleStatus("✅ working.", "working")).toBe("✅ working.");
   });
 });
+
+describe("full-ID index rows and short filenames (BUG-000001-UVqkd7cL)", () => {
+  it("makes a file and its index row one node, keyed by the full ID", () => {
+    root = createFixtureCorpus({});
+    writeFileSync(
+      join(root, "requirements", "requirements.md"),
+      "# Requirements index\n\n| ID | Title | Status |\n|---|---|---|\n" +
+        "| [REQ-000014-UVqkd7cL](REQ-000014-entity-links.md) | Entity links | Completed |\n",
+    );
+    writeFileSync(
+      join(root, "requirements", "REQ-000014-entity-links.md"),
+      "# `REQ-000014-UVqkd7cL` — Entity links\n\n| Field | Value |\n|---|---|\n" +
+        "| **ID** | `REQ-000014-UVqkd7cL` |\n| **Status** | Completed |\n\n## Summary\n\nIDs are links.\n",
+    );
+    writeFileSync(
+      join(root, "steps", "steps.md"),
+      "# Steps index\n\n| ID | Title | Parent | Status |\n|---|---|---|---|\n" +
+        "| [STEP-000016-UVqkd7cL](STEP-000016-link.md) | Link | REQ-000014-UVqkd7cL | done |\n",
+    );
+    writeFileSync(
+      join(root, "steps", "STEP-000016-link.md"),
+      "# `STEP-000016-UVqkd7cL` — Link\n\n| Field | Value |\n|---|---|\n" +
+        "| **ID** | `STEP-000016-UVqkd7cL` |\n| **Parent** | `REQ-000014-UVqkd7cL` |\n| **Status** | done |\n",
+    );
+
+    const nodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
+    const reqs = nodes.filter((n) => n.id.startsWith("REQ-000014"));
+    expect(reqs.map((n) => n.id)).toEqual(["REQ-000014-UVqkd7cL"]);
+    const req = reqs[0] as DevArtifactNode;
+    expect(req.fileExists).toBe(true);
+    expect(req.registered).toBe(true);
+    expect(req.description).toBe("IDs are links.");
+    const steps = nodes.filter((n) => n.id.startsWith("STEP-000016"));
+    expect(steps.map((n) => n.id)).toEqual(["STEP-000016-UVqkd7cL"]);
+  });
+
+  it("still keys a file by its filename when it has no ID field and no index row extends it", () => {
+    root = createFixtureCorpus({});
+    writeFileSync(
+      join(root, "requirements", "REQ-000020-plain.md"),
+      "# REQ-000020 — Plain\n",
+    );
+    const ids = parseCorpus(root)!
+      .files.flatMap((f) => f.nodes)
+      .map((n) => n.id);
+    expect(ids).toContain("REQ-000020");
+  });
+});

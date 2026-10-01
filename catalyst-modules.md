@@ -186,6 +186,7 @@ cantica-tech/catalyst/
 
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-02 | catalyst UI 0.37.0 | One chain inspector panel per deployment; the entity a panel shows is tracked in the tree; Journal/Backlog entries; no duplicate artifacts                                      |
 | 2026-10-01 | catalyst UI 0.36.0 | Remote, WSL, dev containers: runs where the files are; unreachable working copies reported with a fix; virtual workspaces unsupported                                           |
 | 2026-10-01 | catalyst UI 0.35.0 | Workspace-aware: nested deployments, `.catalystignore` and `catalyst.ignoredFolders`, install-offer opt-outs, Workspace Trust, status bar; kernel `>=0.45.0`                    |
 | 2026-10-01 | catalyst 0.45.0    | `kernel-v0.45.0.zip`; what a deployment governs (nested deployments, `.catalystignore`), routing commit-msg hook                                                                |
