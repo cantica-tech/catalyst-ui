@@ -44,9 +44,9 @@ import {
   isIgnoredFolder,
   optedOut,
   owningDeployment,
+  workingCopyState,
   readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
-  resolveCorpusRoot,
   saveModuleLocally,
   suggestCriterionBranch,
   UiModuleManager,
@@ -66,6 +66,11 @@ import {
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
 import { resolveDefinitionAt } from "./definitions.js";
+import {
+  devcontainerMount,
+  environmentLabel,
+  unreachableAdvice,
+} from "./remote.js";
 import {
   PANEL_GROUPING_SETTING,
   readGrouping,
@@ -1528,7 +1533,54 @@ export function activate(context: vscode.ExtensionContext): void {
       .getConfiguration("catalyst", folder.uri)
       .get<string[]>(IGNORED_FOLDERS_SETTING, []);
 
+  // A deployment whose working copy is not reachable here (a remote
+  // environment without the installing machine's agent-owned space) is
+  // reported once, with the fix that fits (REQ-000016-UVqkd7cL).
+  const reportedUnreachable = new Set<string>();
+  function reportUnreachable(
+    name: string,
+    projectRoot: string,
+    target: string | undefined,
+  ): void {
+    if (reportedUnreachable.has(projectRoot)) return;
+    reportedUnreachable.add(projectRoot);
+    const advice = unreachableAdvice(name, target, vscode.env.remoteName);
+    const labels: Record<string, string> = {
+      "copy-mount": "Copy devcontainer mount",
+      share: "Share with /criterion create",
+    };
+    void vscode.window
+      .showWarningMessage(
+        advice.message,
+        ...advice.actions.map((a) => labels[a]),
+      )
+      .then(async (choice) => {
+        if (choice === labels["copy-mount"] && target) {
+          await vscode.env.clipboard.writeText(devcontainerMount(target));
+          void vscode.window.showInformationMessage(
+            "Copied a devcontainer.json mounts entry: add it, then rebuild the container.",
+          );
+        } else if (choice === labels.share) {
+          const agentDef = resolveChatAgentDef(projectRoot);
+          if (!agentDef) {
+            void vscode.window.showErrorMessage(
+              'Couldn\'t determine which agent to run — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+            );
+            return;
+          }
+          await resolveAndInvoke(
+            agentDef,
+            "/criterion",
+            "create",
+            agentBridgeOutputChannel,
+          );
+        }
+      });
+  }
+
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
+    // Virtual and other non-file folders have no file system to read.
+    if (folder.uri.scheme !== "file") return;
     const ignored = ignoredFoldersFor(folder);
     const found = findDeployments(folder.uri.fsPath, folder.name, { ignored });
     const roots: string[] = [];
@@ -1548,8 +1600,16 @@ export function activate(context: vscode.ExtensionContext): void {
       return;
     }
     for (const deployment of found) {
-      const corpusRoot = resolveCorpusRoot(deployment.projectRoot);
-      if (!corpusRoot) continue;
+      const wc = workingCopyState(deployment.projectRoot);
+      if (wc.state !== "reachable") {
+        reportUnreachable(
+          deployment.name,
+          deployment.projectRoot,
+          wc.state === "dangling" ? wc.target : undefined,
+        );
+        continue;
+      }
+      const corpusRoot = wc.path;
       roots.push(corpusRoot);
       if (registeredDeployments.has(corpusRoot)) continue;
       const target = { name: deployment.name, path: deployment.projectRoot };
@@ -1626,7 +1686,8 @@ export function activate(context: vscode.ExtensionContext): void {
     const [corpusRoot, target] = entry;
     const version = readDeployedKernelVersion(corpusRoot);
     statusBar.text = `$(beaker) ${target.name}`;
-    statusBar.tooltip = `catalyst deployment "${target.name}"${version ? ` — kernel ${version}` : ""}. Click for its backlog.`;
+    const where = environmentLabel(vscode.env.remoteName);
+    statusBar.tooltip = `catalyst deployment "${target.name}"${version ? ` — kernel ${version}` : ""}${where ? `, in ${where}` : ""}. Click for its backlog.`;
     statusBar.command = {
       title: "Open backlog",
       command: OPEN_BACKLOG_COMMAND,
