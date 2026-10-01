@@ -76,12 +76,52 @@ export function buildIamRoleDetail(
 const SUMMARY_MAX = 180;
 
 /**
+ * A description from an entity's full text, when the parser found none:
+ * its `## Description` or `## Summary` section, else the first paragraph
+ * after its field table — never the template prose above the table.
+ */
+export function describeFromContent(content: string): string {
+  const lines = content.split("\n");
+  for (const heading of ["Description", "Summary"]) {
+    const at = lines.findIndex((l) => l.trim() === `## ${heading}`);
+    if (at >= 0) {
+      const body: string[] = [];
+      for (const line of lines.slice(at + 1)) {
+        if (line.startsWith("## ")) break;
+        body.push(line);
+      }
+      const text = body.join("\n").trim();
+      if (text) return text;
+    }
+  }
+  const tableEnd = lines.reduce(
+    (last, l, i) => (l.trim().startsWith("|") ? i : last),
+    -1,
+  );
+  const paragraph: string[] = [];
+  for (const line of lines.slice(tableEnd + 1)) {
+    const t = line.trim();
+    if (!t) {
+      if (paragraph.length) break;
+      continue;
+    }
+    if (t.startsWith("#") || t.startsWith("|")) continue;
+    paragraph.push(t);
+  }
+  return paragraph.join(" ");
+}
+
+/**
  * A one-line description of a node for a hover: its own description
  * (`## Description` / `## Summary`, a rule's body, a domain's `## Scope`)
  * with the markdown stripped, cut at the first sentence or SUMMARY_MAX.
  */
 export function shortSummary(node: ChainNode): string {
-  const raw = "description" in node && node.description ? node.description : "";
+  const raw =
+    ("description" in node && node.description) ||
+    ("content" in node && node.content
+      ? describeFromContent(node.content)
+      : "");
   const plain = raw
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]*)`/g, "$1")
@@ -96,12 +136,11 @@ export function shortSummary(node: ChainNode): string {
 }
 
 function info(node: ChainNode): ReferenceInfo {
-  return {
-    id: node.id,
-    kind: node.kind,
-    name: node.name || node.title,
-    summary: shortSummary(node),
-  };
+  // The readable title (an index row's, a rule's) over the slug-like Name
+  // field; never backticks.
+  const title = node.title && node.title !== node.id ? node.title : "";
+  const name = (title || node.name || node.id).replace(/`/g, "").trim();
+  return { id: node.id, kind: node.kind, name, summary: shortSummary(node) };
 }
 
 const SHORT_ID = /^([A-Z][A-Z0-9]*-\d{3,6})-[A-Za-z0-9]{8}$/;

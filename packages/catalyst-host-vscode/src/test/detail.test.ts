@@ -13,6 +13,7 @@ import {
   buildIamUserDetail,
   buildNodeDetail,
   buildReferenceTable,
+  describeFromContent,
   shortSummary,
 } from "../detail.js";
 
@@ -282,7 +283,8 @@ describe("reference table (REQ-000014)", () => {
   it("lists the entities the text cites, with name and summary", () => {
     const model = modelOf(
       node("REQ-000001-Ab3xR9pQ", {
-        name: "login-flow",
+        title: "Login flow",
+        name: "`login-flow`",
         description: "Users log in. With a password.",
       }),
       node("REQ-000002-Ab3xR9pQ"),
@@ -298,7 +300,7 @@ describe("reference table (REQ-000014)", () => {
     assert.deepStrictEqual(table["REQ-000001-Ab3xR9pQ"], {
       id: "REQ-000001-Ab3xR9pQ",
       kind: "dev-artifact",
-      name: "login-flow",
+      name: "Login flow",
       summary: "Users log in.",
     });
     assert.strictEqual(table["BUG-000003"].id, "BUG-000003-Ab3xR9pQ");
@@ -330,5 +332,36 @@ describe("reference table (REQ-000014)", () => {
     const long = "word ".repeat(80);
     const s = shortSummary(node("X-000001-Ab3xR9pQ", { description: long }));
     assert.ok(s.length <= 180 && s.endsWith("…"));
+  });
+});
+
+describe("hover descriptions from content (BUG-000001 follow-up)", () => {
+  const content =
+    "# `REQ-000013-X` — Panels\n\nA requirement stands on its own: boilerplate.\n\n" +
+    "| Field | Value |\n|---|---|\n| **ID** | `REQ-000013-X` |\n\n## Description\n\nPanels share a group.\n\n## Acceptance\n\n- one\n";
+
+  it("prefers the Description section, never the template prose above the table", () => {
+    assert.strictEqual(describeFromContent(content), "Panels share a group.");
+  });
+
+  it("falls back to the first paragraph after the field table", () => {
+    assert.strictEqual(
+      describeFromContent(
+        "Boilerplate.\n\n| **ID** | `X` |\n\nThe real text\ncontinues.\n\nMore.",
+      ),
+      "The real text continues.",
+    );
+  });
+
+  it("feeds the hover summary when the parser found no description", () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const node: any = {
+      id: "REQ-000013-X",
+      kind: "dev-artifact",
+      title: "Panels",
+      description: "",
+      content,
+    };
+    assert.strictEqual(shortSummary(node), "Panels share a group.");
   });
 });

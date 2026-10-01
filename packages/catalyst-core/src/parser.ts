@@ -490,23 +490,61 @@ export function bulletItems(text: string, heading: string): string[] {
     .filter((line) => line.length > 0);
 }
 
+/**
+ * One collection's files on disk, by artifact ID. The key is the full ID in
+ * the file's own `ID` field when it has one — the kernel's `index regen`
+ * writes full IDs (`REQ-000014-<userid>`) while a deployment may name files
+ * without the userid — else the ID in its filename; a short filename ID
+ * that exactly one full ID in `indexIds` extends is keyed by that full ID.
+ * So a file and its index row are one artifact (`BUG-000001-UVqkd7cL`).
+ */
 function filesById(
   dirPath: string,
   indexPath: string,
   idFromFilenameRe: RegExp,
+  indexIds: Iterable<string> = [],
 ): Map<string, string> {
   const found = new Map<string, string>();
   if (!existsSync(dirPath)) return found;
+  const indexed = [...indexIds];
 
   for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
     if (entry.name === basename(indexPath) || entry.name === "README.md")
       continue;
     const match = entry.name.match(idFromFilenameRe);
-    if (match) found.set(match[1], join(dirPath, entry.name));
+    if (!match) continue;
+    const filePath = join(dirPath, entry.name);
+    found.set(
+      canonicalFileId(filePath, match[1], idFromFilenameRe, indexed),
+      filePath,
+    );
   }
 
   return found;
+}
+
+const ID_FIELD_RE = /^\|\s*\*\*ID\*\*\s*\|\s*`?([^`|\s]+)`?\s*\|/m;
+
+function canonicalFileId(
+  filePath: string,
+  fromFilename: string,
+  idFromFilenameRe: RegExp,
+  indexed: readonly string[],
+): string {
+  let own: string | undefined;
+  try {
+    own = ID_FIELD_RE.exec(readFileSync(filePath, "utf8"))?.[1];
+  } catch {
+    own = undefined;
+  }
+  // the ID field's value, if it is an ID of this collection extending the filename's
+  if (own && (own === fromFilename || own.startsWith(`${fromFilename}-`))) {
+    const shape = `${own}-`.match(idFromFilenameRe);
+    if (shape && shape[1] === own) return own;
+  }
+  const extending = indexed.filter((id) => id.startsWith(`${fromFilename}-`));
+  return extending.length === 1 ? extending[0] : fromFilename;
 }
 
 function buildDevArtifactNode(
@@ -571,7 +609,7 @@ function parseDevArtifactCollection(
 ): ParsedFile[] {
   const index = parseIndexTable(indexPath, DEV_ARTIFACT_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${DEV_ARTIFACT_ID_PATTERN})-`);
-  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe);
+  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe, index.keys());
 
   const files: ParsedFile[] = [];
   const indexOnlyNodes: ChainNode[] = [];
@@ -642,7 +680,7 @@ function parseFeatureCollection(
 ): ParsedFile[] {
   const index = parseIndexTable(indexPath, FEATURE_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${FEATURE_ID_PATTERN})-`);
-  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe);
+  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe, index.keys());
 
   const files: ParsedFile[] = [];
   const indexOnlyNodes: ChainNode[] = [];
@@ -727,7 +765,7 @@ function buildStepNode(
 function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
   const index = parseIndexTable(indexPath, STEP_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${STEP_ID_PATTERN})-`);
-  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe);
+  const onDisk = filesById(dirPath, indexPath, idFromFilenameRe, index.keys());
 
   const files: ParsedFile[] = [];
   const indexOnlyNodes: ChainNode[] = [];
