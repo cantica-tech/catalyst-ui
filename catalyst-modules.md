@@ -180,12 +180,15 @@ the webview that loads `manifest.entry` from `ActiveUiModule.files`.
 
 ```
 cantica-tech/catalyst/
-├── kernel/v0.34.0 … v0.44.0/{manifest.json, kernel-v<version>.zip}
-└── modules/software-engineering/v1.0.0, v2.0.0, v2.3.0/{manifest.json, software-engineering-v<version>.zip}
+├── kernel/v0.34.0 … v0.45.0/{manifest.json, kernel-v<version>.zip}
+└── modules/software-engineering/v1.0.0, v2.0.0, v2.3.0, v2.3.1/{manifest.json, software-engineering-v<version>.zip}
 ```
 
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-01 | catalyst UI 0.35.0 | Workspace-aware: nested deployments, `.catalystignore` and `catalyst.ignoredFolders`, install-offer opt-outs, Workspace Trust, status bar; kernel `>=0.45.0`                    |
+| 2026-10-01 | catalyst 0.45.0    | `kernel-v0.45.0.zip`; what a deployment governs (nested deployments, `.catalystignore`), routing commit-msg hook                                                                |
+| 2026-09-30 | catalyst 0.44.1    | `kernel-v0.44.1.zip`; module releases state their kernel; software-engineering module 2.3.1                                                                                     |
 | 2026-10-01 | catalyst UI 0.34.0 | Detail panels: one editor group per project (`catalyst.detailPanelGroups`); entity references are links with a hover                                                            |
 | 2026-09-30 | catalyst UI 0.33.2 | Extension paired with kernel `>=0.44.0`; deployment synced to kernel 0.44.0                                                                                                     |
 | 2026-09-30 | catalyst 0.44.0    | `kernel-v0.44.0.zip`; four-eyes analysis of existing code (`ANALYSIS-`, `/run-analysis`), playbook deployed                                                                     |

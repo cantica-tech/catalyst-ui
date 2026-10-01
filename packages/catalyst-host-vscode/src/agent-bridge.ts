@@ -142,6 +142,14 @@ export async function resolveAndInvoke(
   args: string,
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
+  // Workspace Trust (REQ-000015-UVqkd7cL): an agent runs commands that change
+  // the project — never in a workspace the user has not trusted.
+  if (!vscode.workspace.isTrusted) {
+    void vscode.window.showWarningMessage(
+      `catalyst runs ${slashCommand} only in a trusted workspace — trust this workspace first.`,
+    );
+    return;
+  }
   const resolved = resolveBinding(agentDef);
 
   if (resolved.kind === "command") {
