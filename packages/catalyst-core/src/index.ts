@@ -92,3 +92,5 @@ export {
 } from "./remote-module-store.js";
 export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";
+
+export * from "./workspace.js";

@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type {
@@ -29,7 +29,6 @@ import {
   discoverSlashCommands,
   downloadModuleZip,
   fetchRemoteUiModules,
-  hasCatalystPointer,
   joinCriterionRepo,
   loadLocalSavedModule,
   meetsRequiredKernelVersion,
@@ -40,6 +39,11 @@ import {
   parseJournal,
   readCatalystPointer,
   readDeployedKernelVersion,
+  findDeployments,
+  IGNORE_FILE,
+  isIgnoredFolder,
+  optedOut,
+  owningDeployment,
   readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
@@ -110,6 +114,8 @@ import {
 
 const VIEW_ID = "catalystChainInspector";
 const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
+/** `catalyst.ignoredFolders`: folders this workspace leaves out of catalyst (REQ-000015-UVqkd7cL). */
+const IGNORED_FOLDERS_SETTING = "ignoredFolders";
 const SHOW_IAM_DETAIL_COMMAND = "catalyst.showIamDetail";
 const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
 const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
@@ -1028,11 +1034,36 @@ async function offerToInstall(
   const choice = await vscode.window.showInformationMessage(
     `No catalyst deployment found in "${folder.name}".`,
     "Set up catalyst…",
+    "Never offer here",
+    "Not in this workspace",
     "Don't ask again",
   );
 
   if (choice === "Don't ask again") {
     await context.workspaceState.update(dismissKey, true);
+    return;
+  }
+  if (choice === "Never offer here") {
+    // The kernel's own opt-out (fw-STRUCTURE-000017): every catalyst host
+    // and agent leaves this folder alone, for everyone (REQ-000015-UVqkd7cL).
+    writeFileSync(
+      join(folder.uri.fsPath, IGNORE_FILE),
+      "# This directory is not governed by catalyst (an empty .catalystignore opts it out).\n",
+    );
+    void vscode.window.showInformationMessage(
+      `Wrote ${IGNORE_FILE} in "${folder.name}": catalyst leaves it alone. Commit it to share that choice.`,
+    );
+    return;
+  }
+  if (choice === "Not in this workspace") {
+    // Personal, this workspace only: catalyst.ignoredFolders.
+    const config = vscode.workspace.getConfiguration("catalyst", folder.uri);
+    const ignored = config.get<string[]>(IGNORED_FOLDERS_SETTING, []);
+    await config.update(
+      IGNORED_FOLDERS_SETTING,
+      [...ignored, folder.uri.fsPath],
+      vscode.ConfigurationTarget.Workspace,
+    );
     return;
   }
   if (choice !== "Set up catalyst…") return;
@@ -1202,11 +1233,11 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  */
 async function offerToSyncKernel(
   context: vscode.ExtensionContext,
-  folder: vscode.WorkspaceFolder,
+  target: DeploymentTarget,
   corpusRoot: string,
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
-  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${folder.uri.fsPath}:${MAX_COMPATIBLE_KERNEL_VERSION}`;
+  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${target.path}:${MAX_COMPATIBLE_KERNEL_VERSION}`;
   if (context.workspaceState.get<boolean>(dismissKey)) return;
 
   const deployed = readDeployedKernelVersion(corpusRoot);
@@ -1215,8 +1246,8 @@ async function offerToSyncKernel(
   if (compareVersions(deployed, MAX_COMPATIBLE_KERNEL_VERSION) >= 0) return;
 
   const message = meetsRequiredKernelVersion(deployed)
-    ? `"${folder.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_KERNEL_VERSION}.`
-    : `"${folder.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_KERNEL_VERSION}?`;
+    ? `"${target.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_KERNEL_VERSION}.`
+    : `"${target.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_KERNEL_VERSION}?`;
 
   const choice = await vscode.window.showInformationMessage(
     message,
@@ -1230,7 +1261,7 @@ async function offerToSyncKernel(
   }
   if (choice !== "Sync now") return;
 
-  const agentDef = resolveChatAgentDef(folder.uri.fsPath);
+  const agentDef = resolveChatAgentDef(target.path);
   if (!agentDef) {
     void vscode.window.showErrorMessage(
       'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
@@ -1246,6 +1277,12 @@ async function offerToSyncKernel(
   );
 }
 
+/** One deployment as the tree shows it: its display name and its project directory. */
+interface DeploymentTarget {
+  name: string;
+  path: string;
+}
+
 interface RegisteredDeployment {
   handle: WatcherHandle;
   disposables: vscode.Disposable[];
@@ -1254,7 +1291,7 @@ interface RegisteredDeployment {
 
 /** Sets up one resolved deployment: its watcher plus its own Definition/CodeLens/CodeActions providers. */
 function setupDeployment(
-  folder: vscode.WorkspaceFolder,
+  target: DeploymentTarget,
   corpusRoot: string,
   provider: ChainInspectorProvider,
   diagnostics: vscode.DiagnosticCollection,
@@ -1268,8 +1305,8 @@ function setupDeployment(
     ({ model, report, proposals, runs, users, roles }) => {
       provider.setState(
         corpusRoot,
-        folder.name,
-        folder.uri.fsPath,
+        target.name,
+        target.path,
         model,
         proposals,
         runs,
@@ -1480,50 +1517,134 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.createOutputChannel("Catalyst");
   context.subscriptions.push(agentBridgeOutputChannel);
 
+  // Every deployment of a workspace folder, nested ones included, by the
+  // kernel's scope rule (REQ-000015-UVqkd7cL): folder -> its corpus roots,
+  // and each corpus root's project directory and display name.
+  const folderDeployments = new Map<string, string[]>();
+  const deploymentTargets = new Map<string, DeploymentTarget>();
+
+  const ignoredFoldersFor = (folder: vscode.WorkspaceFolder): string[] =>
+    vscode.workspace
+      .getConfiguration("catalyst", folder.uri)
+      .get<string[]>(IGNORED_FOLDERS_SETTING, []);
+
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
-    if (!hasCatalystPointer(folder.uri.fsPath)) {
-      void offerToInstall(context, folder);
-      // Auto-trigger module selection if no active module is loaded yet
-      if (!uiModuleManager.getActiveModule()) {
-        void promptAndSwitchUiModule();
+    const ignored = ignoredFoldersFor(folder);
+    const found = findDeployments(folder.uri.fsPath, folder.name, { ignored });
+    const roots: string[] = [];
+    folderDeployments.set(folder.uri.toString(), roots);
+    if (found.length === 0) {
+      const leftOut =
+        optedOut(folder.uri.fsPath) ||
+        isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
+      // Untrusted, catalyst only reads: no install offer (Workspace Trust).
+      if (!leftOut && vscode.workspace.isTrusted) {
+        void offerToInstall(context, folder);
+        // Auto-trigger module selection if no active module is loaded yet
+        if (!uiModuleManager.getActiveModule()) {
+          void promptAndSwitchUiModule();
+        }
       }
       return;
     }
-    const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
-    if (!corpusRoot) return;
-    if (registeredDeployments.has(corpusRoot)) return;
-    registeredDeployments.set(
-      corpusRoot,
-      setupDeployment(
-        folder,
+    for (const deployment of found) {
+      const corpusRoot = resolveCorpusRoot(deployment.projectRoot);
+      if (!corpusRoot) continue;
+      roots.push(corpusRoot);
+      if (registeredDeployments.has(corpusRoot)) continue;
+      const target = { name: deployment.name, path: deployment.projectRoot };
+      deploymentTargets.set(corpusRoot, target);
+      registeredDeployments.set(
         corpusRoot,
-        provider,
-        diagnostics,
-        codeLensChangeEmitter,
-      ),
-    );
-    void offerToSyncKernel(
-      context,
-      folder,
-      corpusRoot,
-      agentBridgeOutputChannel,
-    );
+        setupDeployment(
+          target,
+          corpusRoot,
+          provider,
+          diagnostics,
+          codeLensChangeEmitter,
+        ),
+      );
+      if (vscode.workspace.isTrusted) {
+        void offerToSyncKernel(
+          context,
+          target,
+          corpusRoot,
+          agentBridgeOutputChannel,
+        );
+      }
+    }
+    updateStatusBar();
   }
 
-  function teardownFolder(folder: vscode.WorkspaceFolder): void {
-    const corpusRoot = resolveCorpusRoot(folder.uri.fsPath);
-    if (!corpusRoot) return;
+  function teardownDeployment(corpusRoot: string): void {
     const registered = registeredDeployments.get(corpusRoot);
     if (!registered) return;
-
     for (const file of registered.ownedDiagnosticFiles) {
       diagnostics.delete(vscode.Uri.file(file));
     }
     void registered.handle.close();
     for (const disposable of registered.disposables) disposable.dispose();
     registeredDeployments.delete(corpusRoot);
+    deploymentTargets.delete(corpusRoot);
     provider.removeDeployment(corpusRoot);
   }
+
+  function teardownFolder(folder: vscode.WorkspaceFolder): void {
+    for (const corpusRoot of folderDeployments.get(folder.uri.toString()) ??
+      []) {
+      teardownDeployment(corpusRoot);
+    }
+    folderDeployments.delete(folder.uri.toString());
+    updateStatusBar();
+  }
+
+  function reresolveAll(): void {
+    for (const folder of vscode.workspace.workspaceFolders ?? []) {
+      teardownFolder(folder);
+      resolveFolder(folder);
+    }
+  }
+
+  // The deployment owning the active editor's file, if any.
+  const statusBar = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    50,
+  );
+  context.subscriptions.push(statusBar);
+  function updateStatusBar(): void {
+    const file = vscode.window.activeTextEditor?.document.uri;
+    const roots = [...deploymentTargets.values()].map((t) => t.path);
+    const owner =
+      file?.scheme === "file" ? owningDeployment(roots, file.fsPath) : null;
+    const entry = owner
+      ? [...deploymentTargets.entries()].find(([, t]) => t.path === owner)
+      : undefined;
+    if (!entry) {
+      statusBar.hide();
+      return;
+    }
+    const [corpusRoot, target] = entry;
+    const version = readDeployedKernelVersion(corpusRoot);
+    statusBar.text = `$(beaker) ${target.name}`;
+    statusBar.tooltip = `catalyst deployment "${target.name}"${version ? ` — kernel ${version}` : ""}. Click for its backlog.`;
+    statusBar.command = {
+      title: "Open backlog",
+      command: OPEN_BACKLOG_COMMAND,
+      arguments: [corpusRoot],
+    };
+    statusBar.show();
+  }
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(() => updateStatusBar()),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration(`catalyst.${IGNORED_FOLDERS_SETTING}`)) {
+        reresolveAll();
+      }
+    }),
+    // Trust granted: the offers and agent commands an untrusted
+    // workspace held back become available.
+    vscode.workspace.onDidGrantWorkspaceTrust(() => reresolveAll()),
+  );
 
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
     resolveFolder(folder);
