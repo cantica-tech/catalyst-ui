@@ -1,0 +1,210 @@
+{
+  "name": "catalyst-host-vscode",
+  "displayName": "Catalyst framework",
+  "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
+  "version": "0.34.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "publisher": "CanticaTech",
+  "icon": "resources/icon.png",
+  "categories": [
+    "Other",
+    "Visualization",
+    "Linters"
+  ],
+  "keywords": [
+    "catalyst",
+    "traceability",
+    "governance",
+    "requirements",
+    "rules"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliben67/catalyst-ui.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "catalyst": {
+    "kernelVersion": ">=0.44.0"
+  },
+  "main": "dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "catalyst",
+          "title": "Catalyst",
+          "icon": "resources/catalyst.svg"
+        }
+      ]
+    },
+    "views": {
+      "catalyst": [
+        {
+          "id": "catalystChainInspector",
+          "name": "Chain Inspector",
+          "icon": "resources/catalyst.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "catalyst.showNodeDetail",
+        "title": "Catalyst: Show Node Detail"
+      },
+      {
+        "command": "catalyst.showIamDetail",
+        "title": "Catalyst: Show User/Role Detail"
+      },
+      {
+        "command": "catalyst.openJournal",
+        "title": "Catalyst: Open Journal"
+      },
+      {
+        "command": "catalyst.openBacklog",
+        "title": "Catalyst: Open Backlog"
+      },
+      {
+        "command": "catalyst.proposeFix",
+        "title": "Catalyst: Propose Fix"
+      },
+      {
+        "command": "catalyst.composeProposal",
+        "title": "Catalyst: Compose Proposal"
+      },
+      {
+        "command": "catalyst.sendToAgentChat",
+        "title": "Catalyst: Send to Agent (Chat)…",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "catalyst.configureCriterion",
+        "title": "Catalyst: Configure Criterion Repo…",
+        "icon": "$(repo)"
+      },
+      {
+        "command": "catalyst.refreshChainInspector",
+        "title": "Catalyst: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "catalyst.loadUiModule",
+        "title": "Catalyst: Load Zipped UI Module…"
+      },
+      {
+        "command": "catalyst.selectKernelVersion",
+        "title": "Catalyst: Load Specific Kernel Version in Memory…"
+      },
+      {
+        "command": "catalyst.switchUiModule",
+        "title": "Catalyst: Switch Process UI Module…",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "catalyst.openSettings",
+        "title": "Catalyst: Open Settings",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "catalyst.switchUiModule",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@0"
+        },
+        {
+          "command": "catalyst.refreshChainInspector",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@1"
+        },
+        {
+          "command": "catalyst.sendToAgentChat",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@2"
+        },
+        {
+          "command": "catalyst.configureCriterion",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@3"
+        },
+        {
+          "command": "catalyst.openSettings",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@4"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Catalyst",
+      "properties": {
+        "catalyst.frameworkPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
+        },
+        "catalyst.moduleSourceUrl": {
+          "type": "string",
+          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/",
+          "description": "Source location URL for downloading Catalyst process modules. Supports Git SSH URLs (git@github.com:owner/repo.git/path/), GitHub tree URLs (https://github.com/owner/repo/tree/branch/path), standard VCS URIs (git+https://github.com/owner/repo.git#branch:path), or raw GitHub HTTP URLs."
+        },
+        "catalyst.kernelSourceUrl": {
+          "type": "string",
+          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/kernel/",
+          "description": "Source location URL for downloading Catalyst kernel releases."
+        },
+        "catalyst.detailPanelGroups": {
+          "type": "string",
+          "enum": [
+            "perProject",
+            "single"
+          ],
+          "default": "perProject",
+          "enumDescriptions": [
+            "Each project's detail panels open as tabs in one editor group of their own.",
+            "Every project's detail panels share one single editor group."
+          ],
+          "description": "Where entity detail panels open: at most one editor group per project (default), or one group for every project. A project's first panel opens beside the active editor; later ones join its group as tabs."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "catalyst",
+        "aliases": [
+          "Catalyst File",
+          "catalyst"
+        ],
+        "extensions": [
+          ".catalyst"
+        ],
+        "icon": {
+          "light": "./resources/catalyst.svg",
+          "dark": "./resources/catalyst.svg"
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc --build --force",
+    "prebuild": "npm run build:webview --workspace=catalyst-ui && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js",
+    "test": "mocha \"dist/test/**/*.test.js\"",
+    "pretest": "npm run build",
+    "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:fsevents --outfile=dist/extension.js",
+    "package": "npm run build && npm run bundle && npx vsce package --no-dependencies -o catalyst-host-vscode.vsix",
+    "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
+  },
+  "dependencies": {
+    "catalyst-core": "*"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.3.9",
+    "@vscode/vsce": "^2.27.0",
+    "esbuild": "^0.21.5",
+    "mocha": "^10.3.0"
+  }
+}
