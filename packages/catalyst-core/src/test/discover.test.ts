@@ -19,6 +19,7 @@ import {
   readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
+  workingCopyState,
 } from "../discover.js";
 
 let projectRoot: string | undefined;
@@ -310,5 +311,30 @@ describe("readEntityDefinition", () => {
       "# `rule`\n\n| Field | Value |\n|---|---|\n| **Version** | 1 |\n",
     );
     expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
+  });
+});
+
+describe("workingCopyState (REQ-000016)", () => {
+  it("tells reachable, dangling and missing working copies apart", () => {
+    const base = mkdtempSync(join(tmpdir(), "catalyst-wc-"));
+    try {
+      const project = join(base, "project");
+      mkdirSync(project);
+      writeFileSync(join(project, "app.catalyst"), "{}");
+      const home = join(base, "elsewhere", ".criterion");
+      // missing: no .criterion, no fallback (a fresh HOME-independent path)
+      expect(workingCopyState(project).state).toBe("missing");
+      // dangling: a symlink into another machine's agent-owned space
+      symlinkSync(home, join(project, ".criterion"));
+      expect(workingCopyState(project)).toEqual({
+        state: "dangling",
+        target: home,
+      });
+      // reachable once the target exists (mounted, or created)
+      mkdirSync(home, { recursive: true });
+      expect(workingCopyState(project).state).toBe("reachable");
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 });

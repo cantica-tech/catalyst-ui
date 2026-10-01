@@ -28,7 +28,9 @@ export {
   readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
+  workingCopyState,
 } from "./discover.js";
+export type { WorkingCopyState } from "./discover.js";
 export {
   BACKTICK_DEV_ARTIFACT_ID_RE,
   BACKTICK_FEATURE_ID_RE,
