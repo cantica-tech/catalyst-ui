@@ -55,7 +55,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     if (s.includes("passing")) return "✅ ";
     if (s.includes("failing")) return "❌ ";
     if (s.includes("blocked")) return "⚠️ ";
-    return "⃠ "; // proposed, or unrecognized
+    return "… "; // proposed, or unrecognized
   }
 
   const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
@@ -89,7 +89,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
       return "⏳ ";
     }
 
-    return "⃠ ";
+    return "… ";
   }
 
   // A requirement or a feature: implemented, in progress, not implemented
@@ -114,7 +114,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
       s.includes("⏳")
     )
       return "⏳ ";
-    return "⃠ "; // draft, proposed, vetted, triaged, or none yet
+    return "… "; // draft, proposed, vetted, triaged, or none yet
   }
 
   if (node.kind === "step") {
@@ -126,7 +126,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
       case "abandoned":
         return "🗑 ";
       default:
-        return "⃠ ";
+        return "… ";
     }
   }
 
