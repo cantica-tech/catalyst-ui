@@ -186,6 +186,7 @@ cantica-tech/catalyst/
 
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-02 | catalyst UI 0.37.2 | One "not yet" marker in the chain tree: … for requirements, features, steps, tests and roadmap items                                                                            |
 | 2026-10-02 | catalyst UI 0.37.1 | Requirement and feature status markers: ✅ implemented, ⏳ in progress, ⃠ not implemented yet, 🗑 abandoned                                                                      |
 | 2026-10-02 | catalyst UI 0.37.0 | One chain inspector panel per deployment; the entity a panel shows is tracked in the tree; Journal/Backlog entries; no duplicate artifacts                                      |
 | 2026-10-01 | catalyst UI 0.36.0 | Remote, WSL, dev containers: runs where the files are; unreachable working copies reported with a fix; virtual workspaces unsupported                                           |

@@ -25,7 +25,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "⃠ Password Reset Flow [REQ-000001 - Olivier Steck]",
+      "… Password Reset Flow [REQ-000001 - Olivier Steck]",
     );
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
@@ -38,7 +38,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "⃠ Password Reset Flow [REQ-000001]",
+      "… Password Reset Flow [REQ-000001]",
     );
     assert.strictEqual(getNodeUser(n), undefined);
   });
@@ -52,7 +52,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "⃠ Password Reset Flow Title [REQ-000001 - Olivier Steck]",
+      "… Password Reset Flow Title [REQ-000001 - Olivier Steck]",
     );
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
@@ -197,14 +197,14 @@ describe("formatNodeLabel", () => {
     assert.strictEqual(formatNodeLabel(n), "⏳ Import dataset [RM-000002]");
   });
 
-  it("formats a not done roadmap item with ⃠ status glyph", () => {
+  it("formats a not done roadmap item with … status glyph", () => {
     const n = node({
       id: "RM-000003-z6qEx1Kf",
       kind: "roadmap",
       name: "Realtime updates",
       status: "Not triaged",
     });
-    assert.strictEqual(formatNodeLabel(n), "⃠ Realtime updates [RM-000003]");
+    assert.strictEqual(formatNodeLabel(n), "… Realtime updates [RM-000003]");
   });
 
   it("formats a passing test with ✅ status glyph", () => {
@@ -249,7 +249,7 @@ describe("formatNodeLabel", () => {
     );
   });
 
-  it("formats a proposed test with ⃠ status glyph", () => {
+  it("formats a proposed test with … status glyph", () => {
     const n = node({
       id: "TEST-000004-z6qEx1Kf",
       kind: "dev-artifact",
@@ -259,7 +259,7 @@ describe("formatNodeLabel", () => {
     });
     assert.strictEqual(
       formatNodeLabel(n),
-      "⃠ Exploratory smoke test [TEST-000004]",
+      "… Exploratory smoke test [TEST-000004]",
     );
   });
 
@@ -295,10 +295,10 @@ describe("formatNodeLabel", () => {
       }
     });
 
-    it("marks one not implemented yet ⃠", () => {
+    it("marks one not implemented yet …", () => {
       for (const s of ["Draft", "Proposed", "Vetted", "Triaged", ""]) {
-        assert.strictEqual(glyph(req(s)), "⃠", s);
-        assert.strictEqual(glyph(feat(s)), "⃠", s);
+        assert.strictEqual(glyph(req(s)), "…", s);
+        assert.strictEqual(glyph(feat(s)), "…", s);
       }
     });
 
