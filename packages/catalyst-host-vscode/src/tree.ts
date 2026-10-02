@@ -55,7 +55,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     if (s.includes("passing")) return "✅ ";
     if (s.includes("failing")) return "❌ ";
     if (s.includes("blocked")) return "⚠️ ";
-    return "∅ "; // proposed, or unrecognized
+    return "⃠ "; // proposed, or unrecognized
   }
 
   const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
@@ -89,7 +89,32 @@ export function getNodeStatusGlyph(node: ChainNode): string {
       return "⏳ ";
     }
 
-    return "∅ ";
+    return "⃠ ";
+  }
+
+  // A requirement or a feature: implemented, in progress, not implemented
+  // yet, or abandoned — from the statuses their entity definitions allow
+  // (and the legacy values older artifacts still carry).
+  const isRequirement =
+    (node.kind === "dev-artifact" && node.artifactType === "requirement") ||
+    node.id.startsWith("REQ-");
+  const isFeature = node.kind === "feature" || node.id.startsWith("FEAT-");
+  if (isRequirement || isFeature) {
+    const s = (
+      "status" in node && typeof node.status === "string" ? node.status : ""
+    )
+      .toLowerCase()
+      .replace(/[`*_]/g, "")
+      .trim();
+    if (/\b(completed|done|shipped|implemented)\b/.test(s) || s.includes("✅"))
+      return "✅ ";
+    if (/\b(abandoned|wontfix)\b/.test(s) || s.includes("🗑")) return "🗑 ";
+    if (
+      /\b(active|in[- _]?progress|in[- _]?development)\b/.test(s) ||
+      s.includes("⏳")
+    )
+      return "⏳ ";
+    return "⃠ "; // draft, proposed, vetted, triaged, or none yet
   }
 
   if (node.kind === "step") {
@@ -101,7 +126,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
       case "abandoned":
         return "🗑 ";
       default:
-        return "∅ ";
+        return "⃠ ";
     }
   }
 
