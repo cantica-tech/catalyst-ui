@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "name": "Test User",
+      "roles": ["Admin"],
+      "registered": "2026-01-01",
+      "active": true,
+      "notes": "",
+      "userid": "Abcd1234"
+    }
+  ]
+}

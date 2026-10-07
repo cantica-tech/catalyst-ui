@@ -8,7 +8,15 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+// Worker threads keep their own copy of process.env, which libuv's
+// homedir() never sees: route homedir() through it so a test can point
+// HOME at a scratch directory.
+vi.mock("node:os", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:os")>();
+  return { ...actual, homedir: () => process.env.HOME ?? actual.homedir() };
+});
 
 import {
   claudeCodeStoragePath,
@@ -253,12 +261,13 @@ describe("meetsRequiredKernelVersion", () => {
   });
 
   it("returns true for a deployment at or above the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.31.0")).toBe(true);
-    expect(meetsRequiredKernelVersion("0.32.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.45.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.46.0")).toBe(true);
   });
 
   it("returns false for a deployment below the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.30.0")).toBe(false);
+    expect(meetsRequiredKernelVersion("0.44.9")).toBe(false);
+    expect(meetsRequiredKernelVersion("0.31.0")).toBe(false);
   });
 
   it("treats null (can't safely compare) as satisfying the requirement", () => {
@@ -335,6 +344,36 @@ describe("workingCopyState (REQ-000016)", () => {
       expect(workingCopyState(project).state).toBe("reachable");
     } finally {
       rmSync(base, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("resolveCorpusRoot — no memory-note scan (B-13)", () => {
+  it("never adopts a path found in another tool's memory notes", () => {
+    const fakeHome = mkdtempSync(join(tmpdir(), "catalyst-core-home-"));
+    const savedHome = process.env.HOME;
+    process.env.HOME = fakeHome;
+    try {
+      projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
+      const name = projectRoot.split("/").pop()!;
+      // Another project's working copy, mentioned in a memory note that
+      // merely contains this project's name.
+      const elsewhere = join(fakeHome, "other-project", ".criterion");
+      mkdirSync(elsewhere, { recursive: true });
+      const memDir = join(fakeHome, ".claude", "memories");
+      mkdirSync(memDir, { recursive: true });
+      writeFileSync(
+        join(memDir, "note.md"),
+        `About ${name}-legacy.\nworking copy: ${elsewhere}\n`,
+      );
+      writeFileSync(
+        join(projectRoot, "p.catalyst"),
+        JSON.stringify({ project_name: "p" }),
+      );
+      expect(resolveCorpusRoot(projectRoot)).toBeNull();
+    } finally {
+      process.env.HOME = savedHome;
+      rmSync(fakeHome, { recursive: true, force: true });
     }
   });
 });

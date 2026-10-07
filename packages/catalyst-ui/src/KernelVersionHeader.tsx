@@ -13,7 +13,9 @@ export function KernelVersionHeader({
   const [open, setOpen] = useState(!meets);
 
   const versionDisplay = versionInfo?.version ?? "Unknown";
-  const requiredDisplay = versionInfo?.requiredVersion ?? ">=0.31.0";
+  // The required range comes only from the host (catalyst-core's
+  // REQUIRED_KERNEL_VERSION); never a second, drifting copy here.
+  const requiredDisplay = versionInfo?.requiredVersion ?? "unknown";
   const explanation =
     versionInfo?.explanation ||
     (!meets

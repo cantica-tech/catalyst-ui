@@ -132,3 +132,18 @@ describe("UiModuleManager", () => {
     expect(manager.getActiveModule()?.manifest.id).toBe("module-b");
   });
 });
+
+describe("loadAndActivateZipModule — kernel version argument (B-07)", () => {
+  it("refuses a range string where a version is expected", () => {
+    const zip = packageUiModule({
+      id: "m",
+      name: "M",
+      version: "1.0.0",
+      kernelVersion: ">=0.30.0",
+      entry: "ui/index.js",
+    });
+    const res = new UiModuleManager().loadAndActivateZipModule(zip, ">=0.31.0");
+    expect(res.success).toBe(false);
+    if (!res.success) expect(res.error).toMatch(/not a kernel version/);
+  });
+});

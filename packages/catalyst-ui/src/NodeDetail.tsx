@@ -1,6 +1,6 @@
 import type { ChainNode, Proposal, ReferenceInfo } from "catalyst-core";
-import { marked } from "marked";
 
+import { renderMarkdown } from "./markdown.js";
 import { REFERENCE_CLASS, hoverText, linkifyReferences } from "./references.js";
 
 export interface NodeDetailProps {
@@ -115,12 +115,10 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
  * (headings, lists, tables, bold/italic, code blocks) rather than raw
  * markdown syntax or a single flattened line — the whole point of
  * surfacing the file's complete content instead of a hand-picked field
- * is that it has to read as a normal document, not markup soup. The
- * host's webview CSP (`default-src 'none'; script-src 'nonce-...'`)
- * blocks any injected `<script>` from executing even though this is raw
- * HTML, but content always originates from local, trusted files (never
- * a remote or multi-tenant source), matching this codebase's existing
- * trust boundary.
+ * is that it has to read as a normal document, not markup soup. Corpus
+ * text comes from whatever repository was cloned, so it is rendered
+ * through `renderMarkdown` (raw HTML escaped, unsafe URLs dropped), with
+ * the host's CSP as a second layer.
  */
 function DetailsSection({
   node,
@@ -131,10 +129,7 @@ function DetailsSection({
 }) {
   const content = fullContentOf(node);
   if (!content) return null;
-  const html = linkifyReferences(
-    marked.parse(content, { async: false }) as string,
-    references,
-  );
+  const html = linkifyReferences(renderMarkdown(content), references);
   return (
     <section>
       <h2>Details</h2>

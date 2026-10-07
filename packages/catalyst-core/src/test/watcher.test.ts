@@ -118,3 +118,50 @@ describe("watchCorpus", () => {
     expect(updates[0].model.nodes.size).toBeGreaterThan(0);
   });
 });
+
+describe("isIgnoredWatchPath (B-12)", () => {
+  it("ignores .git, node_modules and tool caches, not corpus files", async () => {
+    const { isIgnoredWatchPath } = await import("../watcher.js");
+    const r = "/p/.criterion";
+    expect(isIgnoredWatchPath(r, "/p/.criterion/.git/index")).toBe(true);
+    expect(isIgnoredWatchPath(r, "/p/.criterion/.git")).toBe(true);
+    expect(isIgnoredWatchPath(r, "/p/.criterion/node_modules/x/a.md")).toBe(
+      true,
+    );
+    expect(isIgnoredWatchPath(r, "/p/.criterion/bin/__pycache__/a.pyc")).toBe(
+      true,
+    );
+    expect(
+      isIgnoredWatchPath(r, "/p/.criterion/requirements/REQ-000001-a.md"),
+    ).toBe(false);
+    expect(isIgnoredWatchPath(r, "/p/.criterion")).toBe(false);
+    // Only segments inside the corpus count: a corpus living under a
+    // folder named node_modules is still watched.
+    expect(
+      isIgnoredWatchPath(
+        "/x/node_modules/p/.criterion",
+        "/x/node_modules/p/.criterion/rules/a.md",
+      ),
+    ).toBe(false);
+  });
+
+  it("does not report a change under .git", async () => {
+    const { mkdirSync } = await import("node:fs");
+    root = createFixtureCorpus({
+      requirements: [
+        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
+      ],
+    });
+    const updates: WatchUpdate[] = [];
+    const handle = watchCorpus(root, (update) => updates.push(update), {
+      debounceMs: 30,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const before = updates.length;
+    mkdirSync(join(root, ".git"), { recursive: true });
+    writeFileSync(join(root, ".git", "index"), "x");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await handle.close();
+    expect(updates.length).toBe(before);
+  });
+});

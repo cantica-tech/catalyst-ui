@@ -1,3 +1,4 @@
+import { buildShortFormIndex, resolveIdReference } from "./ids.js";
 import type {
   ChainModel,
   ChainNode,
@@ -36,9 +37,10 @@ export function buildChainModel(parseResult: ParseResult): ChainModel {
     reverseEdges.get(to)!.add(from);
   };
 
+  const shortIndex = buildShortFormIndex(nodes.keys());
   for (const node of nodes.values()) {
     for (const ref of node.references) {
-      addEdge(node.id, ref);
+      addEdge(node.id, resolveIdReference(nodes, ref, shortIndex) ?? ref);
     }
     if (node.kind === "rule" && node.domain) {
       addEdge(node.id, node.domain);

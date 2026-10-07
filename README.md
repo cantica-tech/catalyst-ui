@@ -43,9 +43,12 @@ command line: `task release:vsix:publish PUBLISH_DIR=... --
 - `packages/catalyst-host-vscode` — the published VS Code extension:
   thin adapter over the core↔UI protocol via `postMessage`, plus
   diagnostics, CodeLens, and code actions native to VS Code.
-- `packages/catalyst-host-electron` — the standalone desktop app: the
-  same adapter pattern over IPC, plus multi-project tracking and a
-  graph view.
+- `packages/catalyst-host-electron` — **experimental**, not released or
+  packaged: a development prototype of a standalone desktop app (the
+  same adapter pattern over IPC, plus multi-project tracking and a graph
+  view). It opens repositories you choose and can start their agent, so
+  run it only on repositories you trust; it has no packaging, signing or
+  auto-update.
 
 ## Development
 
