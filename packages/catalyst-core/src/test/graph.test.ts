@@ -313,3 +313,32 @@ describe("buildChainModel", () => {
     );
   });
 });
+
+describe("buildChainModel — short-form references (B-03)", () => {
+  it("links a unique short-form citation to the suffixed node", () => {
+    const model = buildChainModel(
+      parseResult([
+        {
+          file: "f.md",
+          mtimeMs: 0,
+          nodes: [
+            node({
+              id: "REQ-000014-UVqkd7cL",
+              kind: "dev-artifact",
+              targets: [],
+            } as Partial<ChainNode> & Pick<ChainNode, "id" | "kind">),
+            node({
+              id: "BUG-000001-UVqkd7cL",
+              kind: "dev-artifact",
+              targets: [],
+              references: ["REQ-000014"],
+            } as Partial<ChainNode> & Pick<ChainNode, "id" | "kind">),
+          ],
+        },
+      ]),
+    );
+    expect([...(model.edges.get("BUG-000001-UVqkd7cL") ?? [])]).toEqual([
+      "REQ-000014-UVqkd7cL",
+    ]);
+  });
+});

@@ -1,4 +1,5 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -7,14 +8,26 @@ import {
   composeSlashCommand,
   discoverSlashCommands,
   openProposalsByTarget,
-  resolveAgentCommand,
+  resolveAgentLaunch,
   resolveCorpusRoot,
   watchCorpus,
 } from "catalyst-core";
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  type IpcMainInvokeEvent,
+} from "electron";
 
 import { buildNodeDetail } from "./detail.js";
 import { computeGraphLayout } from "./graph.js";
+import {
+  isProjectId,
+  renderIndexHtml,
+  validateAgentInput,
+  validateSlashCommandRequest,
+} from "./security.js";
 import {
   addTrackedProject,
   loadTrackedProjects,
@@ -58,7 +71,13 @@ function startWatching(project: TrackedProject, win: BrowserWindow): void {
   runtimeByProjectId.set(project.id, { handle, model: null, proposals: [] });
 }
 
-/** One spawned agent process per project, reused across multiple slash-command runs — never crossed with another project's live session. */
+/**
+ * One spawned agent process per project, reused across multiple
+ * slash-command runs — never crossed with another project's live session.
+ * The binary comes from the allow-list in `resolveAgentLaunch` (never the
+ * pointer's raw `agent` string) and is spawned with an argv array and
+ * `shell: false`, so nothing from the repository reaches a shell (B-01).
+ */
 function runSlashCommand(
   win: BrowserWindow,
   project: TrackedProject,
@@ -66,15 +85,13 @@ function runSlashCommand(
   name: string,
   args: string,
 ): string | null {
-  const agentCommand = resolveAgentCommand(project.projectRoot);
-  if (!agentCommand) {
-    return 'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.';
-  }
+  const launch = resolveAgentLaunch(project.projectRoot);
+  if (!launch.ok) return launch.reason;
 
   if (!runtime.agentProcess) {
-    const child = spawn(agentCommand, [], {
+    const child = spawn(launch.command, launch.args, {
       cwd: project.projectRoot,
-      shell: true,
+      shell: false,
     });
     const forward = (chunk: Buffer) =>
       win.webContents.send("catalyst:agent-output", {
@@ -83,6 +100,13 @@ function runSlashCommand(
       });
     child.stdout.on("data", forward);
     child.stderr.on("data", forward);
+    child.on("error", (error) => {
+      win.webContents.send("catalyst:agent-output", {
+        projectId: project.id,
+        chunk: `\n[could not start ${launch.command}: ${error.message}]\n`,
+      });
+      runtime.agentProcess = undefined;
+    });
     child.on("exit", (code) => {
       win.webContents.send("catalyst:agent-output", {
         projectId: project.id,
@@ -97,12 +121,18 @@ function runSlashCommand(
   return null;
 }
 
+/** Only this app's own window may call the IPC API. */
+function fromOwnWindow(win: BrowserWindow, event: IpcMainInvokeEvent): boolean {
+  return !win.isDestroyed() && event.sender === win.webContents;
+}
+
 function registerIpcHandlers(win: BrowserWindow): void {
-  ipcMain.handle("catalyst:listProjects", () =>
-    loadTrackedProjects(stateFilePath()),
+  ipcMain.handle("catalyst:listProjects", (event) =>
+    fromOwnWindow(win, event) ? loadTrackedProjects(stateFilePath()) : [],
   );
 
-  ipcMain.handle("catalyst:addProject", async () => {
+  ipcMain.handle("catalyst:addProject", async (event) => {
+    if (!fromOwnWindow(win, event)) return null;
     const result = await dialog.showOpenDialog(win, {
       properties: ["openDirectory"],
     });
@@ -123,7 +153,8 @@ function registerIpcHandlers(win: BrowserWindow): void {
     return added;
   });
 
-  ipcMain.handle("catalyst:removeProject", async (_event, id: string) => {
+  ipcMain.handle("catalyst:removeProject", async (event, id: unknown) => {
+    if (!fromOwnWindow(win, event) || !isProjectId(id)) return;
     const runtime = runtimeByProjectId.get(id);
     if (runtime) {
       await runtime.handle.close();
@@ -136,7 +167,9 @@ function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle(
     "catalyst:getNodeDetail",
-    (_event, projectId: string, nodeId: string) => {
+    (event, projectId: unknown, nodeId: unknown) => {
+      if (!fromOwnWindow(win, event)) return null;
+      if (!isProjectId(projectId) || !isProjectId(nodeId)) return null;
       const runtime = runtimeByProjectId.get(projectId);
       if (!runtime?.model) return null;
       return buildNodeDetail(
@@ -149,7 +182,8 @@ function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle(
     "catalyst:listSlashCommands",
-    (_event, projectId: string): SlashCommandSpec[] => {
+    (event, projectId: unknown): SlashCommandSpec[] => {
+      if (!fromOwnWindow(win, event) || !isProjectId(projectId)) return [];
       const project = loadTrackedProjects(stateFilePath()).find(
         (p) => p.id === projectId,
       );
@@ -159,34 +193,44 @@ function registerIpcHandlers(win: BrowserWindow): void {
 
   ipcMain.handle(
     "catalyst:runSlashCommand",
-    (_event, projectId: string, name: string, args: string): string | null => {
-      const project = loadTrackedProjects(stateFilePath()).find(
-        (p) => p.id === projectId,
-      );
-      const runtime = runtimeByProjectId.get(projectId);
+    (
+      event,
+      projectId: unknown,
+      name: unknown,
+      args: unknown,
+    ): string | null => {
+      if (!fromOwnWindow(win, event)) return "Refused.";
+      const project = isProjectId(projectId)
+        ? loadTrackedProjects(stateFilePath()).find((p) => p.id === projectId)
+        : undefined;
+      const runtime = project ? runtimeByProjectId.get(project.id) : undefined;
       if (!project || !runtime) return "Unknown project.";
-      return runSlashCommand(win, project, runtime, name, args);
+      // Only a command this project actually ships can be dispatched.
+      const allowed = discoverSlashCommands(project.projectRoot).map(
+        (c) => c.name,
+      );
+      const checked = validateSlashCommandRequest(
+        projectId,
+        name,
+        args,
+        allowed,
+      );
+      if (!checked.ok) return checked.error;
+      return runSlashCommand(win, project, runtime, checked.name, checked.args);
     },
   );
 
   ipcMain.handle(
     "catalyst:sendAgentInput",
-    (_event, projectId: string, text: string) => {
-      runtimeByProjectId.get(projectId)?.agentProcess?.stdin.write(`${text}\n`);
+    (event, projectId: unknown, text: unknown) => {
+      if (!fromOwnWindow(win, event)) return;
+      const checked = validateAgentInput(projectId, text);
+      if (!checked.ok) return;
+      runtimeByProjectId
+        .get(projectId as string)
+        ?.agentProcess?.stdin.write(`${checked.text}\n`);
     },
   );
-}
-
-function renderIndexHtml(rendererPath: string): string {
-  const scriptSrc = pathToFileURL(rendererPath).toString();
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="UTF-8" /></head>
-<body>
-<div id="root"></div>
-<script src="${scriptSrc}"></script>
-</body>
-</html>`;
 }
 
 function createMainWindow(): BrowserWindow {
@@ -197,10 +241,22 @@ function createMainWindow(): BrowserWindow {
       preload: join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
+      // The preload only needs `contextBridge`/`ipcRenderer`, both
+      // available to a sandboxed preload.
+      sandbox: true,
+      webSecurity: true,
     },
   });
 
-  const html = renderIndexHtml(join(__dirname, "renderer.js"));
+  // Never navigate away from, or open new windows over, the app page.
+  win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  win.webContents.on("will-navigate", (event) => event.preventDefault());
+
+  const nonce = randomBytes(16).toString("base64");
+  const html = renderIndexHtml(
+    pathToFileURL(join(__dirname, "renderer.js")).toString(),
+    nonce,
+  );
   void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
   return win;

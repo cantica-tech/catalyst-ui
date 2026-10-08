@@ -1,4 +1,12 @@
-export const VERSION = "0.19.0";
+/** This package's version; equals package.json and the repository's version.txt (tested). */
+export const VERSION = "0.38.0";
+
+export {
+  KERNEL_VERSION_FLOOR,
+  VERIFIED_KERNEL_VERSION,
+  kernelSyncTarget,
+  restoreKernelVersion,
+} from "./kernel-version.js";
 
 export * from "./types.js";
 export * from "./module-loader.js";
@@ -12,7 +20,12 @@ export {
   resolveParticipant,
   type AgentPreset,
 } from "./agent-bridge.js";
-export { resolveAgentCommand } from "./agent-launch.js";
+export {
+  isAllowedAgentId,
+  resolveAgentCommand,
+  resolveAgentLaunch,
+} from "./agent-launch.js";
+export type { AgentLaunch } from "./agent-launch.js";
 export {
   discoverSlashCommands,
   type SlashCommandSpec,

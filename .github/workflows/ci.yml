@@ -28,10 +28,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Check out the .criterion submodule (public, over https)
+      - name: Check out the .criterion submodule (private, read-only deploy key)
+        env:
+          CRITERION_DEPLOY_KEY: ${{ secrets.CRITERION_DEPLOY_KEY }}
         run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git submodule update --init .criterion
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$CRITERION_DEPLOY_KEY" > ~/.ssh/criterion
+          chmod 600 ~/.ssh/criterion
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/criterion -o IdentitiesOnly=yes" \
+            git submodule update --init .criterion
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

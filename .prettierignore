@@ -3,3 +3,5 @@ out
 node_modules
 package-lock.json
 .claude
+# Golden corpus for the kernel parity test: kept byte-for-byte as the kernel reads it
+packages/catalyst-core/src/test/fixtures

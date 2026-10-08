@@ -37,4 +37,9 @@ describe("KernelVersionHeader", () => {
     );
     expect(html).toContain("#ef4444"); // red styling
   });
+
+  it("never invents a stale required range when the host gave none (B-09)", () => {
+    const html = renderToStaticMarkup(createElement(KernelVersionHeader, {}));
+    expect(html).not.toContain("0.31.0");
+  });
 });

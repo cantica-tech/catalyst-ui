@@ -86,3 +86,53 @@ export function devArtifactType(id: string): DevArtifactType {
   if (id.startsWith("TEST-")) return "test";
   return "requirement";
 }
+
+const SHORT_FORM_RE = /^[A-Z]+-\d{6}$/;
+const SUFFIXED_RE = /^([A-Z]+-\d{6})-[A-Za-z0-9]+$/;
+
+/**
+ * Short form (`REQ-000014`) -> the one full id extending it
+ * (`REQ-000014-UVqkd7cL`), or `null` when two ids share it. Built once per
+ * model so resolution stays O(1) per citation.
+ */
+export function buildShortFormIndex(
+  ids: Iterable<string>,
+): Map<string, string | null> {
+  const index = new Map<string, string | null>();
+  for (const id of ids) {
+    const short = SUFFIXED_RE.exec(id)?.[1];
+    if (!short) continue;
+    index.set(short, index.has(short) ? null : id);
+  }
+  return index;
+}
+
+/**
+ * The node id a citation refers to: the id itself when it exists, else —
+ * for a bare `PREFIX-NNNNNN` short form (prose often drops the userid
+ * suffix, Rules-of-Rules.md §20) — the one id that extends it with
+ * `-<suffix>`. `null` when nothing matches or the short form is
+ * ambiguous (two suffixed ids share it).
+ */
+export function resolveIdReference(
+  ids: { has(id: string): boolean; keys(): Iterable<string> },
+  ref: string,
+  shortIndex: Map<string, string | null> = buildShortFormIndex(ids.keys()),
+): string | null {
+  if (ids.has(ref)) return ref;
+  if (!SHORT_FORM_RE.test(ref)) return null;
+  return shortIndex.get(ref) ?? null;
+}
+
+/**
+ * Rule namespaces owned by the framework itself (`rr-` Rules-of-Rules,
+ * `fw-` catalyst's own rules): a deployment cites them in prose ("kernel
+ * `fw-STRUCTURE-000017`") but never defines them, so such a citation is
+ * external, not dangling — the kernel's `catalyst check` agrees.
+ */
+export const FRAMEWORK_RULE_PREFIXES: readonly string[] = ["rr", "fw"];
+
+export function isFrameworkRuleId(id: string): boolean {
+  if (!RULE_ID_RE.test(id)) return false;
+  return FRAMEWORK_RULE_PREFIXES.includes(id.slice(0, id.indexOf("-")));
+}
