@@ -21,7 +21,7 @@ though invoking this command already implies intent.**
 Refuses if a `<app-name>.catalyst` pointer or an in-project
 `.criterion/` already exists at this project's root — that's
 `import ... force`'s job, not this one's.
-1. Resolve the agent-owned location (`BOOTSTRAP.md` §1): agent-owned
+1. Resolve the agent-owned location (`Rules-of-Rules.md` §14): agent-owned
    per-project storage if this agent has one, else the in-project
    fallback.
 2. Run the instantiation procedure (`INSTANTIATION-GUIDE.md`), building
@@ -32,7 +32,7 @@ Refuses if a `<app-name>.catalyst` pointer or an in-project
 4. Create the `.criterion` symlink at the project root pointing at the
    working copy (skip on the in-project fallback), and add `/.criterion`
    to the project's `.gitignore` if absent.
-5. Report the result. Nothing is committed automatically (hard rule 4).
+5. Report the result. Nothing is committed automatically (INV-4).
 
 ## `remove <project name> [force]`
 

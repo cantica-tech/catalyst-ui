@@ -13,7 +13,7 @@ Input: $ARGUMENTS
 
 1. Resolve the target agent identifier: `$ARGUMENTS` if given, else the
    running agent's own identifier.
-2. Resolve that agent's owned location per `BOOTSTRAP.md` §1.
+2. Resolve that agent's owned location per `Rules-of-Rules.md` §14.
 3. If a `.criterion/` working copy exists at a different, prior location
    (the current `.criterion` symlink's target, or a legacy pointer's
    `agent-source`), mirror it into the resolved location: the resolved

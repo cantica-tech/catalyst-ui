@@ -11,7 +11,10 @@ above in full only when the spec points elsewhere or a judgment needs
 the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
-1. If the artifact ID doesn't resolve, say it cannot be found.
+1. If the artifact ID doesn't resolve, say it cannot be found. If it is a
+   `RECON-` case, refuse — even with `force` — and point to `/reconcile`:
+   its role gate (`Rules-of-Rules.md` §16) is the only way a
+   reconciliation's `Status` changes.
 2. If the supplied status is one its entity type definition allows,
    change it normally.
 3. If invalid and `force` is supplied, change it to that value anyway.

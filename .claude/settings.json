@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .criterion/bin/catalyst.pyz hook start"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

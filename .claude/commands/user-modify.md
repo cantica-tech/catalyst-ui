@@ -5,7 +5,7 @@ argument-hint: <name> <field> <value>
 
 Edit a registered user's record. Sources:
 `.criterion/CODE-OF-CONDUCT.md` §2 and §4,
-template: `framework/kernel/templates/users.template.json`.
+template: `.criterion/IAM/users/templates/TEMPLATE-USERS-vN.json` (the highest `N`).
 First run `catalyst spec user-modify` and follow it: it prints this command's
 part of `CODE-OF-CONDUCT.md` §4, the canonical text. Open the sources
 above in full only when the spec points elsewhere or a judgment needs
@@ -23,6 +23,11 @@ Input: $ARGUMENTS
      fields and are never edited in place.
    - `<field>` = `active` set to `false`: point to `/user-remove` instead,
      since that command also checks the "at least one active user" rule.
-4. Update the entry's `<field>` to `<value>` and report the result. Do
-   not commit or push — leave changes unstaged unless the user asks
-   otherwise.
+4. Update the entry's `<field>` to `<value>`.
+5. Journal the write: `catalyst journal append --command /user-modify --action update
+   --artifact "user <name>" --intent "<why>" --file .criterion/IAM/users/users.json`.
+6. Report the result. Do not commit or push — leave changes unstaged
+   unless the user asks otherwise.
+
+`catalyst <args>` is `python3 .criterion/bin/catalyst.pyz <args>`
+(`CODE-OF-CONDUCT.md` §4).

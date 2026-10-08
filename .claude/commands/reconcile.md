@@ -1,6 +1,6 @@
 ---
 description: Resolve a RECON- reconciliation case by accepting, accepting with edits, or rejecting the proposed version, or propose a resolution
-argument-hint: <RECON-id> accept | accept-with-edits | reject | propose <text>
+argument-hint: <RECON-id> accept | accept-with-edits | reject | propose <text> | close
 ---
 
 Resolve, or move toward resolving, an open reconciliation case. Sources:
@@ -14,8 +14,8 @@ the Rules-of-Rules sections they cite.
 Input: $ARGUMENTS
 
 1. Load the named `RECON-NNNNNN`; refuse if its `Status` is already
-   `Closed` (point to `/status` for reopening if genuinely needed, same
-   as any other artifact). If it names a `Workflow`, read that
+   `Closed` — a closed case is final; a dispute that returns opens a new
+   case. If it names a `Workflow`, read that
    `WORKFLOW-NNNNNN`'s `## Steps`/`## Gates / exit criteria` first — it
    guides which verb is appropriate here.
 2. Resolve the current actor's role(s) against `IAM/roles/roles.json`'s
@@ -26,7 +26,7 @@ Input: $ARGUMENTS
    - `propose` — only the `propose <text>` verb is allowed; refuse
      `accept`/`accept-with-edits`/`reject` and name that a `full`-level
      actor must finish it.
-   - `full` — every verb below is allowed.
+   - `full` — every verb below is allowed, including `close`.
 3. `accept`: merge `Proposed` into the `Entity` it names, unchanged.
    `accept-with-edits`: ask for (or use already-supplied) revised
    content, append it as a new row in `## Revisions`, then merge that
@@ -34,6 +34,9 @@ Input: $ARGUMENTS
    the proposer drops or reworks their change. `propose <text>`:
    append `<text>` as a new row in `## Revisions` and move `Status` to
    `Under Review` — do not touch `Resolved`/`Resolver`.
+   `close`: refuse unless `Status` is a `Resolved-*` value and, for an
+   accepted case, the `Entity` already carries the merged content; then
+   set `Status` to `Closed`. This is the only way a case reaches `Closed`.
 4. For the three resolving verbs, set `Status` to `Resolved-Accepted` /
    `Resolved-Accepted-with-Edits` / `Resolved-Rejected`, fill `Resolved`
    and `Resolver`, and fill in `## Resolution` with the rationale.

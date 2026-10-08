@@ -26,7 +26,10 @@ Input: $ARGUMENTS
 6. Append a new object to the `users` array in `.criterion/IAM/users/users.json`:
    `{"name": "<name>", "roles": ["<role>"], "registered": "<today>",
    "active": true, "notes": "", "userid": "<generated>"}`.
-7. Report the result, including the assigned `userid`. If this is the
+7. Journal the write: `catalyst journal append --command /user-add --action create
+   --artifact "user <name>" --intent "<why>" --file .criterion/IAM/users/users.json`
+   (add `--file .criterion/IAM/roles/roles.json` if step 2 created it).
+8. Report the result, including the assigned `userid`. If this is the
    project's first registered user, note that the hard "at least one
    active user" requirement is now satisfied.
 

@@ -1,15 +1,15 @@
 {
   "project_name": "catalyst-ui",
   "format": "1.0-rc",
-  "kernel_version": "0.45.0",
+  "kernel_version": "0.46.0",
   "journal_since": "c4bda0cc09dce981863b5c43ad124a1691c67142",
   "module": "software-engineering",
   "agent": "claude-code",
   "repoed": true,
   "catalyst_repo": "catalyst-ui-criterion",
-  "catalyst_repo_url": "git@github.com:oliben67/catalyst-ui-criterion.git",
+  "catalyst_repo_url": "git@github.com:cantica-tech/catalyst-ui-criterion.git",
   "created_by": "Olivier Steck",
   "criterion_branch": "criterion",
   "created": "2026-09-05",
-  "updated": "2026-10-01"
+  "updated": "2026-10-08"
 }
