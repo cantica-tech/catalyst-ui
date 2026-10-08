@@ -23,13 +23,13 @@ import type {
 } from "catalyst-core";
 import {
   AGENT_PRESETS,
-  compareVersions,
   defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
   downloadModuleZip,
   fetchRemoteUiModules,
   joinCriterionRepo,
+  kernelSyncTarget,
   loadLocalSavedModule,
   meetsRequiredKernelVersion,
   nextProposalId,
@@ -47,6 +47,8 @@ import {
   workingCopyState,
   readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
+  restoreKernelVersion,
+  VERIFIED_KERNEL_VERSION,
   saveModuleLocally,
   suggestCriterionBranch,
   UiModuleManager,
@@ -79,6 +81,12 @@ import {
   type OpenDetailPanel,
 } from "./panel-groups.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
+import {
+  panelKeysFor,
+  parseWebviewMessage,
+  proposalWriteBlockedMessage,
+  webviewCsp,
+} from "./webview-protocol.js";
 import {
   buildIamRoleDetail,
   buildIamUserDetail,
@@ -144,16 +152,6 @@ const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
-/**
- * The highest catalyst kernel version this extension build has been
- * verified against — bumped by hand whenever that happens, same
- * "small, verified, hand-maintained" precedent as AGENT_PRESETS/
- * KNOWN_AGENT_COMMANDS. A deployment is only ever offered a sync to
- * exactly this version, never blindly to "latest" — this extension
- * should never tell a deployment to sync past what it's actually been
- * checked against.
- */
-const MAX_COMPATIBLE_KERNEL_VERSION = "0.31.0";
 const COMPOSABLE_TYPES: ComposableArtifactType[] = [
   "rule",
   "requirement",
@@ -1015,6 +1013,7 @@ blockquote {
 function renderWebviewHtml(
   scriptUri: vscode.Uri,
   payload: WebviewPayload,
+  cspSource: string,
 ): string {
   const nonce = randomBytes(16).toString("hex");
   // A node's raw markdown content (full file text, since the description
@@ -1027,7 +1026,7 @@ function renderWebviewHtml(
 <html>
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';" />
+<meta http-equiv="Content-Security-Policy" content="${webviewCsp(nonce, cspSource)}" />
 <style nonce="${nonce}">${WEBVIEW_STYLES}</style>
 </head>
 <body>
@@ -1090,17 +1089,27 @@ function slugify(text: string): string {
   );
 }
 
+/**
+ * Writes a PROP- file. Refused in an untrusted workspace (B-11), which
+ * stays read-only; returns whether the file was written.
+ */
 async function writeProposal(
   corpusRoot: string,
   id: string,
   title: string,
   content: string,
-): Promise<void> {
+): Promise<boolean> {
+  const blocked = proposalWriteBlockedMessage(vscode.workspace.isTrusted);
+  if (blocked) {
+    void vscode.window.showWarningMessage(blocked);
+    return false;
+  }
   const filePath = join(corpusRoot, "proposals", `${id}-${slugify(title)}.md`);
   await vscode.workspace.fs.writeFile(
     vscode.Uri.file(filePath),
     Buffer.from(content, "utf8"),
   );
+  return true;
 }
 
 /**
@@ -1329,7 +1338,7 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  * user explicitly clicks "Sync now" — `/sync-framework` mutates real
  * deployment files, so this must never fire silently. The dismiss key
  * includes the target version, so a future bump of
- * `MAX_COMPATIBLE_KERNEL_VERSION` re-prompts even if an earlier
+ * `VERIFIED_KERNEL_VERSION` (catalyst-core `kernel-version.ts`) re-prompts even if an earlier
  * offer was dismissed.
  *
  * One notification path covers both thresholds on the same scale —
@@ -1338,7 +1347,7 @@ function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  * version specifier the same way a `uv.lock`'s `requires-python` states
  * one) the wording says so explicitly, since parsing may actually be
  * wrong, not just missing newer sections; between the required floor
- * and `MAX_COMPATIBLE_KERNEL_VERSION` the wording stays the softer
+ * and the verified version the wording stays the softer
  * "supports syncing to" — a deployment there parses correctly today,
  * syncing just gets it the newer entity types.
  */
@@ -1348,17 +1357,18 @@ async function offerToSyncKernel(
   corpusRoot: string,
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
-  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${target.path}:${MAX_COMPATIBLE_KERNEL_VERSION}`;
+  const deployed = readDeployedKernelVersion(corpusRoot);
+  // Unknown version, or already at/above what this build was verified
+  // against: nothing to offer — never a downgrade target (B-08).
+  const syncTarget = kernelSyncTarget(deployed);
+  if (!deployed || !syncTarget) return;
+
+  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${target.path}:${syncTarget}`;
   if (context.workspaceState.get<boolean>(dismissKey)) return;
 
-  const deployed = readDeployedKernelVersion(corpusRoot);
-  if (!deployed) return; // can't safely compare — don't guess
-
-  if (compareVersions(deployed, MAX_COMPATIBLE_KERNEL_VERSION) >= 0) return;
-
   const message = meetsRequiredKernelVersion(deployed)
-    ? `"${target.name}" is on catalyst ${deployed}; this extension supports syncing to ${MAX_COMPATIBLE_KERNEL_VERSION}.`
-    : `"${target.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${MAX_COMPATIBLE_KERNEL_VERSION}?`;
+    ? `"${target.name}" is on catalyst ${deployed}; this extension supports syncing to ${syncTarget}.`
+    : `"${target.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${syncTarget}?`;
 
   const choice = await vscode.window.showInformationMessage(
     message,
@@ -1383,7 +1393,7 @@ async function offerToSyncKernel(
   await resolveAndInvoke(
     agentDef,
     "/sync-framework",
-    MAX_COMPATIBLE_KERNEL_VERSION,
+    syncTarget,
     outputChannel,
   );
 }
@@ -1407,6 +1417,7 @@ function setupDeployment(
   provider: ChainInspectorProvider,
   diagnostics: vscode.DiagnosticCollection,
   codeLensChangeEmitter: vscode.EventEmitter<void>,
+  onUpdate: (corpusRoot: string) => void = () => {},
 ): RegisteredDeployment {
   const ownedDiagnosticFiles = new Set<string>();
   let latestReport: ValidationReport | undefined;
@@ -1432,6 +1443,8 @@ function setupDeployment(
         model,
       );
       codeLensChangeEmitter.fire();
+      // Open detail panels of this deployment show the new state (B-10).
+      onUpdate(corpusRoot);
     },
   );
 
@@ -1598,18 +1611,6 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const provider = new ChainInspectorProvider(context.extensionUri);
 
-  // Attempt automatic activation from saved local module
-  const initialKernelVer = REQUIRED_KERNEL_VERSION;
-  const localRes = loadLocalSavedModule(
-    storagePath,
-    uiModuleManager,
-    initialKernelVer,
-  );
-  if (localRes && localRes.success) {
-    void vscode.window.showInformationMessage(
-      `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
-    );
-  }
   // One chain inspector panel per deployment (REQ-000017-UVqkd7cL): view
   // slots declared in package.json, slot 0 always shown, the others shown
   // (context key catalyst.inspectorSlot<N>) as deployments are found. Each
@@ -1744,12 +1745,11 @@ export function activate(context: vscode.ExtensionContext): void {
         optedOut(folder.uri.fsPath) ||
         isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
       // Untrusted, catalyst only reads: no install offer (Workspace Trust).
+      // No automatic module download here (B-06): fetching remote UI
+      // modules is only ever started by the user ("Switch Process UI
+      // Module").
       if (!leftOut && vscode.workspace.isTrusted) {
         void offerToInstall(context, folder);
-        // Auto-trigger module selection if no active module is loaded yet
-        if (!uiModuleManager.getActiveModule()) {
-          void promptAndSwitchUiModule();
-        }
       }
       return;
     }
@@ -1776,6 +1776,7 @@ export function activate(context: vscode.ExtensionContext): void {
           provider,
           diagnostics,
           codeLensChangeEmitter,
+          (root) => refreshDetailPanelsFor(root),
         ),
       );
       if (vscode.workspace.isTrusted) {
@@ -1867,6 +1868,28 @@ export function activate(context: vscode.ExtensionContext): void {
     resolveFolder(folder);
   }
 
+  // Restore the saved UI module only once deployments are resolved, and
+  // against an actual kernel version — the first deployment's version.txt,
+  // else the floor — never the required range string (B-07).
+  const localRes = loadLocalSavedModule(
+    storagePath,
+    uiModuleManager,
+    restoreKernelVersion(
+      [...deploymentTargets.keys()].map((root) =>
+        readDeployedKernelVersion(root),
+      ),
+    ),
+  );
+  if (localRes && localRes.success) {
+    void vscode.window.showInformationMessage(
+      `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
+    );
+  } else if (localRes && !localRes.success) {
+    agentBridgeOutputChannel.appendLine(
+      `Saved UI module not restored: ${localRes.error}`,
+    );
+  }
+
   context.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders((event) => {
       for (const folder of event.added) resolveFolder(folder);
@@ -1889,12 +1912,13 @@ export function activate(context: vscode.ExtensionContext): void {
       async (corpusRoot: string, issue: ValidationIssue) => {
         const id = nextProposalId(provider.getAllProposals(corpusRoot));
         const content = buildProposeFixContent(issue, id);
-        await writeProposal(
+        const written = await writeProposal(
           corpusRoot,
           id,
           `propose-fix-${issue.kind}`,
           content,
         );
+        if (!written) return;
         void vscode.window.showInformationMessage(
           `Created ${id} — an agent still needs to act on it.`,
         );
@@ -1904,6 +1928,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(COMPOSE_PROPOSAL_COMMAND, async () => {
+      // Say so before asking five questions whose answer can't be saved.
+      const blocked = proposalWriteBlockedMessage(vscode.workspace.isTrusted);
+      if (blocked) {
+        void vscode.window.showWarningMessage(blocked);
+        return;
+      }
       const corpusRoots = provider.getCorpusRoots();
       if (corpusRoots.length === 0) return;
 
@@ -1945,7 +1975,7 @@ export function activate(context: vscode.ExtensionContext): void {
         { type, domain, targets, title, description },
         id,
       );
-      await writeProposal(corpusRoot, id, title, content);
+      if (!(await writeProposal(corpusRoot, id, title, content))) return;
       void vscode.window.showInformationMessage(
         `Created ${id} — an agent still needs to act on it.`,
       );
@@ -2100,11 +2130,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(SELECT_KERNEL_VERSION_COMMAND, async () => {
       const picks = [
         {
-          label: "0.33.0",
-          description: "Latest Catalyst kernel release (v0.33.0)",
+          label: VERIFIED_KERNEL_VERSION,
+          description: `Kernel this extension is verified against (requires ${REQUIRED_KERNEL_VERSION})`,
         },
-        { label: "0.31.0", description: "Catalyst kernel v0.31.0" },
-        { label: "0.30.0", description: "Catalyst kernel v0.30.0" },
         {
           label: "Specify custom version...",
           description: "Enter a custom kernel version string",
@@ -2120,8 +2148,8 @@ export function activate(context: vscode.ExtensionContext): void {
       if (pick.label.startsWith("Specify")) {
         const input = await vscode.window.showInputBox({
           prompt: "Enter kernel version",
-          value: "0.33.0",
-          placeHolder: "e.g. 0.33.0",
+          value: VERIFIED_KERNEL_VERSION,
+          placeHolder: `e.g. ${VERIFIED_KERNEL_VERSION}`,
         });
         if (!input) return;
         version = input.trim();
@@ -2212,35 +2240,25 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   });
 
+  // How to rebuild each open panel's payload, and which deployment owns
+  // it — so a watcher update can push fresh content (B-10).
+  const panelBuilders = new Map<string, () => WebviewPayload | null>();
+  const panelOwners = new Map<string, string>();
+
+  /** Pushes a rebuilt payload into an open panel without reloading it. */
+  function refreshPanel(key: string): void {
+    const panel = detailPanels.get(key);
+    const payload = panelBuilders.get(key)?.();
+    if (panel && payload) void panel.webview.postMessage(payload);
+  }
+
+  /** Every open panel of one deployment, after its watcher fired. */
+  function refreshDetailPanelsFor(corpusRoot: string): void {
+    for (const key of panelKeysFor(panelOwners, corpusRoot)) refreshPanel(key);
+  }
+
   function refreshAllDetailPanels(): void {
-    for (const [key, panel] of detailPanels.entries()) {
-      if (key.startsWith("node:")) {
-        const parts = key.split(":");
-        const corpusRoot = parts[1];
-        const nodeId = parts[2];
-        const model = provider.getModel(corpusRoot);
-        if (model) {
-          const payload = buildNodeDetail(
-            model,
-            nodeId,
-            provider.getPendingTargets(corpusRoot),
-          );
-          if (payload) {
-            panel.webview.html = renderWebviewHtml(
-              panel.webview.asWebviewUri(
-                vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
-              ),
-              {
-                type: "node",
-                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-                references: referencesForNode(model, payload),
-                ...payload,
-              },
-            );
-          }
-        }
-      }
-    }
+    for (const key of detailPanels.keys()) refreshPanel(key);
   }
 
   async function promptAndSwitchUiModule(): Promise<void> {
@@ -2353,8 +2371,12 @@ export function activate(context: vscode.ExtensionContext): void {
     key: string,
     project: string,
     title: string,
-    payload: WebviewPayload,
+    build: () => WebviewPayload | null,
   ): void {
+    const payload = build();
+    if (!payload) return;
+    panelBuilders.set(key, build);
+    panelOwners.set(key, project);
     let panel = detailPanels.get(key);
     if (panel) {
       panel.title = title;
@@ -2380,6 +2402,10 @@ export function activate(context: vscode.ExtensionContext): void {
         target === "beside" ? vscode.ViewColumn.Beside : target,
         {
           enableScripts: true,
+          // Only the bundled webview script is loadable.
+          localResourceRoots: [
+            vscode.Uri.joinPath(context.extensionUri, "dist"),
+          ],
         },
       );
       const created = panel;
@@ -2398,8 +2424,8 @@ export function activate(context: vscode.ExtensionContext): void {
       // A click on an entity reference opens that entity, in this
       // project (REQ-000014-UVqkd7cL); anything else is ignored.
       created.webview.onDidReceiveMessage((message: unknown) => {
-        const msg = message as { type?: unknown; id?: unknown } | null;
-        if (msg?.type === "openReference" && typeof msg.id === "string") {
+        const msg = parseWebviewMessage(message);
+        if (msg) {
           const target = msg.id;
           void vscode.commands
             .executeCommand(SHOW_DETAIL_COMMAND, project, target)
@@ -2409,13 +2435,19 @@ export function activate(context: vscode.ExtensionContext): void {
       created.onDidDispose(() => {
         detailPanels.delete(key);
         panelMeta.delete(key);
+        panelBuilders.delete(key);
+        panelOwners.delete(key);
       });
     }
 
     const scriptUri = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
     );
-    panel.webview.html = renderWebviewHtml(scriptUri, payload);
+    panel.webview.html = renderWebviewHtml(
+      scriptUri,
+      payload,
+      panel.webview.cspSource,
+    );
   }
 
   function getKernelVersionInfo(corpusRoot: string): KernelVersionInfo {
@@ -2437,27 +2469,31 @@ export function activate(context: vscode.ExtensionContext): void {
     };
   }
 
+  // Each command passes a payload *builder*, re-run when the deployment's
+  // watcher fires so an open panel follows the files (B-10).
   context.subscriptions.push(
     vscode.commands.registerCommand(
       SHOW_DETAIL_COMMAND,
       (corpusRoot: string, nodeId: string) => {
-        const model = provider.getModel(corpusRoot);
-        if (!model) return;
-        const payload = buildNodeDetail(
-          model,
-          nodeId,
-          provider.getPendingTargets(corpusRoot),
-        );
-        if (!payload) return;
         showDetailPanel(
           `node:${corpusRoot}:${nodeId}`,
           corpusRoot,
           `Node: ${nodeId}`,
-          {
-            type: "node",
-            kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-            references: referencesForNode(model, payload),
-            ...payload,
+          () => {
+            const model = provider.getModel(corpusRoot);
+            if (!model) return null;
+            const payload = buildNodeDetail(
+              model,
+              nodeId,
+              provider.getPendingTargets(corpusRoot),
+            );
+            if (!payload) return null;
+            return {
+              type: "node",
+              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+              references: referencesForNode(model, payload),
+              ...payload,
+            };
           },
         );
       },
@@ -2468,43 +2504,38 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       SHOW_IAM_DETAIL_COMMAND,
       (corpusRoot: string, kind: "user" | "role", name: string) => {
-        const kernelVersionInfo = getKernelVersionInfo(corpusRoot);
         if (kind === "user") {
-          const user = provider
-            .getUsers(corpusRoot)
-            .find((u) => u.name === name);
-          if (!user) return;
-          const detail = buildIamUserDetail(
-            user,
-            provider.getRoles(corpusRoot),
-          );
           showDetailPanel(
             `iam-user:${corpusRoot}:${name}`,
             corpusRoot,
             `User: ${name}`,
-            {
-              type: "iam-user",
-              kernelVersionInfo,
-              ...detail,
+            () => {
+              const user = provider
+                .getUsers(corpusRoot)
+                .find((u) => u.name === name);
+              if (!user) return null;
+              return {
+                type: "iam-user",
+                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+                ...buildIamUserDetail(user, provider.getRoles(corpusRoot)),
+              };
             },
           );
         } else {
-          const role = provider
-            .getRoles(corpusRoot)
-            .find((r) => r.name === name);
-          if (!role) return;
-          const detail = buildIamRoleDetail(
-            role,
-            provider.getUsers(corpusRoot),
-          );
           showDetailPanel(
             `iam-role:${corpusRoot}:${name}`,
             corpusRoot,
             `Role: ${name}`,
-            {
-              type: "iam-role",
-              kernelVersionInfo,
-              ...detail,
+            () => {
+              const role = provider
+                .getRoles(corpusRoot)
+                .find((r) => r.name === name);
+              if (!role) return null;
+              return {
+                type: "iam-role",
+                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+                ...buildIamRoleDetail(role, provider.getUsers(corpusRoot)),
+              };
             },
           );
         }
@@ -2520,12 +2551,11 @@ export function activate(context: vscode.ExtensionContext): void {
         // webview itself, not via a host round-trip; journal size is bounded
         // by project lifetime, not unbounded, so shipping it all up front is
         // cheap and simpler than the alternative.
-        const entries = parseJournal(corpusRoot);
-        showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", {
+        showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", () => ({
           type: "journal",
           kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-          entries,
-        });
+          entries: parseJournal(corpusRoot),
+        }));
       },
     ),
   );
@@ -2549,15 +2579,18 @@ export function activate(context: vscode.ExtensionContext): void {
         // *any* markdown file previewed anywhere in the workspace, which
         // is exactly the "everything lands in the same place" problem
         // this mechanism exists to avoid.
-        const markdown = readFileSync(backlogPath, "utf8");
-        const backlogModel = provider.getModel(corpusRoot);
-        showDetailPanel(`backlog:${corpusRoot}`, corpusRoot, "Backlog", {
-          type: "backlog",
-          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-          references: backlogModel
-            ? buildReferenceTable(backlogModel, [markdown])
-            : undefined,
-          markdown,
+        showDetailPanel(`backlog:${corpusRoot}`, corpusRoot, "Backlog", () => {
+          if (!existsSync(backlogPath)) return null;
+          const markdown = readFileSync(backlogPath, "utf8");
+          const backlogModel = provider.getModel(corpusRoot);
+          return {
+            type: "backlog",
+            kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+            references: backlogModel
+              ? buildReferenceTable(backlogModel, [markdown])
+              : undefined,
+            markdown,
+          };
         });
       },
     ),

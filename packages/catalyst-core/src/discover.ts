@@ -9,6 +9,7 @@ import {
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
+import { KERNEL_VERSION_FLOOR } from "./kernel-version.js";
 import { parseFieldTable, sectionLines } from "./parser.js";
 import type { CatalystPointer } from "./types.js";
 import { satisfiesVersionSpecifier } from "./versioning.js";
@@ -39,55 +40,6 @@ function expandPath(pathStr: string, projectRoot: string): string {
     expanded = join(homedir(), expanded.slice(expanded === "~" ? 1 : 2));
   }
   return isAbsolute(expanded) ? expanded : resolve(projectRoot, expanded);
-}
-
-/**
- * Thoroughly explores persistent memory notes and directories to locate a project's catalyst working copy.
- */
-function findCorpusRootFromMemory(projectRoot: string): string | null {
-  const memoryDirs = [
-    join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "Code",
-      "User",
-      "globalStorage",
-      "github.copilot-chat",
-      "memory-tool",
-      "memories",
-    ),
-    join(homedir(), ".vscode", "memories"),
-    join(homedir(), ".claude", "memories"),
-  ];
-
-  const projectName = projectRoot.split("/").pop() || "";
-
-  for (const memDir of memoryDirs) {
-    if (!existsSync(memDir)) continue;
-    try {
-      const files = readdirSync(memDir).filter((f) => f.endsWith(".md"));
-      for (const file of files) {
-        const content = readFileSync(join(memDir, file), "utf8");
-        if (
-          content.includes(projectRoot) ||
-          (projectName && content.includes(projectName))
-        ) {
-          const matches = content.matchAll(
-            /(?:deployment root|agent-source|deployment directory|working copy|path):\s*(`?[^\n`]+`?)/gi,
-          );
-          for (const match of matches) {
-            const rawPath = match[1].replace(/[`"]/g, "").trim();
-            const candidate = expandPath(rawPath, projectRoot);
-            if (existsSync(candidate)) return candidate;
-          }
-        }
-      }
-    } catch {
-      // ignore read errors
-    }
-  }
-  return null;
 }
 
 /**
@@ -127,8 +79,12 @@ function isDirectory(path: string): boolean {
  * 2. Legacy: the `*.catalyst` pointer's `agent-source` field, if present
  *    and an existing directory (pre-0.37.0 deployments, until migrated —
  *    the pointer no longer carries a path).
- * 3. Claude Code per-project storage (`claudeCodeStoragePath`).
- * 4. Deployment targets recorded in persistent memory notes.
+ * 3. Claude Code per-project storage (`claudeCodeStoragePath`), derived
+ *    from the project path alone.
+ *
+ * Deterministic on purpose (B-13): no scan of other tools' memory notes,
+ * which matched by project-name substring and could open another
+ * project's working copy.
  */
 export function resolveCorpusRoot(projectRoot: string): string | null {
   // 1. <projectRoot>/.criterion (symlink followed, or real dir)
@@ -145,10 +101,6 @@ export function resolveCorpusRoot(projectRoot: string): string | null {
   // 3. Claude Code per-project storage (~/.claude/projects/<slug>/.criterion)
   const claudeCode = claudeCodeStoragePath(projectRoot);
   if (isDirectory(claudeCode)) return claudeCode;
-
-  // 4. Persistent memory notes recording a deployment target
-  const fromMemory = findCorpusRootFromMemory(projectRoot);
-  if (fromMemory) return fromMemory;
 
   return null;
 }
@@ -170,7 +122,7 @@ export function readCatalystPointer(
  * one, deliberately simple existence check an install-offer should gate
  * on: does a well-formed `*.catalyst` pointer file exist at the project
  * root? Never the richer `resolveCorpusRoot` fallback chain (in-project
- * `.criterion`, Claude Code storage guesses, memory-note text scanning) —
+ * `.criterion`, Claude Code storage) —
  * those exist to *locate* an already-declared deployment's working copy,
  * not to decide whether one was ever declared in the first place. A
  * project with none of those fallbacks resolving but a real pointer file
@@ -200,18 +152,12 @@ export function readDeployedKernelVersion(corpusRoot: string): string | null {
 }
 
 /**
- * The oldest catalyst kernel version this `catalyst-core` build can
- * correctly parse — a version specifier (`versioning.ts`), the same way
- * a `uv.lock`'s `requires-python` field states its floor, rather than a
- * bare number. Below `0.31.0`, a step's parent field is still named
- * `Requirement` everywhere (this parser reads that as a fallback, so it
- * degrades gracefully) — but `0.31.0` is the newest kernel version
- * this build's parser/graph/validator logic (`TEST-`, a step's `Parent`
- * accepting a bug) was actually written and tested against, so it's the
- * declared floor: below it, this build hasn't been verified, not just
- * "might render fewer sections."
+ * The kernel versions this `catalyst-core` build can correctly parse, as a
+ * version specifier (`versioning.ts`) the way a `uv.lock`'s
+ * `requires-python` states its floor. Derived from the single source in
+ * `kernel-version.ts`.
  */
-export const REQUIRED_KERNEL_VERSION = ">=0.31.0";
+export const REQUIRED_KERNEL_VERSION = `>=${KERNEL_VERSION_FLOOR}`;
 
 /**
  * Whether a resolved deployment's own kernel version satisfies

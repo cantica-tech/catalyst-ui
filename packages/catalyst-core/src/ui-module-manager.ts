@@ -276,6 +276,14 @@ export class UiModuleManager {
     zipSource: Buffer | string,
     currentKernelVersion: string,
   ): UiModuleLoadResult {
+    if (!/^\d+(\.\d+)*$/.test(currentKernelVersion.trim())) {
+      // A range such as ">=0.45.0" is a requirement, not the version of a
+      // kernel; comparing a module against it gives a meaningless answer.
+      return {
+        success: false,
+        error: `"${currentKernelVersion}" is not a kernel version (expected e.g. 0.45.0).`,
+      };
+    }
     try {
       const { manifest, files } = parseUiModuleFromZip(zipSource);
 

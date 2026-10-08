@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.37.2",
+  "version": "0.38.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -27,7 +27,7 @@
     "vscode": "^1.85.0"
   },
   "catalyst": {
-    "kernelVersion": ">=0.45.0"
+    "kernelVersion": ">=0.46.0"
   },
   "main": "dist/extension.js",
   "contributes": {
@@ -266,7 +266,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers and agent commands wait until the workspace is trusted."
+      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers, agent commands and writing proposals (Propose fix, Compose proposal) wait until the workspace is trusted."
     },
     "virtualWorkspaces": {
       "supported": false,

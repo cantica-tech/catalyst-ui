@@ -1,3 +1,5 @@
+import { relative } from "node:path";
+
 import chokidar, { type FSWatcher } from "chokidar";
 
 import { buildChainModel } from "./graph.js";
@@ -12,6 +14,27 @@ export interface WatcherHandle {
   close(): Promise<void>;
   /** Forces an immediate re-parse, bypassing the debounce window — for a manual "refresh" action rather than reacting to a filesystem event. */
   refresh(): void;
+}
+
+/**
+ * Directories inside a working copy that never hold corpus files: VCS
+ * metadata (a shared criterion is a git repository), dependencies and
+ * tool caches. Watching them turns every git fetch or CLI run into a
+ * reparse storm (B-12).
+ */
+const IGNORED_SEGMENTS = new Set([
+  ".git",
+  "node_modules",
+  "__pycache__",
+  ".pytest_cache",
+  ".mypy_cache",
+]);
+
+/** Whether `path` (inside corpus `root`) is outside what the watcher follows. */
+export function isIgnoredWatchPath(root: string, path: string): boolean {
+  const rel = relative(root, path);
+  if (!rel || rel.startsWith("..")) return false;
+  return rel.split(/[\\/]/).some((segment) => IGNORED_SEGMENTS.has(segment));
 }
 
 /**
@@ -58,6 +81,7 @@ export function watchCorpus(
 
   const watcher: FSWatcher = chokidar.watch(root, {
     ignoreInitial: true,
+    ignored: (path: string) => isIgnoredWatchPath(root, path),
     awaitWriteFinish: { stabilityThreshold: 50, pollInterval: 20 },
   });
   watcher.on("add", schedule).on("change", schedule).on("unlink", schedule);

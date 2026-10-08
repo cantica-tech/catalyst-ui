@@ -467,3 +467,87 @@ describe("validate — report shape", () => {
     expect(report.durationMs).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe("validate — parity with the kernel's reference rules (B-03)", () => {
+  const base = [
+    rule({ id: "env-RUNTIME-000001-Zz9kM2wT" }),
+    domain({ id: "RUNTIME" }),
+  ];
+  const errors = (nodes: ChainNode[]) =>
+    validate(modelOf([...base, ...nodes])).issues.filter(
+      (i) => i.severity === "error",
+    );
+
+  it("resolves a unique short-form id cited in prose", () => {
+    expect(
+      errors([
+        devArtifact({
+          id: "REQ-000014-UVqkd7cL",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+        }),
+        devArtifact({
+          id: "BUG-000001-UVqkd7cL",
+          artifactType: "bug",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+          references: ["env-RUNTIME-000001-Zz9kM2wT", "REQ-000014"],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("does not report a framework rule (fw-, rr-) cited in prose as an error", () => {
+    expect(
+      errors([
+        devArtifact({
+          id: "REQ-000015-UVqkd7cL",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+          references: ["env-RUNTIME-000001-Zz9kM2wT", "fw-STRUCTURE-000017"],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still reports a structured field (Targets/Parent) that resolves to nothing, as the kernel does", () => {
+    const found = errors([
+      devArtifact({
+        id: "REQ-000002-UVqkd7cL",
+        targets: ["env-RUNTIME-000099"],
+        references: ["env-RUNTIME-000099"],
+      }),
+    ]);
+    expect(
+      found.some(
+        (i) =>
+          i.kind === "dangling-reference" &&
+          i.message.includes("env-RUNTIME-000099"),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not resolve an ambiguous short form", () => {
+    const report = validate(
+      modelOf([
+        ...base,
+        devArtifact({
+          id: "REQ-000003-AAAAAAAa",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+        }),
+        devArtifact({
+          id: "REQ-000003-BBBBBBBb",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+        }),
+        devArtifact({
+          id: "REQ-000004-UVqkd7cL",
+          targets: ["env-RUNTIME-000001-Zz9kM2wT"],
+          references: ["REQ-000003"],
+        }),
+      ]),
+    );
+    expect(
+      report.issues.some(
+        (i) =>
+          i.kind === "dangling-reference" && i.message.includes("REQ-000003"),
+      ),
+    ).toBe(true);
+  });
+});

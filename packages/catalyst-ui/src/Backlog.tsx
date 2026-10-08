@@ -1,6 +1,6 @@
 import type { ReferenceInfo } from "catalyst-core";
-import { marked } from "marked";
 
+import { renderMarkdown } from "./markdown.js";
 import { linkifyReferences } from "./references.js";
 
 export interface BacklogProps {
@@ -14,15 +14,11 @@ export interface BacklogProps {
  * formatted HTML, the same way `NodeDetail`'s `DetailsSection` renders a
  * node's own backing document — `BACKLOG.md` is machine-regenerated
  * prose (`INVARIANTS.md` INV-14), never hand-edited, so there's no
- * "hand-picked field" to show instead of the whole thing. Same CSP/trust
- * posture as `NodeDetail`: content always originates from a local,
- * trusted file.
+ * "hand-picked field" to show instead of the whole thing. Same posture as
+ * `NodeDetail`: sanitised by `renderMarkdown`, CSP as a second layer.
  */
 export function Backlog({ markdown, references }: BacklogProps) {
-  const html = linkifyReferences(
-    marked.parse(markdown, { async: false }) as string,
-    references,
-  );
+  const html = linkifyReferences(renderMarkdown(markdown), references);
   return (
     <div>
       <h1>Backlog</h1>
