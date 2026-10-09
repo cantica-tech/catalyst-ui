@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .criterion/bin/catalyst.pyz hook start"
+            "command": "\"$HOME/.catalyst/bin/catalyst\" hook start"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .criterion/bin/catalyst.pyz hook stop"
+            "command": "\"$HOME/.catalyst/bin/catalyst\" hook stop"
           }
         ]
       }
