@@ -7,13 +7,13 @@ import {
   validateSlashCommandRequest,
 } from "./security.js";
 
-const allowed = ["create-bug", "show-backlog"];
+const allowed = ["alpha", "beta"];
 
 describe("validateSlashCommandRequest (B-02 dispatch bridge)", () => {
   it("accepts a discovered command with string args", () => {
     expect(
-      validateSlashCommandRequest("p1", "create-bug", "login fails", allowed),
-    ).toEqual({ ok: true, name: "create-bug", args: "login fails" });
+      validateSlashCommandRequest("p1", "alpha", "login fails", allowed),
+    ).toEqual({ ok: true, name: "alpha", args: "login fails" });
   });
 
   it("rejects a command that is not in the project's allow-list", () => {
@@ -25,29 +25,27 @@ describe("validateSlashCommandRequest (B-02 dispatch bridge)", () => {
     expect(
       validateSlashCommandRequest("p1", { name: "x" }, "", allowed).ok,
     ).toBe(false);
-    expect(
-      validateSlashCommandRequest("p1", "create-bug", 42, allowed).ok,
-    ).toBe(false);
-    expect(validateSlashCommandRequest(7, "create-bug", "", allowed).ok).toBe(
+    expect(validateSlashCommandRequest("p1", "alpha", 42, allowed).ok).toBe(
       false,
     );
+    expect(validateSlashCommandRequest(7, "alpha", "", allowed).ok).toBe(false);
   });
 
   it("rejects over-long args and args with control characters", () => {
     expect(
       validateSlashCommandRequest(
         "p1",
-        "create-bug",
+        "alpha",
         "x".repeat(MAX_AGENT_TEXT_LENGTH + 1),
         allowed,
       ).ok,
     ).toBe(false);
     // A newline would smuggle a second prompt line into the agent's stdin.
     expect(
-      validateSlashCommandRequest("p1", "create-bug", "a\n/other", allowed).ok,
+      validateSlashCommandRequest("p1", "alpha", "a\n/other", allowed).ok,
     ).toBe(false);
     expect(
-      validateSlashCommandRequest("p1", "create-bug", "a\u0000b", allowed).ok,
+      validateSlashCommandRequest("p1", "alpha", "a\u0000b", allowed).ok,
     ).toBe(false);
   });
 

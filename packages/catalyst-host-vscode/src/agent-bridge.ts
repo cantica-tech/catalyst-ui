@@ -1,5 +1,11 @@
 import type { AgentBinding, DetectedAgent } from "catalyst-core";
-import { declaresCommand, findExactMatch, resolveBinding } from "catalyst-core";
+import {
+  composeCommandRequest,
+  composeSlashCommand,
+  declaresCommand,
+  findExactMatch,
+  resolveBinding,
+} from "catalyst-core";
 import * as vscode from "vscode";
 
 /**
@@ -36,7 +42,9 @@ export async function invokeChatParticipant(
   slashCommand: string,
   args: string,
 ): Promise<void> {
-  const query = `${participant} ${slashCommand} ${args}`.trim();
+  const query = [participant, slashCommand, args.trim()]
+    .filter((part) => part.length > 0)
+    .join(" ");
   await vscode.commands.executeCommand("workbench.action.chat.open", {
     query,
     isPartialQuery: false,
@@ -115,7 +123,7 @@ export async function offerModelFallback(
 
   const result = await invokeLmModel(
     pick.model.vendor,
-    `${slashCommand} ${args}`.trim(),
+    composeCommandRequest(slashCommand, args),
   );
   outputChannel.appendLine(result);
   outputChannel.show(true);
@@ -123,7 +131,9 @@ export async function offerModelFallback(
 
 /**
  * Resolves one `AgentBinding` to something invocable and dispatches on
- * its kind. Exclusively uses the agent the `*.catalyst` file points to —
+ * its kind. What reaches a chat participant or a model is the plain
+ * request `composeCommandRequest` builds (run `/name` through catalyst's
+ * MCP server), unless the participant itself declares the command. Exclusively uses the agent the `*.catalyst` file points to —
  * no substituting a different chat participant when the intended one
  * isn't found, and nothing remembered/persisted about a substitution
  * (there isn't one). `command`/`lm-model` bindings are invoked directly
@@ -168,7 +178,7 @@ export async function resolveAndInvoke(
     try {
       const result = await invokeLmModel(
         resolved.vendor,
-        `${slashCommand} ${args}`.trim(),
+        composeCommandRequest(slashCommand, args),
       );
       outputChannel.appendLine(result);
       outputChannel.show(true);
@@ -187,12 +197,22 @@ export async function resolveAndInvoke(
   const exact = findExactMatch(detected, resolved.participant);
 
   if (exact) {
-    if (!declaresCommand(exact, slashCommand)) {
-      void vscode.window.showInformationMessage(
-        `${resolved.participant} doesn't declare ${slashCommand} — sending as plain text.`,
+    // A participant that declares the command itself gets its own slash
+    // form; any other gets the plain request naming catalyst's MCP server
+    // (catalyst writes no command files, so a bare `/name` resolves nowhere).
+    if (declaresCommand(exact, slashCommand)) {
+      await invokeChatParticipant(
+        resolved.participant,
+        composeSlashCommand(slashCommand, ""),
+        args,
+      );
+    } else {
+      await invokeChatParticipant(
+        resolved.participant,
+        "",
+        composeCommandRequest(slashCommand, args),
       );
     }
-    await invokeChatParticipant(resolved.participant, slashCommand, args);
     return;
   }
 

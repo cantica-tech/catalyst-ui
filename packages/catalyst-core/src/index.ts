@@ -27,7 +27,9 @@ export {
 } from "./agent-launch.js";
 export type { AgentLaunch } from "./agent-launch.js";
 export {
+  commandNames,
   discoverSlashCommands,
+  parseSection4Commands,
   type SlashCommandSpec,
 } from "./commands-discovery.js";
 export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
@@ -75,7 +77,7 @@ export {
   openProposalsByTarget,
 } from "./proposals.js";
 export { parseRuns, hasDrift } from "./runs.js";
-export { composeSlashCommand } from "./slash-command.js";
+export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export { validate } from "./validator.js";
 export {
   compareVersions,

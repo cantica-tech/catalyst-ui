@@ -1551,7 +1551,7 @@ async function pickCommandAndArgs(
 ): Promise<PickedCommand | undefined> {
   if (candidates.length === 0) {
     void vscode.window.showInformationMessage(
-      "No .claude/commands found in this workspace.",
+      "No catalyst commands found: is a catalyst criterion reachable for this workspace?",
     );
     return undefined;
   }

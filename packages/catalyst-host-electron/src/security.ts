@@ -3,7 +3,9 @@
  * (B-02). The renderer shows corpus text from a cloned repository, so it
  * is treated as untrusted: every IPC argument is type-checked and bounded
  * here before main acts on it, and a slash command must be one the
- * project actually ships (its `.claude/commands`), never a free string.
+ * project actually provides — a command (or alias) of §4 of its
+ * criterion's composed `CODE-OF-CONDUCT.md`, as `discoverSlashCommands`
+ * reads it — never a free string.
  */
 
 /** Longest args / follow-up text forwarded to an agent. */

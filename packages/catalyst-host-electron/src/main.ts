@@ -5,7 +5,8 @@ import { pathToFileURL } from "node:url";
 
 import type { ChainModel, Proposal, SlashCommandSpec } from "catalyst-core";
 import {
-  composeSlashCommand,
+  commandNames,
+  composeCommandRequest,
   discoverSlashCommands,
   openProposalsByTarget,
   resolveAgentLaunch,
@@ -117,7 +118,7 @@ function runSlashCommand(
     runtime.agentProcess = child;
   }
 
-  runtime.agentProcess.stdin.write(`${composeSlashCommand(name, args)}\n`);
+  runtime.agentProcess.stdin.write(`${composeCommandRequest(name, args)}\n`);
   return null;
 }
 
@@ -205,10 +206,8 @@ function registerIpcHandlers(win: BrowserWindow): void {
         : undefined;
       const runtime = project ? runtimeByProjectId.get(project.id) : undefined;
       if (!project || !runtime) return "Unknown project.";
-      // Only a command this project actually ships can be dispatched.
-      const allowed = discoverSlashCommands(project.projectRoot).map(
-        (c) => c.name,
-      );
+      // Only a command of the project's composed §4 can be dispatched.
+      const allowed = commandNames(discoverSlashCommands(project.projectRoot));
       const checked = validateSlashCommandRequest(
         projectId,
         name,
