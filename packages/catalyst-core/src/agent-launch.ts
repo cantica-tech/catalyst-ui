@@ -1,5 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readProjectFile } from "./project-file.js";
 
 /**
  * catalyst is agent-agnostic — a deployment's `*.catalyst` pointer records
@@ -26,24 +25,7 @@ export type AgentLaunch =
   | { ok: false; reason: string };
 
 function readPointerAgent(workspaceRoot: string): string | null {
-  if (!existsSync(workspaceRoot)) return null;
-
-  const pointerFile = readdirSync(workspaceRoot).find((name) =>
-    name.endsWith(".catalyst"),
-  );
-  if (!pointerFile) return null;
-
-  let pointer: unknown;
-  try {
-    pointer = JSON.parse(
-      readFileSync(join(workspaceRoot, pointerFile), "utf8"),
-    );
-  } catch {
-    return null;
-  }
-  if (typeof pointer !== "object" || pointer === null) return null;
-
-  const agent = (pointer as Record<string, unknown>).agent;
+  const agent = readProjectFile(workspaceRoot)?.agent;
   if (typeof agent !== "string" || agent.length === 0) return null;
   return agent;
 }

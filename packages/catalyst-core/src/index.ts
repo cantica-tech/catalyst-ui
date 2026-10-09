@@ -109,3 +109,13 @@ export { watchCorpus } from "./watcher.js";
 export type { WatcherHandle } from "./watcher.js";
 
 export * from "./workspace.js";
+export {
+  PROJECT_FILE,
+  catalystHome,
+  findProjectFile,
+  hasProjectFile,
+  homeCriterion,
+  parseProjectToml,
+  projectName,
+  readProjectFile,
+} from "./project-file.js";

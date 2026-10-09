@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { hasProjectFile } from "./project-file.js";
 
 /**
  * What a deployment governs, and where deployments are in a workspace
@@ -45,15 +46,9 @@ export function ignoreLines(directory: string): string[] | null {
   return lines;
 }
 
+/** Whether `directory` is a catalyst project: it holds `catalyst.toml` (or a legacy `*.catalyst` pointer). */
 export function hasPointer(directory: string): boolean {
-  try {
-    return readdirSync(directory).some(
-      (name) =>
-        name.endsWith(".catalyst") && statSync(join(directory, name)).isFile(),
-    );
-  } catch {
-    return false;
-  }
+  return hasProjectFile(directory);
 }
 
 const covers = (rest: string, lines: readonly string[]): boolean =>

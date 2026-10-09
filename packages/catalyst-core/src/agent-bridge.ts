@@ -1,6 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
+import { readProjectFile } from "./project-file.js";
 import type { AgentBinding, DetectedAgent, ResolvedBinding } from "./types.js";
 
 export interface AgentPreset {
@@ -29,20 +27,8 @@ export const AGENT_PRESETS: Record<string, AgentPreset> = {
 };
 
 function readPointer(workspaceRoot: string): Record<string, unknown> | null {
-  if (!existsSync(workspaceRoot)) return null;
-
-  const pointerFile = readdirSync(workspaceRoot).find((name) =>
-    name.endsWith(".catalyst"),
-  );
-  if (!pointerFile) return null;
-
   try {
-    const pointer: unknown = JSON.parse(
-      readFileSync(join(workspaceRoot, pointerFile), "utf8"),
-    );
-    return typeof pointer === "object" && pointer !== null
-      ? (pointer as Record<string, unknown>)
-      : null;
+    return readProjectFile(workspaceRoot);
   } catch {
     return null;
   }
