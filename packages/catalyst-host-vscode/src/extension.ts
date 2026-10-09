@@ -23,7 +23,6 @@ import type {
 } from "catalyst-core";
 import {
   AGENT_PRESETS,
-  defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
   downloadModuleZip,
@@ -1199,7 +1198,7 @@ async function offerToInstall(
       {
         label: "Connect to an existing criterion repo",
         detail:
-          "Clone an already-repoed deployment's branch — a git clone, a .criterion link and a pointer file, no agent involved.",
+          "Clone an already-repoed deployment's branch into ~/.catalyst and write catalyst.toml — no agent involved.",
         action: "connect" as const,
       },
       {
@@ -1223,12 +1222,10 @@ async function offerToInstall(
 }
 
 /**
- * `/criterion get`'s mechanical half, done in code rather than handed to
- * an agent: cloning a branch into agent-owned storage, linking it as the
- * project's gitignored `.criterion` and writing a (path-free) pointer file
- * needs no judgment calls. Deliberately skips that command's identity-migration half
- * (rewriting existing artifacts' `Signed-off-by` fields) — a project with
- * no deployment a moment ago has no local artifacts to migrate.
+ * `catalyst criterion join`'s mechanical half, done in code rather than
+ * handed to an agent: cloning the branch into the home store
+ * (`~/.catalyst/projects/<name>/criterion`) and writing `catalyst.toml`
+ * need no judgment calls (kernel 0.48.0, ADR-010).
  */
 async function connectExistingCriterionRepo(
   folder: vscode.WorkspaceFolder,
@@ -1250,7 +1247,6 @@ async function connectExistingCriterionRepo(
   });
   if (!branch) return;
 
-  const agentSource = defaultAgentSource(folder.uri.fsPath);
   const agentBinding = detectDefaultAgentBinding();
 
   try {
@@ -1258,7 +1254,6 @@ async function connectExistingCriterionRepo(
       projectRoot: folder.uri.fsPath,
       repoUrl,
       branch,
-      agentSource,
       agentId: agentBinding?.id,
     });
     void vscode.window.showInformationMessage(

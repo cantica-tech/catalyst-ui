@@ -1,20 +1,16 @@
 import { execFile } from "node:child_process";
 import {
   existsSync,
-  lstatSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
-  readlinkSync,
   rmSync,
-  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   defaultAgentSource,
@@ -23,7 +19,11 @@ import {
   repoNameFromUrl,
   writeCatalystPointer,
 } from "../join-criterion.js";
-import { claudeCodeStoragePath } from "../discover.js";
+import {
+  claudeCodeStoragePath,
+  readCatalystPointer,
+  resolveCorpusRoot,
+} from "../discover.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -158,206 +158,96 @@ describe("ensureCriterionGitignored", () => {
   });
 });
 
-describe("joinCriterionRepo", () => {
-  it("clones into agentSource, links .criterion to it, gitignores it, and writes a path-free pointer", async () => {
+describe("joinCriterionRepo (home store, kernel 0.48.0)", () => {
+  let savedHome: string | undefined;
+  let home: string;
+
+  beforeEach(() => {
+    savedHome = process.env.CATALYST_HOME;
+    home = tempDir("catalyst-core-join-home-");
+    process.env.CATALYST_HOME = home;
+  });
+
+  afterEach(() => {
+    if (savedHome === undefined) delete process.env.CATALYST_HOME;
+    else process.env.CATALYST_HOME = savedHome;
+  });
+
+  it("clones into the home store and writes catalyst.toml — nothing else in the project", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      "nested",
-      ".criterion",
-    );
 
     const pointer = await joinCriterionRepo({
       projectRoot,
       repoUrl,
       branch: "criterion",
-      agentSource,
       agentId: "claude-code",
     });
 
-    expect(existsSync(join(agentSource, "DEPLOYMENT.md"))).toBe(true);
-    const link = join(projectRoot, ".criterion");
-    expect(lstatSync(link).isSymbolicLink()).toBe(true);
-    expect(readlinkSync(link)).toBe(agentSource);
-    expect(existsSync(join(link, "DEPLOYMENT.md"))).toBe(true);
-    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toContain(
-      "/.criterion\n",
-    );
-    expect(pointer).not.toHaveProperty("agent-source");
+    const name = pointer.project_name;
+    expect(
+      existsSync(join(home, "projects", name, "criterion", "DEPLOYMENT.md")),
+    ).toBe(true);
+    expect(existsSync(join(projectRoot, ".criterion"))).toBe(false);
+    expect(existsSync(join(projectRoot, ".gitignore"))).toBe(false);
     expect(pointer).toMatchObject({
       agent: "claude-code",
       repoed: true,
       criterion_branch: "criterion",
       catalyst_repo_url: repoUrl,
     });
-    expect(pointer.created).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-
-    const written = JSON.parse(
-      readFileSync(
-        join(projectRoot, `${pointer.project_name}.catalyst`),
-        "utf8",
-      ),
+    expect(readCatalystPointer(projectRoot)).toEqual(pointer);
+    expect(resolveCorpusRoot(projectRoot)).toBe(
+      join(home, "projects", name, "criterion"),
     );
-    expect(written).toEqual(pointer);
   });
 
-  it("clones a contributor's own <name>.criterion branch, not just criterion itself", async () => {
-    const repoUrl = await createBareCriterionRepo("olivier-steck.criterion");
+  it("clones a contributor's own <name>.criterion branch", async () => {
+    const repoUrl = await createBareCriterionRepo("ada.criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-
     const pointer = await joinCriterionRepo({
       projectRoot,
       repoUrl,
-      branch: "olivier-steck.criterion",
-      agentSource,
+      branch: "ada.criterion",
     });
-
-    expect(pointer.criterion_branch).toBe("olivier-steck.criterion");
-    expect(pointer.agent).toBeUndefined();
+    const { stdout } = await execFileAsync("git", [
+      "-C",
+      join(home, "projects", pointer.project_name, "criterion"),
+      "symbolic-ref",
+      "--short",
+      "HEAD",
+    ]);
+    expect(stdout.trim()).toBe("ada.criterion");
   });
 
-  it("refuses when agentSource already exists and is not empty", async () => {
+  it("joining again updates the same clone; another remote under the same name is refused", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = tempDir("catalyst-core-join-existing-");
-    writeFileSync(join(agentSource, "already-here.txt"), "content");
-
+    await joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" });
+    await joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" });
+    const other = await createBareCriterionRepo("criterion");
     await expect(
-      joinCriterionRepo({
-        projectRoot,
-        repoUrl,
-        branch: "criterion",
-        agentSource,
-      }),
-    ).rejects.toThrow(/already exists and is not empty/);
+      joinCriterionRepo({ projectRoot, repoUrl: other, branch: "criterion" }),
+    ).rejects.toThrow(/another remote/);
   });
 
-  it("refuses when .criterion already exists as a real directory", async () => {
+  it("refuses a project still on a legacy *.catalyst pointer", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    mkdirSync(join(projectRoot, ".criterion"));
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
+    writeFileSync(
+      join(projectRoot, "app.catalyst"),
+      JSON.stringify({ project_name: "app" }),
     );
-
     await expect(
-      joinCriterionRepo({
-        projectRoot,
-        repoUrl,
-        branch: "criterion",
-        agentSource,
-      }),
-    ).rejects.toThrow(/already exists and is not a symlink to/);
-    expect(existsSync(agentSource)).toBe(false);
-  });
-
-  it("refuses when .criterion is a symlink to a different location", async () => {
-    const repoUrl = await createBareCriterionRepo("criterion");
-    const projectRoot = tempDir("catalyst-core-join-project-");
-    const elsewhere = tempDir("catalyst-core-join-elsewhere-");
-    symlinkSync(elsewhere, join(projectRoot, ".criterion"), "dir");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-
-    await expect(
-      joinCriterionRepo({
-        projectRoot,
-        repoUrl,
-        branch: "criterion",
-        agentSource,
-      }),
-    ).rejects.toThrow(/already exists and is not a symlink to/);
-  });
-
-  it("reuses an existing .criterion symlink that already points at agentSource", async () => {
-    const repoUrl = await createBareCriterionRepo("criterion");
-    const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-    symlinkSync(agentSource, join(projectRoot, ".criterion"), "dir");
-
-    await joinCriterionRepo({
-      projectRoot,
-      repoUrl,
-      branch: "criterion",
-      agentSource,
-    });
-
-    expect(existsSync(join(projectRoot, ".criterion", "DEPLOYMENT.md"))).toBe(
-      true,
-    );
-  });
-
-  it("falls back to cloning into <projectRoot>/.criterion when symlinks aren't permitted", async () => {
-    const repoUrl = await createBareCriterionRepo("criterion");
-    const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-    symlinkControl.failWithEperm = true;
-
-    const pointer = await joinCriterionRepo({
-      projectRoot,
-      repoUrl,
-      branch: "criterion",
-      agentSource,
-    });
-
-    const inProject = join(projectRoot, ".criterion");
-    expect(lstatSync(inProject).isDirectory()).toBe(true);
-    expect(existsSync(join(inProject, "DEPLOYMENT.md"))).toBe(true);
-    expect(existsSync(join(agentSource, "DEPLOYMENT.md"))).toBe(false);
-    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toContain(
-      "/.criterion\n",
-    );
-    expect(pointer).not.toHaveProperty("agent-source");
-  });
-
-  it("removes the .criterion symlink it created when the clone fails", async () => {
-    const repoUrl = await createBareCriterionRepo("criterion");
-    const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-
-    await expect(
-      joinCriterionRepo({
-        projectRoot,
-        repoUrl,
-        branch: "does-not-exist.criterion",
-        agentSource,
-      }),
-    ).rejects.toThrow(/git clone/);
-    expect(() => lstatSync(join(projectRoot, ".criterion"))).toThrow();
+      joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" }),
+    ).rejects.toThrow(/move --to-home/);
   });
 
   it("rejects when the branch doesn't exist on the remote", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    const agentSource = join(
-      tempDir("catalyst-core-join-target-"),
-      ".criterion",
-    );
-
     await expect(
-      joinCriterionRepo({
-        projectRoot,
-        repoUrl,
-        branch: "does-not-exist.criterion",
-        agentSource,
-      }),
-    ).rejects.toThrow(/git clone/);
+      joinCriterionRepo({ projectRoot, repoUrl, branch: "no-such-branch" }),
+    ).rejects.toThrow();
   });
 });

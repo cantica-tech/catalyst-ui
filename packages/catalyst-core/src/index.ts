@@ -58,6 +58,7 @@ export {
   joinCriterionRepo,
   repoNameFromUrl,
   writeCatalystPointer,
+  writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
 export { parseJournal, queryJournal } from "./journal.js";

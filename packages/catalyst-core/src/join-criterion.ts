@@ -2,19 +2,23 @@ import { execFile } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
-  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  readlinkSync,
-  symlinkSync,
-  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { claudeCodeStoragePath } from "./discover.js";
+import {
+  PROJECT_FILE,
+  catalystHome,
+  findProjectFile,
+  homeCriterion,
+  projectName,
+  readProjectFile,
+} from "./project-file.js";
 import type { CatalystPointer } from "./types.js";
 
 const execFileAsync = promisify(execFile);
@@ -106,140 +110,131 @@ export function ensureCriterionGitignored(projectRoot: string): boolean {
   return true;
 }
 
-/** Whether `err` is a Node system error with the given `code`. */
-function hasErrorCode(err: unknown, code: string): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    (err as { code: unknown }).code === code
-  );
-}
-
-/**
- * Inspects `<projectRoot>/.criterion` before a join: `"absent"` if nothing
- * is there, `"linked"` if it's already a symlink to `agentSource`. Throws
- * for anything else (a real directory, a file, a symlink elsewhere) rather
- * than silently replacing a possibly-unrelated deployment.
- */
-function inspectCriterionLink(
-  linkPath: string,
-  agentSource: string,
-): "absent" | "linked" {
-  let stats;
-  try {
-    stats = lstatSync(linkPath);
-  } catch (err) {
-    if (hasErrorCode(err, "ENOENT")) return "absent";
-    throw err;
-  }
-  if (stats.isSymbolicLink()) {
-    const target = resolve(dirname(linkPath), readlinkSync(linkPath));
-    if (target === resolve(agentSource)) return "linked";
-  }
-  throw new Error(
-    `${linkPath} already exists and is not a symlink to ${agentSource}`,
-  );
-}
-
 export interface JoinCriterionOptions {
   projectRoot: string;
   repoUrl: string;
   /** Branch to check out: a contributor's own `<name>.criterion`, or `criterion` itself (single-maintainer mode). */
   branch: string;
-  /** Defaults to `defaultAgentSource(projectRoot)`. */
+  /** Legacy (agent-owned space); ignored since kernel 0.48.0 — the criterion goes to the home store. */
   agentSource?: string;
-  /** The `*.catalyst` pointer's `agent` field (which coding agent this deployment is chat-bound to), if known. */
+  /** The project file's `agent` field (which coding agent this deployment is chat-bound to), if known. */
   agentId?: string;
 }
 
+/** `catalyst.toml` as catalyst writes it: flat `key = value` lines (kernel ADR-010). */
+export function writeProjectToml(
+  projectRoot: string,
+  data: Record<string, unknown>,
+): string {
+  const lines = [
+    "# catalyst project file: names this project's criterion ($HOME/.catalyst/projects/<project_name>/criterion). Never a path.",
+  ];
+  for (const [key, value] of Object.entries(data)) {
+    if (value === null || value === undefined || typeof value === "object")
+      continue;
+    lines.push(`${key} = ${JSON.stringify(value)}`);
+  }
+  const path = join(projectRoot, PROJECT_FILE);
+  writeFileSync(path, `${lines.join("\n")}\n`);
+  return path;
+}
+
 /**
- * Joins an already-repoed criterion deployment (`Rules-of-Rules.md` §13's
- * `/criterion get`, done in code rather than handed to a reasoning agent —
- * cloning a branch and writing a pointer file needs no judgment calls).
+ * Joins an already-repoed criterion deployment (`catalyst criterion join`,
+ * done in code — cloning a branch and writing the project file need no
+ * judgment calls).
  *
- * Kernel 0.37.0's working-copy location model: clones `branch` from
- * `repoUrl` into the resolved `agentSource` (agent-owned space, never
- * inside the project's own tree — INV-6), makes `<projectRoot>/.criterion`
- * a symlink to it (the single access path), ensures `/.criterion` is in
- * the project's `.gitignore`, then writes the project-root pointer file —
- * which carries no path (no `agent-source`). Where symlinks can't be
- * created (`EPERM`, e.g. Windows without developer mode), clones straight
- * into `<projectRoot>/.criterion` instead (the in-project fallback), still
- * gitignored.
- *
- * Refuses if `.criterion` already exists and isn't a symlink to
- * `agentSource`, or if the clone target already has content, rather than
- * silently overwriting a possibly-unrelated deployment.
- *
- * Deliberately narrower than `/criterion get`'s full spec: it does not
- * perform that command's identity migration (rewriting existing artifacts'
- * `Signed-off-by` fields to a newly-registered `git_username`) — there are
- * no local artifacts to migrate for a project that had no deployment at
- * all a moment ago.
+ * Kernel 0.48.0's model (ADR-010, INV-6): clones `branch` from `repoUrl`
+ * into the home store, `<catalyst home>/projects/<name>/criterion` — or
+ * brings an existing clone of the same repository up to date — and writes
+ * `catalyst.toml`, the only file it adds to the project. No symlink, no
+ * `.gitignore` entry. A same-named criterion with another remote is
+ * refused, as is a project still on a legacy `*.catalyst` pointer
+ * (`catalyst move --to-home` first). The criterion's runtime is installed by
+ * `catalyst runtime install`, which this tries through the launcher when
+ * it is installed.
  */
 export async function joinCriterionRepo(
   options: JoinCriterionOptions,
 ): Promise<CatalystPointer> {
-  const { projectRoot, repoUrl, branch } = options;
-  const agentSource = resolve(
-    options.agentSource ?? defaultAgentSource(projectRoot),
-  );
-  const linkPath = join(resolve(projectRoot), ".criterion");
-  const inProjectRequested = agentSource === linkPath;
-
-  const linkState = inProjectRequested
-    ? "absent"
-    : inspectCriterionLink(linkPath, agentSource);
-
-  if (existsSync(agentSource) && readdirSync(agentSource).length > 0) {
-    throw new Error(`${agentSource} already exists and is not empty`);
+  const projectRoot = resolve(options.projectRoot);
+  const { repoUrl, branch } = options;
+  const existingFile = findProjectFile(projectRoot);
+  if (existingFile && !existingFile.endsWith(PROJECT_FILE)) {
+    throw new Error(
+      `${basename(existingFile)} is a legacy pointer — run \`catalyst move --to-home\` first`,
+    );
   }
+  const existing = readProjectFile(projectRoot) ?? {};
+  const name = projectName(existing) ?? basename(projectRoot);
+  const target = homeCriterion(name);
 
-  let cloneTarget = agentSource;
-  let createdLink = false;
-  if (!inProjectRequested && linkState === "absent") {
-    mkdirSync(dirname(agentSource), { recursive: true });
+  if (existsSync(target) && readdirSync(target).length > 0) {
+    let remote = "";
     try {
-      symlinkSync(agentSource, linkPath, "dir");
-      createdLink = true;
-    } catch (err) {
-      if (!hasErrorCode(err, "EPERM")) throw err;
-      cloneTarget = linkPath;
+      remote = await runGit(["-C", target, "remote", "get-url", "origin"]);
+    } catch {
+      remote = "";
     }
-  }
-  mkdirSync(dirname(cloneTarget), { recursive: true });
-
-  try {
+    if (remote !== repoUrl) {
+      throw new Error(
+        `${target} exists with another remote (${remote || "none"}) — a different project with the same name?`,
+      );
+    }
+    await runGit(["-C", target, "fetch", "--quiet", "origin"]);
+    await runGit([
+      "-C",
+      target,
+      "checkout",
+      "--quiet",
+      "-B",
+      branch,
+      `origin/${branch}`,
+    ]);
+  } else {
+    mkdirSync(dirname(target), { recursive: true });
     await runGit([
       "clone",
       "--branch",
       branch,
       "--single-branch",
       repoUrl,
-      cloneTarget,
+      target,
     ]);
-  } catch (err) {
-    // git removes a clone directory it created itself; only the symlink is ours to undo.
-    if (createdLink) unlinkSync(linkPath);
-    throw err;
   }
-
-  ensureCriterionGitignored(projectRoot);
 
   const createdBy = await currentGitUserName();
   const pointer: CatalystPointer = {
-    project_name: basename(projectRoot),
+    ...(existing as unknown as Partial<CatalystPointer>),
+    project_name: name,
     ...(options.agentId ? { agent: options.agentId } : {}),
     repoed: true,
     catalyst_repo: repoNameFromUrl(repoUrl),
     catalyst_repo_url: repoUrl,
     criterion_branch: branch,
-    ...(createdBy ? { created_by: createdBy } : {}),
-    created: todayIso(),
+    ...(createdBy && !existing.created_by ? { created_by: createdBy } : {}),
+    created: (existing.created as string | undefined) ?? todayIso(),
     updated: todayIso(),
   };
+  writeProjectToml(projectRoot, pointer as unknown as Record<string, unknown>);
 
-  writeCatalystPointer(projectRoot, pointer);
+  // best effort: the criterion's own runtime, when catalyst's launcher is installed
+  const launcher = join(catalystHome(), "bin", "catalyst");
+  if (existsSync(launcher)) {
+    try {
+      await execFileAsync(
+        process.platform === "win32" ? "py" : "python3",
+        [
+          ...(process.platform === "win32" ? ["-3"] : []),
+          launcher,
+          "runtime",
+          "install",
+        ],
+        { cwd: projectRoot },
+      );
+    } catch {
+      /* the user can run `catalyst runtime install` later */
+    }
+  }
   return pointer;
 }
