@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   standards:
-    uses: cantica-tech/standards/.github/workflows/lint.yml@v0.1.1
+    uses: cantica-tech/standards/.github/workflows/lint.yml@v0.1.2
     with:
-      ref: v0.1.1
+      ref: v0.1.2
       typecheck: false
