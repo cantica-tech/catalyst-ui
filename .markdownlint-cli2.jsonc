@@ -1,0 +1,15 @@
+// markdownlint: the cantica-tech standard (.standards/, synced) plus this repository's ratchet.
+{
+  "config": {
+    "extends": ".standards/markdownlint.jsonc",
+    // Ratchet (2026-10-09, standards v0.1.0) — remove once fixed:
+    "MD040": false, // 3 fences without a language
+  },
+  "ignores": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/out/**",
+    ".claude/**",
+    "packages/catalyst-core/src/test/fixtures/**",
+  ],
+}

@@ -8,6 +8,15 @@ version: "3"
 
 dotenv: [".env"]
 
+includes:
+  # cantica-tech code standards: `task lint`, `task format`, `task typecheck`, `task standards:sync`,
+  # `task standards:check` — from a checkout of the standards repository next to this one (STANDARDS_DIR).
+  standards:
+    taskfile: '{{.STANDARDS_DIR | default "../standards"}}/Taskfile.standards.yml'
+    optional: true
+    flatten: true
+    excludes: [lint, format, typecheck] # this repository's own lint and typecheck call standards:lint, standards:typecheck
+
 vars:
   # Falls back to the macOS app bundle when the `code` shim hasn't been
   # installed on PATH (Command Palette: Shell Command: Install 'code' command
@@ -22,9 +31,10 @@ tasks:
       - npm ci
 
   lint:
-    desc: "Lint all workspaces"
+    desc: "Lint all workspaces (ESLint), then the cantica-tech standard's other linters (Markdown, YAML, workflows)"
     cmds:
       - npm run lint
+      - task: standards:lint
 
   format:check:
     desc: "Check formatting across all workspaces"

@@ -26,8 +26,6 @@ describe("branchSafeName", () => {
 
 describe("suggestCriterionBranch", () => {
   it("appends .criterion to the branch-safe name", () => {
-    expect(suggestCriterionBranch("Olivier Steck")).toBe(
-      "olivier-steck.criterion",
-    );
+    expect(suggestCriterionBranch("Olivier Steck")).toBe("olivier-steck.criterion");
   });
 });

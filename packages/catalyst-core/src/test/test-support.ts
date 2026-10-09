@@ -170,23 +170,14 @@ function renderRulesOfRules(rules: FixtureRule[]): string {
   return text;
 }
 
-function renderRulesIndex(
-  ruleDocs: FixtureRuleDoc[],
-  extraRegisteredRuleIds: string[],
-): string {
-  let text =
-    "# Rules index\n\n## Rule documents\n\n| Prefix | Document | Domains |\n|---|---|---|\n";
+function renderRulesIndex(ruleDocs: FixtureRuleDoc[], extraRegisteredRuleIds: string[]): string {
+  let text = "# Rules index\n\n## Rule documents\n\n| Prefix | Document | Domains |\n|---|---|---|\n";
   for (const doc of ruleDocs) {
-    const domains = [...new Set(doc.rules.map((r) => r.domain))]
-      .map((d) => `\`${d}\``)
-      .join(", ");
+    const domains = [...new Set(doc.rules.map((r) => r.domain))].map((d) => `\`${d}\``).join(", ");
     text += `| \`${doc.prefix}\` | [\`${doc.filename}\`](${doc.filename}) | ${domains} |\n`;
   }
   text += "\n## Rule IDs\n\n";
-  const allIds = [
-    ...ruleDocs.flatMap((d) => d.rules.map((r) => r.id)),
-    ...extraRegisteredRuleIds,
-  ];
+  const allIds = [...ruleDocs.flatMap((d) => d.rules.map((r) => r.id)), ...extraRegisteredRuleIds];
   for (const id of allIds) {
     text += `- \`${id}\` — placeholder\n`;
   }
@@ -194,8 +185,7 @@ function renderRulesIndex(
 }
 
 function renderDomainsIndex(domains: FixtureDomain[]): string {
-  let text =
-    "# Domains index\n\n| Code | Document | Defined |\n|---|---|---|\n";
+  let text = "# Domains index\n\n| Code | Document | Defined |\n|---|---|---|\n";
   for (const domain of domains) {
     text += `| [\`${domain.code}\`](${domain.filename ?? `${domain.code}.md`}) | rules/some-doc.md | 2026-01-01 |\n`;
   }
@@ -215,34 +205,22 @@ function renderDevArtifactFile(artifact: FixtureArtifact): string {
     ID: `\`${artifact.id}\``,
     Status: artifact.status ?? "in-progress",
   };
-  if (artifact.targets?.length)
-    fields.Targets = artifact.targets.map((t) => `\`${t}\``).join(", ");
+  if (artifact.targets?.length) fields.Targets = artifact.targets.map((t) => `\`${t}\``).join(", ");
   if (artifact.feature) fields.Feature = `\`${artifact.feature}\``;
-  if (artifact.requirements?.length)
-    fields.Requirements = artifact.requirements
-      .map((r) => `\`${r}\``)
-      .join(", ");
-  if (artifact.steps?.length)
-    fields.Steps = artifact.steps.map((s) => `\`${s}\``).join(", ");
-  const descriptionHeading =
-    devArtifactType(artifact.id) === "requirement" ? "Summary" : "Description";
-  const description = artifact.description
-    ? `## ${descriptionHeading}\n\n${artifact.description}\n\n`
-    : "";
+  if (artifact.requirements?.length) fields.Requirements = artifact.requirements.map((r) => `\`${r}\``).join(", ");
+  if (artifact.steps?.length) fields.Steps = artifact.steps.map((s) => `\`${s}\``).join(", ");
+  const descriptionHeading = devArtifactType(artifact.id) === "requirement" ? "Summary" : "Description";
+  const description = artifact.description ? `## ${descriptionHeading}\n\n${artifact.description}\n\n` : "";
   return `# \`${artifact.id}\` — ${artifact.title}\n\n${renderFieldTable(fields)}\n${description}## Notes\n\n${artifact.extraBody ?? "None."}\n`;
 }
 
 function renderFeatureFile(feature: FixtureFeature): string {
-  const description = feature.description
-    ? `## Description\n\n${feature.description}\n\n`
-    : "";
+  const description = feature.description ? `## Description\n\n${feature.description}\n\n` : "";
   return `# \`${feature.id}\` — ${feature.title}\n\n${renderFieldTable({ ID: `\`${feature.id}\``, Status: feature.status ?? "in-development" })}\n${description}`;
 }
 
 function renderStepFile(step: FixtureStep): string {
-  const description = step.description
-    ? `## Description\n\n${step.description}\n\n`
-    : "";
+  const description = step.description ? `## Description\n\n${step.description}\n\n` : "";
   const fields = renderFieldTable({
     ID: `\`${step.id}\``,
     Parent: `\`${step.parent}\``,
@@ -257,12 +235,8 @@ function renderProposalFile(proposal: FixtureProposal): string {
     Status: proposal.status ?? "proposed",
   });
   const targets = (proposal.targets ?? []).map((t) => `- \`${t}\``).join("\n");
-  const expectations = (proposal.expectations ?? ["Placeholder expectation."])
-    .map((e) => `- ${e}`)
-    .join("\n");
-  const constraints = (proposal.constraints ?? [])
-    .map((c) => `- ${c}`)
-    .join("\n");
+  const expectations = (proposal.expectations ?? ["Placeholder expectation."]).map((e) => `- ${e}`).join("\n");
+  const constraints = (proposal.constraints ?? []).map((c) => `- ${c}`).join("\n");
   return `# \`${proposal.id}\` — fixture proposal\n\n${fields}\n## Intent\n\n${proposal.intent ?? "Fixture intent."}\n\n## Targets\n\n${targets}\n\n## Expectations\n\n${expectations}\n\n## Constraints\n\n${constraints}\n`;
 }
 
@@ -273,9 +247,7 @@ function renderRunFile(run: FixtureRun): string {
     Command: run.command ?? "fixture command",
     Started: run.started ?? "2026-01-01T00:00:00Z",
   });
-  const checklist = (run.checklist ?? ["✅ Fixture step"])
-    .map((c) => `- ${c}`)
-    .join("\n");
+  const checklist = (run.checklist ?? ["✅ Fixture step"]).map((c) => `- ${c}`).join("\n");
   const ledger = (run.ledger ?? []).map((l) => `- ${l}`).join("\n");
   return `# \`${run.id}\` — fixture run\n\n${fields}\n## Checklist\n\n${checklist}\n\n## Ledger\n\n${ledger}\n`;
 }
@@ -292,19 +264,13 @@ function renderRoadmapFile(roadmap: FixtureRoadmap): string {
   return text;
 }
 
-function writeRoadmapCollection(
-  root: string,
-  roadmaps: FixtureRoadmap[],
-): void {
+function writeRoadmapCollection(root: string, roadmaps: FixtureRoadmap[]): void {
   const roadmapsDir = join(root, "development", "roadmaps");
   mkdirSync(roadmapsDir, { recursive: true });
   let index = "# Roadmaps\n\n";
   for (const roadmap of roadmaps) {
     index += `- ${roadmap.name}${roadmap.retired ? " (retired)" : ""}\n`;
-    writeFileSync(
-      join(roadmapsDir, `${roadmap.name}.md`),
-      renderRoadmapFile(roadmap),
-    );
+    writeFileSync(join(roadmapsDir, `${roadmap.name}.md`), renderRoadmapFile(roadmap));
   }
   writeFileSync(join(roadmapsDir, "roadmaps.md"), index);
 }
@@ -348,16 +314,10 @@ function writeJournal(root: string, entries: FixtureJournalEntry[]): void {
       files: [],
     }),
   );
-  writeFileSync(
-    join(dir, "journal.jsonl"),
-    lines.length > 0 ? lines.join("\n") + "\n" : "",
-  );
+  writeFileSync(join(dir, "journal.jsonl"), lines.length > 0 ? lines.join("\n") + "\n" : "");
 }
 
-function renderArtifactIndex(
-  columns: string[],
-  rows: Array<{ id: string; filename: string; cells: string[] }>,
-): string {
+function renderArtifactIndex(columns: string[], rows: { id: string; filename: string; cells: string[] }[]): string {
   let text = `# Index\n\n| ${["ID", ...columns].join(" | ")} |\n|${columns
     .map(() => "---")
     .concat("---")
@@ -369,11 +329,7 @@ function renderArtifactIndex(
   return text;
 }
 
-function writeArtifactCollection(
-  dir: string,
-  indexPath: string,
-  artifacts: FixtureArtifact[],
-): void {
+function writeArtifactCollection(dir: string, indexPath: string, artifacts: FixtureArtifact[]): void {
   mkdirSync(dir, { recursive: true });
   const rows = artifacts
     .filter((a) => a.registerInIndex !== false)
@@ -385,10 +341,7 @@ function writeArtifactCollection(
   writeFileSync(indexPath, renderArtifactIndex(["Title", "Status"], rows));
   for (const artifact of artifacts) {
     if (artifact.createFile === false) continue;
-    writeFileSync(
-      join(dir, `${artifact.id}-file.md`),
-      renderDevArtifactFile(artifact),
-    );
+    writeFileSync(join(dir, `${artifact.id}-file.md`), renderDevArtifactFile(artifact));
   }
 }
 
@@ -399,10 +352,7 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
   mkdirSync(domainsDir, { recursive: true });
 
   const ruleDocs = spec.ruleDocs ?? [];
-  writeFileSync(
-    join(rulesDir, "rules.md"),
-    renderRulesIndex(ruleDocs, spec.extraRegisteredRuleIds ?? []),
-  );
+  writeFileSync(join(rulesDir, "rules.md"), renderRulesIndex(ruleDocs, spec.extraRegisteredRuleIds ?? []));
   for (const doc of ruleDocs) {
     writeFileSync(join(rulesDir, doc.filename), renderRuleDoc(doc));
   }
@@ -412,10 +362,7 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
   for (const domain of domains) {
     if (domain.skipDoc) continue;
     const scope = domain.scope ? `\n## Scope\n\n${domain.scope}\n` : "";
-    writeFileSync(
-      join(domainsDir, domain.filename ?? `${domain.code}.md`),
-      `# ${domain.code}\n${scope}`,
-    );
+    writeFileSync(join(domainsDir, domain.filename ?? `${domain.code}.md`), `# ${domain.code}\n${scope}`);
   }
 
   writeArtifactCollection(
@@ -433,11 +380,7 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
     join(root, "development", "house-keeping", "house-keeping.md"),
     spec.houseKeeping ?? [],
   );
-  writeArtifactCollection(
-    join(root, "tests"),
-    join(root, "tests", "tests.md"),
-    spec.tests ?? [],
-  );
+  writeArtifactCollection(join(root, "tests"), join(root, "tests", "tests.md"), spec.tests ?? []);
 
   const featuresDir = join(root, "features");
   mkdirSync(featuresDir, { recursive: true });
@@ -449,16 +392,10 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
       filename: `${f.id}-file.md`,
       cells: [f.title, f.status ?? "in-development"],
     }));
-  writeFileSync(
-    join(featuresDir, "features.md"),
-    renderArtifactIndex(["Title", "Status"], featureRows),
-  );
+  writeFileSync(join(featuresDir, "features.md"), renderArtifactIndex(["Title", "Status"], featureRows));
   for (const feature of features) {
     if (feature.createFile === false) continue;
-    writeFileSync(
-      join(featuresDir, `${feature.id}-file.md`),
-      renderFeatureFile(feature),
-    );
+    writeFileSync(join(featuresDir, `${feature.id}-file.md`), renderFeatureFile(feature));
   }
 
   const stepsDir = join(root, "steps");
@@ -471,10 +408,7 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
       filename: `${s.id}-file.md`,
       cells: [s.title, s.parent, s.status ?? "in-progress"],
     }));
-  writeFileSync(
-    join(stepsDir, "steps.md"),
-    renderArtifactIndex(["Title", "Parent", "Status"], stepRows),
-  );
+  writeFileSync(join(stepsDir, "steps.md"), renderArtifactIndex(["Title", "Parent", "Status"], stepRows));
   for (const step of steps) {
     if (step.createFile === false) continue;
     writeFileSync(join(stepsDir, `${step.id}-file.md`), renderStepFile(step));
@@ -485,10 +419,7 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
     const proposalsDir = join(root, "proposals");
     mkdirSync(proposalsDir, { recursive: true });
     for (const proposal of proposals) {
-      writeFileSync(
-        join(proposalsDir, `${proposal.id}-fixture.md`),
-        renderProposalFile(proposal),
-      );
+      writeFileSync(join(proposalsDir, `${proposal.id}-fixture.md`), renderProposalFile(proposal));
     }
   }
 
@@ -522,10 +453,7 @@ export function removeFixtureCorpus(root: string): void {
 
 /** Renders `renderRulesOfRules` reachable for a from-scratch Rules-of-Rules.md when a test needs `rr` rules specifically. */
 export function writeRulesOfRules(root: string, rules: FixtureRule[]): void {
-  writeFileSync(
-    join(root, "rules", "Rules-of-Rules.md"),
-    renderRulesOfRules(rules),
-  );
+  writeFileSync(join(root, "rules", "Rules-of-Rules.md"), renderRulesOfRules(rules));
 }
 
 /** Base-26 letter encoding (A, B, ..., Z, AA, AB, ...) — rule ids and domain

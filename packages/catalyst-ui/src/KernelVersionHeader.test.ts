@@ -32,9 +32,7 @@ describe("KernelVersionHeader", () => {
     );
     expect(html).toContain("Kernel Version");
     expect(html).toContain("!");
-    expect(html).toContain(
-      "Version 0.29.0 is below required version &gt;=0.31.0",
-    );
+    expect(html).toContain("Version 0.29.0 is below required version &gt;=0.31.0");
     expect(html).toContain("#ef4444"); // red styling
   });
 

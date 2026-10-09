@@ -1,10 +1,5 @@
 import { buildShortFormIndex, resolveIdReference } from "./ids.js";
-import type {
-  ChainModel,
-  ChainNode,
-  ParseResult,
-  SourceLocation,
-} from "./types.js";
+import type { ChainModel, ChainNode, ParseResult, SourceLocation } from "./types.js";
 
 /**
  * Assembles a full parse pass into one typed chain model: dedupes node

@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  nextProposalId,
-  openProposalsByTarget,
-  parseProposals,
-} from "../proposals.js";
+import { nextProposalId, openProposalsByTarget, parseProposals } from "../proposals.js";
 import { createFixtureCorpus, removeFixtureCorpus } from "./test-support.js";
 
 let root: string | undefined;
@@ -57,10 +53,7 @@ describe("parseProposals", () => {
     root = createFixtureCorpus({
       proposals: [{ id: "PROP-000002" }, { id: "PROP-000001" }],
     });
-    expect(parseProposals(root).map((p) => p.id)).toEqual([
-      "PROP-000001",
-      "PROP-000002",
-    ]);
+    expect(parseProposals(root).map((p) => p.id)).toEqual(["PROP-000001", "PROP-000002"]);
   });
 });
 
@@ -98,9 +91,7 @@ describe("openProposalsByTarget", () => {
         ?.map((p) => p.id)
         .sort(),
     ).toEqual(["PROP-000001", "PROP-000002"]);
-    expect(byTarget.get("REQ-000002")?.map((p) => p.id)).toEqual([
-      "PROP-000002",
-    ]);
+    expect(byTarget.get("REQ-000002")?.map((p) => p.id)).toEqual(["PROP-000002"]);
     expect(byTarget.has("REQ-000003")).toBe(false);
   });
 });

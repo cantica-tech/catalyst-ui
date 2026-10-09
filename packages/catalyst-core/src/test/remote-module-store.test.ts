@@ -7,11 +7,7 @@ import {
   saveModuleLocally,
   scanModulesFromLocalDirectory,
 } from "../remote-module-store.js";
-import {
-  packageUiModule,
-  UiModuleManager,
-  type UiModuleManifest,
-} from "../ui-module-manager.js";
+import { packageUiModule, UiModuleManager, type UiModuleManifest } from "../ui-module-manager.js";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -26,9 +22,7 @@ vi.mock("node:child_process", () => ({
 
 describe("remote-module-store", () => {
   it("parses various source URL formats cleanly", () => {
-    const loc1 = parseArtifactSourceLocation(
-      "git@github.com:oliben67/cantica-tech.git/catalyst/",
-    );
+    const loc1 = parseArtifactSourceLocation("git@github.com:oliben67/cantica-tech.git/catalyst/");
     expect(loc1.type).toBe("git");
     expect(loc1.owner).toBe("oliben67");
     expect(loc1.repo).toBe("cantica-tech");
@@ -37,24 +31,18 @@ describe("remote-module-store", () => {
     expect(loc1.kernelSubpath).toBe("catalyst/kernel");
 
     // The pre-0.35.0 "framework" release folder still maps onto the kernel.
-    const legacy = parseArtifactSourceLocation(
-      "git@github.com:oliben67/cantica-tech.git/catalyst/framework/",
-    );
+    const legacy = parseArtifactSourceLocation("git@github.com:oliben67/cantica-tech.git/catalyst/framework/");
     expect(legacy.kernelSubpath).toBe("catalyst/kernel");
     expect(legacy.moduleSubpath).toBe("catalyst/modules");
 
-    const loc2 = parseArtifactSourceLocation(
-      "https://github.com/myorg/myrepo/tree/dev/custom-path",
-    );
+    const loc2 = parseArtifactSourceLocation("https://github.com/myorg/myrepo/tree/dev/custom-path");
     expect(loc2.type).toBe("github");
     expect(loc2.owner).toBe("myorg");
     expect(loc2.repo).toBe("myrepo");
     expect(loc2.branch).toBe("dev");
     expect(loc2.moduleSubpath).toBe("custom-path/modules");
 
-    const loc3 = parseArtifactSourceLocation(
-      "git+https://github.com/myorg/myrepo.git#main:catalyst",
-    );
+    const loc3 = parseArtifactSourceLocation("git+https://github.com/myorg/myrepo.git#main:catalyst");
     expect(loc3.type).toBe("git");
     expect(loc3.owner).toBe("myorg");
     expect(loc3.repo).toBe("myrepo");
@@ -69,13 +57,7 @@ describe("remote-module-store", () => {
   it("scans modules from local directory without duplicates", () => {
     const tmpDir = mkdtempSync(join(tmpdir(), "catalyst-scan-test-"));
     try {
-      const vDir = join(
-        tmpDir,
-        "catalyst",
-        "module",
-        "software-engineering",
-        "v1.0.0",
-      );
+      const vDir = join(tmpDir, "catalyst", "module", "software-engineering", "v1.0.0");
       mkdirSync(vDir, { recursive: true });
 
       const manifest: UiModuleManifest = {
@@ -84,11 +66,7 @@ describe("remote-module-store", () => {
         version: "1.0.0",
         kernelVersion: ">=0.34.0",
       };
-      writeFileSync(
-        join(vDir, "manifest.json"),
-        JSON.stringify(manifest),
-        "utf8",
-      );
+      writeFileSync(join(vDir, "manifest.json"), JSON.stringify(manifest), "utf8");
       const zipBuf = packageUiModule(manifest);
       writeFileSync(join(vDir, "software-engineering-v1.0.0.zip"), zipBuf);
 
@@ -116,18 +94,12 @@ describe("remote-module-store", () => {
           ok: true,
           arrayBuffer: () =>
             Promise.resolve(
-              sampleData.buffer.slice(
-                sampleData.byteOffset,
-                sampleData.byteOffset + sampleData.byteLength,
-              ),
+              sampleData.buffer.slice(sampleData.byteOffset, sampleData.byteOffset + sampleData.byteLength),
             ),
         }),
       );
 
-      const loadedHttp = await downloadModuleZip(
-        "https://example.com/mod.zip",
-        mockFetch as unknown as typeof fetch,
-      );
+      const loadedHttp = await downloadModuleZip("https://example.com/mod.zip", mockFetch);
       expect(loadedHttp.toString()).toBe("ZIPDATA");
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -171,7 +143,7 @@ describe("remote-module-store", () => {
     // A repo with no local clone cache, so only the mocked API can answer.
     const modules = await fetchRemoteUiModules(
       "https://github.com/test-owner/test-repo/tree/main/catalyst/",
-      mockFetch as unknown as typeof fetch,
+      mockFetch,
     );
     expect(modules.length).toBe(1);
     expect(modules[0].id).toBe("software-engineering");

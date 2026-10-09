@@ -21,9 +21,7 @@ export type RawUiModuleManifest = Partial<UiModuleManifest> & {
 };
 
 /** The manifest's kernel specifier, falling back to the legacy `frameworkVersion`. */
-export function readManifestKernelVersion(
-  json: RawUiModuleManifest,
-): string | undefined {
+export function readManifestKernelVersion(json: RawUiModuleManifest): string | undefined {
   if (typeof json.kernelVersion === "string" && json.kernelVersion) {
     return json.kernelVersion;
   }
@@ -41,8 +39,7 @@ export interface ActiveUiModule {
   files: Map<string, Buffer>;
 }
 
-export type UiModuleLoadResult =
-  { success: true; module: ActiveUiModule } | { success: false; error: string };
+export type UiModuleLoadResult = { success: true; module: ActiveUiModule } | { success: false; error: string };
 
 /** Simple CRC32 computation for zip archives */
 function calculateCrc32(buf: Buffer): number {
@@ -151,10 +148,7 @@ export function readZipArchive(buffer: Buffer): Map<string, Buffer> {
     const extraLen = buffer.readUInt16LE(offset + 28);
     const name = buffer.toString("utf8", offset + 30, offset + 30 + nameLen);
     const dataOffset = offset + 30 + nameLen + extraLen;
-    const compressedData = buffer.subarray(
-      dataOffset,
-      dataOffset + compressedSize,
-    );
+    const compressedData = buffer.subarray(dataOffset, dataOffset + compressedSize);
 
     let fileData: Buffer;
     if (compression === 0) {
@@ -177,10 +171,7 @@ export function readZipArchive(buffer: Buffer): Map<string, Buffer> {
 /**
  * Packages a UI module manifest and source files into a ZIP archive Buffer.
  */
-export function packageUiModule(
-  manifest: UiModuleManifest,
-  files: Map<string, Buffer | string> = new Map(),
-): Buffer {
+export function packageUiModule(manifest: UiModuleManifest, files = new Map<string, Buffer | string>()): Buffer {
   const fileMap = new Map<string, Buffer | string>(files);
   fileMap.set("manifest.json", JSON.stringify(manifest, null, 2));
   return createZipArchive(fileMap);
@@ -193,8 +184,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   manifest: UiModuleManifest;
   files: Map<string, Buffer>;
 } {
-  const buffer =
-    typeof zipSource === "string" ? readFileSync(zipSource) : zipSource;
+  const buffer = typeof zipSource === "string" ? readFileSync(zipSource) : zipSource;
   const files = readZipArchive(buffer);
 
   // Look for manifest.json or ui-module.json or module.json
@@ -209,11 +199,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   if (!manifestEntry) {
     // Check nested directory
     for (const key of files.keys()) {
-      if (
-        key.endsWith("/manifest.json") ||
-        key.endsWith("/ui-module.json") ||
-        key.endsWith("/module.json")
-      ) {
+      if (key.endsWith("/manifest.json") || key.endsWith("/ui-module.json") || key.endsWith("/module.json")) {
         manifestEntry = key;
         break;
       }
@@ -221,9 +207,7 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   }
 
   if (!manifestEntry) {
-    throw new Error(
-      "UI Module zip archive does not contain a manifest.json or ui-module.json",
-    );
+    throw new Error("UI Module zip archive does not contain a manifest.json or ui-module.json");
   }
 
   const rawJson = files.get(manifestEntry)!.toString("utf8");
@@ -236,15 +220,11 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
     throw new Error("UI Module manifest missing required string field 'name'");
   }
   if (!json.version || typeof json.version !== "string") {
-    throw new Error(
-      "UI Module manifest missing required string field 'version'",
-    );
+    throw new Error("UI Module manifest missing required string field 'version'");
   }
   const kernelVersion = readManifestKernelVersion(json);
   if (!kernelVersion) {
-    throw new Error(
-      "UI Module manifest missing required string field 'kernelVersion'",
-    );
+    throw new Error("UI Module manifest missing required string field 'kernelVersion'");
   }
 
   const manifest: UiModuleManifest = {
@@ -266,16 +246,13 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
  */
 export class UiModuleManager {
   private activeModule: ActiveUiModule | null = null;
-  private loadedManifests: Map<string, UiModuleManifest> = new Map();
+  private loadedManifests = new Map<string, UiModuleManifest>();
 
   /**
    * Loads and activates a UI module from a zip buffer or file path, validating
    * kernelVersion against currentKernelVersion using UV-style constraints.
    */
-  public loadAndActivateZipModule(
-    zipSource: Buffer | string,
-    currentKernelVersion: string,
-  ): UiModuleLoadResult {
+  public loadAndActivateZipModule(zipSource: Buffer | string, currentKernelVersion: string): UiModuleLoadResult {
     if (!/^\d+(\.\d+)*$/.test(currentKernelVersion.trim())) {
       // A range such as ">=0.45.0" is a requirement, not the version of a
       // kernel; comparing a module against it gives a meaningless answer.
@@ -287,10 +264,7 @@ export class UiModuleManager {
     try {
       const { manifest, files } = parseUiModuleFromZip(zipSource);
 
-      const isCompatible = satisfiesUvVersionSpecifier(
-        currentKernelVersion,
-        manifest.kernelVersion,
-      );
+      const isCompatible = satisfiesUvVersionSpecifier(currentKernelVersion, manifest.kernelVersion);
 
       if (!isCompatible) {
         return {
@@ -322,9 +296,7 @@ export class UiModuleManager {
     } catch (err) {
       return {
         success: false,
-        error: `Failed to load UI module zip: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        error: `Failed to load UI module zip: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

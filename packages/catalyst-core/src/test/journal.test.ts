@@ -59,19 +59,13 @@ describe("parseJournal", () => {
         },
       ],
     });
-    appendFileSync(
-      join(root, "development", "journal.jsonl"),
-      "{ this is not valid json\n",
-    );
+    appendFileSync(join(root, "development", "journal.jsonl"), "{ this is not valid json\n");
     appendFileSync(
       join(root, "development", "journal.jsonl"),
       `${JSON.stringify({ timestamp: "2026-08-24T00:00:00Z", actor: "bob", artifact: "REQ-000002" })}\n`,
     );
 
-    expect(parseJournal(root).map((e) => e.artifact)).toEqual([
-      "REQ-000001",
-      "REQ-000002",
-    ]);
+    expect(parseJournal(root).map((e) => e.artifact)).toEqual(["REQ-000001", "REQ-000002"]);
   });
 
   it("skips an entry missing a required field", () => {
@@ -121,46 +115,32 @@ describe("queryJournal", () => {
   ];
 
   it("sorts newest-first with no filters", () => {
-    expect(queryJournal(entries, {}).map((e) => e.intent[0])).toEqual([
-      "Second.",
-      "Third.",
-      "First.",
-    ]);
+    expect(queryJournal(entries, {}).map((e) => e.intent[0])).toEqual(["Second.", "Third.", "First."]);
   });
 
   it("filters by since", () => {
-    expect(
-      queryJournal(entries, { since: "2026-08-10T00:00:00Z" }).map(
-        (e) => e.artifact,
-      ),
-    ).toEqual(["BUG-000001", "REQ-000001"]);
+    expect(queryJournal(entries, { since: "2026-08-10T00:00:00Z" }).map((e) => e.artifact)).toEqual([
+      "BUG-000001",
+      "REQ-000001",
+    ]);
   });
 
   it("filters by actor", () => {
-    expect(
-      queryJournal(entries, { actor: "alice" }).map((e) => e.intent[0]),
-    ).toEqual(["Third.", "First."]);
+    expect(queryJournal(entries, { actor: "alice" }).map((e) => e.intent[0])).toEqual(["Third.", "First."]);
   });
 
   it("filters by artifact", () => {
-    expect(
-      queryJournal(entries, { artifact: "REQ-000001" }).map((e) => e.intent[0]),
-    ).toEqual(["Third.", "First."]);
+    expect(queryJournal(entries, { artifact: "REQ-000001" }).map((e) => e.intent[0])).toEqual(["Third.", "First."]);
   });
 
   it("filters by rule membership in targets", () => {
-    expect(
-      queryJournal(entries, { rule: "fw-STRUCTURE-004" }).map(
-        (e) => e.artifact,
-      ),
-    ).toEqual(["BUG-000001"]);
+    expect(queryJournal(entries, { rule: "fw-STRUCTURE-004" }).map((e) => e.artifact)).toEqual(["BUG-000001"]);
   });
 
   it("combines filters", () => {
-    expect(
-      queryJournal(entries, { actor: "alice", artifact: "REQ-000001" }).map(
-        (e) => e.intent[0],
-      ),
-    ).toEqual(["Third.", "First."]);
+    expect(queryJournal(entries, { actor: "alice", artifact: "REQ-000001" }).map((e) => e.intent[0])).toEqual([
+      "Third.",
+      "First.",
+    ]);
   });
 });

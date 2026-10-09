@@ -67,10 +67,7 @@ describe("parseIamUsers", () => {
     root = createFixtureCorpus({});
     const dir = join(root, "IAM", "users");
     mkdirSync(dir, { recursive: true });
-    writeFileSync(
-      join(dir, "users.json"),
-      JSON.stringify({ users: [{ roles: [] }, { name: "alice" }] }),
-    );
+    writeFileSync(join(dir, "users.json"), JSON.stringify({ users: [{ roles: [] }, { name: "alice" }] }));
 
     expect(parseIamUsers(root).map((u) => u.name)).toEqual(["alice"]);
   });

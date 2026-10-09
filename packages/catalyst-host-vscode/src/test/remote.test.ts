@@ -1,10 +1,6 @@
 import * as assert from "assert";
 
-import {
-  devcontainerMount,
-  environmentLabel,
-  unreachableAdvice,
-} from "../remote.js";
+import { devcontainerMount, environmentLabel, unreachableAdvice } from "../remote.js";
 
 describe("remote environments (REQ-000016)", () => {
   it("names the environment", () => {
@@ -26,10 +22,7 @@ describe("remote environments (REQ-000016)", () => {
   it("offers the mount in a dev container, sharing everywhere", () => {
     const c = unreachableAdvice("app", "/h/.criterion", "dev-container");
     assert.deepStrictEqual(c.actions, ["copy-mount", "share"]);
-    assert.ok(
-      c.message.includes("from a dev container") &&
-        c.message.includes("/h/.criterion"),
-    );
+    assert.ok(c.message.includes("from a dev container") && c.message.includes("/h/.criterion"));
     const w = unreachableAdvice("app", "/h/.criterion", "wsl");
     assert.deepStrictEqual(w.actions, ["share"]);
     assert.ok(w.message.includes("from WSL"));

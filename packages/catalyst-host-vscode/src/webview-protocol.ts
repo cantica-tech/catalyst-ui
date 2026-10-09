@@ -18,9 +18,7 @@ const ENTITY_ID = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
  * text from a cloned repository, so its messages are untrusted: anything
  * but a bounded `openReference` with an entity-shaped id is dropped.
  */
-export function parseWebviewMessage(
-  message: unknown,
-): OpenReferenceMessage | null {
+export function parseWebviewMessage(message: unknown): OpenReferenceMessage | null {
   if (typeof message !== "object" || message === null) return null;
   const msg = message as { type?: unknown; id?: unknown };
   if (msg.type !== "openReference") return null;
@@ -36,10 +34,7 @@ export function parseWebviewMessage(
  * (B-10). The owner is stored with the panel, never parsed back out of
  * the key, which breaks on paths holding ':' (Windows drive letters).
  */
-export function panelKeysFor(
-  owners: ReadonlyMap<string, string>,
-  corpusRoot: string,
-): string[] {
+export function panelKeysFor(owners: ReadonlyMap<string, string>, corpusRoot: string): string[] {
   const keys: string[] = [];
   for (const [key, owner] of owners) if (owner === corpusRoot) keys.push(key);
   return keys;

@@ -26,15 +26,9 @@ export interface ProposalContentInput {
  * input for the same file shape.
  */
 export function renderProposalContent(input: ProposalContentInput): string {
-  const targets =
-    input.targets.length > 0
-      ? input.targets.map((t) => `- \`${t}\``).join("\n")
-      : "- (none)";
+  const targets = input.targets.length > 0 ? input.targets.map((t) => `- \`${t}\``).join("\n") : "- (none)";
   const expectations = input.expectations.map((e) => `- ${e}`).join("\n");
-  const constraints =
-    input.constraints.length > 0
-      ? input.constraints.map((c) => `- ${c}`).join("\n")
-      : "- (none)";
+  const constraints = input.constraints.length > 0 ? input.constraints.map((c) => `- ${c}`).join("\n") : "- (none)";
 
   return `# \`${input.id}\` — ${input.title}
 

@@ -1,14 +1,5 @@
-import {
-  buildShortFormIndex,
-  isFrameworkRuleId,
-  resolveIdReference,
-} from "./ids.js";
-import type {
-  ChainModel,
-  ChainNode,
-  ValidationIssue,
-  ValidationReport,
-} from "./types.js";
+import { buildShortFormIndex, isFrameworkRuleId, resolveIdReference } from "./ids.js";
+import type { ChainModel, ChainNode, ValidationIssue, ValidationReport } from "./types.js";
 
 /**
  * The ids a node cites through a structured field (Targets, Requirements,
@@ -18,11 +9,7 @@ import type {
 function fieldReferences(node: ChainNode): string[] {
   const refs: string[] = [];
   if (node.kind === "dev-artifact") {
-    refs.push(
-      ...node.targets,
-      ...(node.requirements ?? []),
-      ...(node.steps ?? []),
-    );
+    refs.push(...node.targets, ...(node.requirements ?? []), ...(node.steps ?? []));
     if (node.feature) refs.push(node.feature);
   }
   if (node.kind === "step" && node.parent) refs.push(node.parent);

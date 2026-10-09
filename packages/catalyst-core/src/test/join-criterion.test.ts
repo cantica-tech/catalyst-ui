@@ -1,11 +1,5 @@
 import { execFile } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -19,11 +13,7 @@ import {
   repoNameFromUrl,
   writeCatalystPointer,
 } from "../join-criterion.js";
-import {
-  claudeCodeStoragePath,
-  readCatalystPointer,
-  resolveCorpusRoot,
-} from "../discover.js";
+import { claudeCodeStoragePath, readCatalystPointer, resolveCorpusRoot } from "../discover.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -40,7 +30,7 @@ vi.mock("node:fs", async (importOriginal) => {
           code: "EPERM",
         });
       }
-      return actual.symlinkSync(...args);
+      actual.symlinkSync(...args);
     },
   };
 });
@@ -83,29 +73,21 @@ async function createBareCriterionRepo(branch: string): Promise<string> {
 describe("defaultAgentSource", () => {
   it("matches claudeCodeStoragePath — the same convention resolveCorpusRoot's fallback looks for", () => {
     const projectRoot = "/Users/example/sources/my-project";
-    expect(defaultAgentSource(projectRoot)).toBe(
-      claudeCodeStoragePath(projectRoot),
-    );
+    expect(defaultAgentSource(projectRoot)).toBe(claudeCodeStoragePath(projectRoot));
   });
 });
 
 describe("repoNameFromUrl", () => {
   it("strips .git from an SSH URL", () => {
-    expect(repoNameFromUrl("git@github.com:oliben67/criterion.git")).toBe(
-      "criterion",
-    );
+    expect(repoNameFromUrl("git@github.com:oliben67/criterion.git")).toBe("criterion");
   });
 
   it("strips .git from an HTTPS URL", () => {
-    expect(repoNameFromUrl("https://github.com/oliben67/criterion.git")).toBe(
-      "criterion",
-    );
+    expect(repoNameFromUrl("https://github.com/oliben67/criterion.git")).toBe("criterion");
   });
 
   it("handles a URL with no .git suffix", () => {
-    expect(repoNameFromUrl("https://github.com/oliben67/criterion")).toBe(
-      "criterion",
-    );
+    expect(repoNameFromUrl("https://github.com/oliben67/criterion")).toBe("criterion");
   });
 });
 
@@ -130,27 +112,21 @@ describe("ensureCriterionGitignored", () => {
   it("creates .gitignore with /.criterion when absent", () => {
     const projectRoot = tempDir("catalyst-core-join-gitignore-");
     expect(ensureCriterionGitignored(projectRoot)).toBe(true);
-    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe(
-      "/.criterion\n",
-    );
+    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe("/.criterion\n");
   });
 
   it("appends to an existing .gitignore lacking a trailing newline", () => {
     const projectRoot = tempDir("catalyst-core-join-gitignore-");
     writeFileSync(join(projectRoot, ".gitignore"), "node_modules/");
     ensureCriterionGitignored(projectRoot);
-    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe(
-      "node_modules/\n/.criterion\n",
-    );
+    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe("node_modules/\n/.criterion\n");
   });
 
   it("is idempotent, and accepts an equivalent existing entry", () => {
     const projectRoot = tempDir("catalyst-core-join-gitignore-");
     ensureCriterionGitignored(projectRoot);
     expect(ensureCriterionGitignored(projectRoot)).toBe(false);
-    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe(
-      "/.criterion\n",
-    );
+    expect(readFileSync(join(projectRoot, ".gitignore"), "utf8")).toBe("/.criterion\n");
 
     const other = tempDir("catalyst-core-join-gitignore-");
     writeFileSync(join(other, ".gitignore"), "dist/\n.criterion/\n");
@@ -185,9 +161,7 @@ describe("joinCriterionRepo (home store, kernel 0.48.0)", () => {
     });
 
     const name = pointer.project_name;
-    expect(
-      existsSync(join(home, "projects", name, "criterion", "DEPLOYMENT.md")),
-    ).toBe(true);
+    expect(existsSync(join(home, "projects", name, "criterion", "DEPLOYMENT.md"))).toBe(true);
     expect(existsSync(join(projectRoot, ".criterion"))).toBe(false);
     expect(existsSync(join(projectRoot, ".gitignore"))).toBe(false);
     expect(pointer).toMatchObject({
@@ -197,9 +171,7 @@ describe("joinCriterionRepo (home store, kernel 0.48.0)", () => {
       catalyst_repo_url: repoUrl,
     });
     expect(readCatalystPointer(projectRoot)).toEqual(pointer);
-    expect(resolveCorpusRoot(projectRoot)).toBe(
-      join(home, "projects", name, "criterion"),
-    );
+    expect(resolveCorpusRoot(projectRoot)).toBe(join(home, "projects", name, "criterion"));
   });
 
   it("clones a contributor's own <name>.criterion branch", async () => {
@@ -226,28 +198,21 @@ describe("joinCriterionRepo (home store, kernel 0.48.0)", () => {
     await joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" });
     await joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" });
     const other = await createBareCriterionRepo("criterion");
-    await expect(
-      joinCriterionRepo({ projectRoot, repoUrl: other, branch: "criterion" }),
-    ).rejects.toThrow(/another remote/);
+    await expect(joinCriterionRepo({ projectRoot, repoUrl: other, branch: "criterion" })).rejects.toThrow(
+      /another remote/,
+    );
   });
 
   it("refuses a project still on a legacy *.catalyst pointer", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    writeFileSync(
-      join(projectRoot, "app.catalyst"),
-      JSON.stringify({ project_name: "app" }),
-    );
-    await expect(
-      joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" }),
-    ).rejects.toThrow(/move --to-home/);
+    writeFileSync(join(projectRoot, "app.catalyst"), JSON.stringify({ project_name: "app" }));
+    await expect(joinCriterionRepo({ projectRoot, repoUrl, branch: "criterion" })).rejects.toThrow(/move --to-home/);
   });
 
   it("rejects when the branch doesn't exist on the remote", async () => {
     const repoUrl = await createBareCriterionRepo("criterion");
     const projectRoot = tempDir("catalyst-core-join-project-");
-    await expect(
-      joinCriterionRepo({ projectRoot, repoUrl, branch: "no-such-branch" }),
-    ).rejects.toThrow();
+    await expect(joinCriterionRepo({ projectRoot, repoUrl, branch: "no-such-branch" })).rejects.toThrow();
   });
 });

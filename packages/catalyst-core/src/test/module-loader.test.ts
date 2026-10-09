@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -155,16 +149,10 @@ describe("resolveModuleId", () => {
   it("falls back to .criterion/config.yaml, then .criterion/module.yaml", () => {
     const projectRoot = tempDir();
     mkdirSync(join(projectRoot, ".criterion"));
-    writeFileSync(
-      join(projectRoot, ".criterion", "module.yaml"),
-      "id: other-process\n",
-    );
+    writeFileSync(join(projectRoot, ".criterion", "module.yaml"), "id: other-process\n");
     expect(resolveModuleId(projectRoot)).toBe("other-process");
 
-    writeFileSync(
-      join(projectRoot, ".criterion", "config.yaml"),
-      "module: example-process\n",
-    );
+    writeFileSync(join(projectRoot, ".criterion", "config.yaml"), "module: example-process\n");
     expect(resolveModuleId(projectRoot)).toBe("example-process");
   });
 
@@ -196,12 +184,7 @@ describe("loadModule", () => {
     expect(item?.folder).toBe("items");
     expect(item?.grounding).toBe("required");
     expect(item?.groundingField).toBe("Targets");
-    expect(item?.fields.map((f) => f.name)).toEqual([
-      "ID",
-      "Status",
-      "Targets",
-      "Labels",
-    ]);
+    expect(item?.fields.map((f) => f.name)).toEqual(["ID", "Status", "Targets", "Labels"]);
     expect(item?.fields[1].allowedValues).toEqual(["Open", "Done"]);
     expect(item?.fields[2]).toEqual({
       name: "Targets",
@@ -215,16 +198,11 @@ describe("loadModule", () => {
       closedStates: ["Done"],
     });
 
-    expect(manifest?.templates).toEqual([
-      { entityType: "ITEM", templatePath: "templates/item.template.md" },
-    ]);
+    expect(manifest?.templates).toEqual([{ entityType: "ITEM", templatePath: "templates/item.template.md" }]);
   });
 
   it("loads from a legacy (pre-0.37.0) pointer agent-source working copy", () => {
-    const { projectRoot, corpusRoot } = projectWithDeployment(
-      { module: "example-process" },
-      { legacy: true },
-    );
+    const { projectRoot, corpusRoot } = projectWithDeployment({ module: "example-process" }, { legacy: true });
     writeModule(join(corpusRoot, "modules", "example-process"));
     expect(loadModule(projectRoot)?.id).toBe("example-process");
   });

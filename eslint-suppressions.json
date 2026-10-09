@@ -1,0 +1,174 @@
+{
+  "packages/catalyst-core/src/agent-bridge.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/cli.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/commands-discovery.ts": {
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/graph.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "packages/catalyst-core/src/join-criterion.ts": {
+    "no-useless-assignment": {
+      "count": 1
+    },
+    "preserve-caught-error": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/module-loader.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 3
+    }
+  },
+  "packages/catalyst-core/src/parser.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 3
+    },
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 13
+    },
+    "@typescript-eslint/prefer-optional-chain": {
+      "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/remote-module-store.ts": {
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 2
+    },
+    "no-useless-assignment": {
+      "count": 2
+    }
+  },
+  "packages/catalyst-core/src/test/cli.test.ts": {
+    "@typescript-eslint/no-unsafe-return": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/test/discover.test.ts": {
+    "@typescript-eslint/consistent-type-imports": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/test/join-criterion.test.ts": {
+    "@typescript-eslint/consistent-type-imports": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/test/kernel-version.test.ts": {
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 3
+    },
+    "@typescript-eslint/no-unsafe-return": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/ui-module-manager.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    },
+    "@typescript-eslint/prefer-for-of": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/validator.ts": {
+    "@typescript-eslint/prefer-optional-chain": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-core/src/workspace.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/agent-bridge.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-call": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-return": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/detail.ts": {
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/extension.ts": {
+    "@typescript-eslint/no-empty-function": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-enum-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-return": {
+      "count": 1
+    },
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 4
+    },
+    "@typescript-eslint/prefer-optional-chain": {
+      "count": 2
+    }
+  },
+  "packages/catalyst-host-vscode/src/test/detail.test.ts": {
+    "@typescript-eslint/no-unsafe-argument": {
+      "count": 3
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/tree-ids.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/tree.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-ui/src/KernelVersionHeader.tsx": {
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-ui/src/index.test.ts": {
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  }
+}

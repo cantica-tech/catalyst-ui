@@ -4,9 +4,7 @@ import type { ChainModel, ChainNode } from "catalyst-core";
 
 import { buildCodeLensesForFile } from "../codelens.js";
 
-function node(
-  overrides: Partial<ChainNode> & { id: string; file: string; line: number },
-): ChainNode {
+function node(overrides: Partial<ChainNode> & { id: string; file: string; line: number }): ChainNode {
   return {
     kind: "dev-artifact",
     title: overrides.id,
@@ -47,7 +45,7 @@ describe("buildCodeLensesForFile", () => {
       kind: "domain",
       file: "domains.md",
       line: 1,
-    } as Partial<ChainNode> & { id: string; file: string; line: number });
+    });
     const model: ChainModel = {
       nodes: new Map([[domain.id, domain]]),
       edges: new Map(),

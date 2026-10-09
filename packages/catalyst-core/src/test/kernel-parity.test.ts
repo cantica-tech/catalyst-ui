@@ -1,12 +1,5 @@
 import { spawnSync } from "node:child_process";
-import {
-  cpSync,
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,25 +23,14 @@ import { validate } from "../validator.js";
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixture = join(here, "fixtures", "parity", "corpus");
 const repoRoot = resolve(here, "..", "..", "..", "..");
-const kernelDir =
-  process.env.CATALYST_KERNEL_DIR ?? resolve(repoRoot, "..", "catalyst");
+const kernelDir = process.env.CATALYST_KERNEL_DIR ?? resolve(repoRoot, "..", "catalyst");
 const kernelScripts = join(kernelDir, "scripts");
 
 function kernelAvailable(): boolean {
   if (!existsSync(join(kernelScripts, "catalyst", "__main__.py"))) return false;
   if (
-    !existsSync(
-      join(kernelDir, "..", "catalyst-software-engineering", "module.yaml"),
-    ) &&
-    !existsSync(
-      join(
-        kernelDir,
-        "framework",
-        "modules",
-        "software-engineering",
-        "module.yaml",
-      ),
-    )
+    !existsSync(join(kernelDir, "..", "catalyst-software-engineering", "module.yaml")) &&
+    !existsSync(join(kernelDir, "framework", "modules", "software-engineering", "module.yaml"))
   )
     return false;
   return spawnSync("python3", ["--version"]).status === 0;
@@ -91,15 +73,11 @@ function danglingIds(messages: string[]): string[] {
 }
 
 function kernelChainErrors(projectRoot: string): string[] {
-  const res = spawnSync(
-    "python3",
-    ["-m", "catalyst", "--project", projectRoot, "check", "--json"],
-    {
-      cwd: kernelScripts,
-      env: { ...process.env, PYTHONPATH: kernelScripts },
-      encoding: "utf8",
-    },
-  );
+  const res = spawnSync("python3", ["-m", "catalyst", "--project", projectRoot, "check", "--json"], {
+    cwd: kernelScripts,
+    env: { ...process.env, PYTHONPATH: kernelScripts },
+    encoding: "utf8",
+  });
   const parsed = JSON.parse(res.stdout) as { errors: string[] };
   // Only chain findings: the kernel's structure/journal checks cover files
   // the TS model does not represent.
@@ -115,34 +93,25 @@ function tsErrors(projectRoot: string): string[] {
     .map((i) => `${i.kind}: ${i.message}`);
 }
 
-describe.skipIf(!available)(
-  "parity with kernel `catalyst check --json`",
-  () => {
-    it("both accept a corpus citing short-form ids and framework rules in prose", () => {
-      const root = makeProject();
-      expect(kernelChainErrors(root)).toEqual([]);
-      expect(tsErrors(root)).toEqual([]);
-    });
+describe.skipIf(!available)("parity with kernel `catalyst check --json`", () => {
+  it("both accept a corpus citing short-form ids and framework rules in prose", () => {
+    const root = makeProject();
+    expect(kernelChainErrors(root)).toEqual([]);
+    expect(tsErrors(root)).toEqual([]);
+  });
 
-    it("both reject the same dangling Targets reference", () => {
-      const root = makeProject();
-      const bug = join(
-        root,
-        ".criterion",
-        "development",
-        "bugs",
-        "BUG-000001-beta.md",
-      );
-      writeFileSync(
-        bug,
-        readFileSync(bug, "utf8").replace(
-          "| **Targets** | `env-RUNTIME-000001-Abcd1234` |",
-          "| **Targets** | `env-RUNTIME-000099-Abcd1234` |",
-        ),
-      );
-      const kernel = danglingIds(kernelChainErrors(root));
-      expect(kernel).toEqual(["env-RUNTIME-000099-Abcd1234"]);
-      expect(danglingIds(tsErrors(root))).toEqual(kernel);
-    });
-  },
-);
+  it("both reject the same dangling Targets reference", () => {
+    const root = makeProject();
+    const bug = join(root, ".criterion", "development", "bugs", "BUG-000001-beta.md");
+    writeFileSync(
+      bug,
+      readFileSync(bug, "utf8").replace(
+        "| **Targets** | `env-RUNTIME-000001-Abcd1234` |",
+        "| **Targets** | `env-RUNTIME-000099-Abcd1234` |",
+      ),
+    );
+    const kernel = danglingIds(kernelChainErrors(root));
+    expect(kernel).toEqual(["env-RUNTIME-000099-Abcd1234"]);
+    expect(danglingIds(tsErrors(root))).toEqual(kernel);
+  });
+});

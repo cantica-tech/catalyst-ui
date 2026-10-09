@@ -20,11 +20,7 @@ export {
   resolveParticipant,
   type AgentPreset,
 } from "./agent-bridge.js";
-export {
-  isAllowedAgentId,
-  resolveAgentCommand,
-  resolveAgentLaunch,
-} from "./agent-launch.js";
+export { isAllowedAgentId, resolveAgentCommand, resolveAgentLaunch } from "./agent-launch.js";
 export type { AgentLaunch } from "./agent-launch.js";
 export {
   commandNames,
@@ -64,18 +60,8 @@ export {
   type JoinCriterionOptions,
 } from "./join-criterion.js";
 export { parseJournal, queryJournal } from "./journal.js";
-export {
-  cleanRuleTitle,
-  extractSlugFromRuleId,
-  parseCorpus,
-  parseRuleDocument,
-  parseDomainsIndex,
-} from "./parser.js";
-export {
-  parseProposals,
-  nextProposalId,
-  openProposalsByTarget,
-} from "./proposals.js";
+export { cleanRuleTitle, extractSlugFromRuleId, parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
+export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
 export { parseRuns, hasDrift } from "./runs.js";
 export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export { validate } from "./validator.js";

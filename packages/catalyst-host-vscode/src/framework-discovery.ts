@@ -9,9 +9,7 @@ import { dirname, join } from "node:path";
  * if none is found — the caller falls back to the `catalyst.
  * frameworkPath` setting.
  */
-export function findSiblingFrameworkRepo(
-  workspaceFolderPath: string,
-): string | null {
+export function findSiblingFrameworkRepo(workspaceFolderPath: string): string | null {
   const parent = dirname(workspaceFolderPath);
   if (!existsSync(parent)) return null;
 
@@ -21,11 +19,7 @@ export function findSiblingFrameworkRepo(
     .filter((candidate) => candidate !== workspaceFolderPath)
     .sort();
 
-  return (
-    candidates.find((candidate) =>
-      existsSync(join(candidate, "BOOTSTRAP.md")),
-    ) ?? null
-  );
+  return candidates.find((candidate) => existsSync(join(candidate, "BOOTSTRAP.md"))) ?? null;
 }
 
 /**
@@ -34,9 +28,6 @@ export function findSiblingFrameworkRepo(
  * `BOOTSTRAP.md` is written to be followed by a reasoning agent, not
  * run as a deterministic script.
  */
-export function buildInstantiationPrompt(
-  frameworkPath: string,
-  projectRoot: string,
-): string {
+export function buildInstantiationPrompt(frameworkPath: string, projectRoot: string): string {
   return `Load BOOTSTRAP.md from ${frameworkPath} and follow it to instantiate catalyst in this project (${projectRoot}).`;
 }

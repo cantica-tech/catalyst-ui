@@ -27,9 +27,7 @@ export const VERIFIED_KERNEL_VERSION = "0.46.0";
  */
 export function kernelSyncTarget(deployed: string | null): string | null {
   if (!deployed) return null;
-  return compareVersions(deployed, VERIFIED_KERNEL_VERSION) < 0
-    ? VERIFIED_KERNEL_VERSION
-    : null;
+  return compareVersions(deployed, VERIFIED_KERNEL_VERSION) < 0 ? VERIFIED_KERNEL_VERSION : null;
 }
 
 /**
@@ -37,9 +35,7 @@ export function kernelSyncTarget(deployed: string | null): string | null {
  * the first resolved deployment's own `version.txt`, else the floor —
  * always a plain version, never a range string.
  */
-export function restoreKernelVersion(
-  deployedVersions: Iterable<string | null>,
-): string {
+export function restoreKernelVersion(deployedVersions: Iterable<string | null>): string {
   for (const v of deployedVersions) if (v) return v;
   return KERNEL_VERSION_FLOOR;
 }

@@ -14,17 +14,11 @@ function printReport(report: ValidationReport, json: boolean): void {
 
   console.log("catalyst-core validation report");
   console.log(`  nodes checked: ${report.nodeCount}`);
-  console.log(
-    `  errors: ${report.errorCount}, warnings: ${report.warningCount}`,
-  );
+  console.log(`  errors: ${report.errorCount}, warnings: ${report.warningCount}`);
   console.log(`  duration: ${report.durationMs.toFixed(1)}ms`);
   for (const issue of report.issues) {
-    const location = issue.location
-      ? ` (${issue.location.file}:${issue.location.line})`
-      : "";
-    console.log(
-      `  [${issue.severity}] ${issue.kind}: ${issue.message}${location}`,
-    );
+    const location = issue.location ? ` (${issue.location.file}:${issue.location.line})` : "";
+    console.log(`  [${issue.severity}] ${issue.kind}: ${issue.message}${location}`);
   }
 }
 
@@ -45,7 +39,9 @@ export function main(argv: string[] = process.argv.slice(2)): number | null {
   }
 
   if (watch) {
-    watchCorpus(root, ({ report }) => printReport(report, json));
+    watchCorpus(root, ({ report }) => {
+      printReport(report, json);
+    });
     return null;
   }
 
@@ -61,10 +57,7 @@ export function main(argv: string[] = process.argv.slice(2)): number | null {
 }
 
 function isMain(): boolean {
-  return (
-    process.argv[1] !== undefined &&
-    process.argv[1] === fileURLToPath(import.meta.url)
-  );
+  return process.argv[1] !== undefined && process.argv[1] === fileURLToPath(import.meta.url);
 }
 
 if (isMain()) {

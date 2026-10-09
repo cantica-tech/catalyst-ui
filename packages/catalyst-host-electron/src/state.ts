@@ -34,10 +34,7 @@ export function loadTrackedProjects(stateFilePath: string): TrackedProject[] {
   }
 }
 
-export function saveTrackedProjects(
-  stateFilePath: string,
-  projects: TrackedProject[],
-): void {
+export function saveTrackedProjects(stateFilePath: string, projects: TrackedProject[]): void {
   writeFileSync(stateFilePath, JSON.stringify(projects, null, 2), "utf8");
 }
 
@@ -51,9 +48,6 @@ export function addTrackedProject(
   return [...projects, { id: randomUUID(), projectRoot, corpusRoot }];
 }
 
-export function removeTrackedProject(
-  projects: TrackedProject[],
-  id: string,
-): TrackedProject[] {
+export function removeTrackedProject(projects: TrackedProject[], id: string): TrackedProject[] {
   return projects.filter((p) => p.id !== id);
 }

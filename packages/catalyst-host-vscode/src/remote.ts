@@ -8,9 +8,7 @@
  */
 
 /** `vscode.env.remoteName` in words; undefined when running locally. */
-export function environmentLabel(
-  remoteName: string | undefined,
-): string | undefined {
+export function environmentLabel(remoteName: string | undefined): string | undefined {
   switch (remoteName) {
     case undefined:
     case "":
@@ -52,8 +50,7 @@ export function unreachableAdvice(
   remoteName: string | undefined,
 ): UnreachableAdvice {
   const where = environmentLabel(remoteName);
-  const container =
-    remoteName === "dev-container" || remoteName === "attached-container";
+  const container = remoteName === "dev-container" || remoteName === "attached-container";
   const lead = target
     ? `"${name}" is a catalyst deployment, but its working copy (${target}) is not reachable${where ? ` from ${where}` : " here"}`
     : `"${name}" is a catalyst deployment, but it has no working copy${where ? ` in ${where}` : " here"} (no .criterion)`;

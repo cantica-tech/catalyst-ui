@@ -5,13 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { readCatalystPointer, resolveCorpusRoot } from "../discover.js";
-import {
-  findProjectFile,
-  hasProjectFile,
-  homeCriterion,
-  parseProjectToml,
-  readProjectFile,
-} from "../project-file.js";
+import { findProjectFile, hasProjectFile, homeCriterion, parseProjectToml, readProjectFile } from "../project-file.js";
 import { hasPointer } from "../workspace.js";
 
 let scratch: string;
@@ -50,10 +44,7 @@ describe("the project file", () => {
   it("prefers catalyst.toml over a legacy pointer, and reads either", () => {
     const project = join(scratch, "p");
     mkdirSync(project);
-    writeFileSync(
-      join(project, "app.catalyst"),
-      JSON.stringify({ project_name: "old" }),
-    );
+    writeFileSync(join(project, "app.catalyst"), JSON.stringify({ project_name: "old" }));
     expect(readProjectFile(project)?.project_name).toBe("old");
     writeFileSync(join(project, "catalyst.toml"), TOML);
     expect(findProjectFile(project)?.endsWith("catalyst.toml")).toBe(true);
@@ -68,8 +59,6 @@ describe("the project file", () => {
     expect(resolveCorpusRoot(project)).toBe(join(project, ".criterion"));
     mkdirSync(homeCriterion("app"), { recursive: true });
     expect(resolveCorpusRoot(project)).toBe(homeCriterion("app"));
-    expect(homeCriterion("app")).toBe(
-      join(scratch, "catalyst-home", "projects", "app", "criterion"),
-    );
+    expect(homeCriterion("app")).toBe(join(scratch, "catalyst-home", "projects", "app", "criterion"));
   });
 });

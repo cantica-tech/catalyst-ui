@@ -17,9 +17,7 @@ afterEach(() => {
 describe("watchCorpus", () => {
   it("reports once on startup", async () => {
     root = createFixtureCorpus({
-      requirements: [
-        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] }],
     });
     const updates: WatchUpdate[] = [];
     const handle = watchCorpus(root, (update) => updates.push(update), {
@@ -57,16 +55,12 @@ describe("watchCorpus", () => {
         notes: "",
       },
     ]);
-    expect(updates[0].roles).toEqual([
-      { name: "Developer", actions: ["/create-req"] },
-    ]);
+    expect(updates[0].roles).toEqual([{ name: "Developer", actions: ["/create-req"] }]);
   });
 
   it("coalesces a rapid burst of changes into a single report", async () => {
     root = createFixtureCorpus({
-      requirements: [
-        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] }],
     });
     const updates: WatchUpdate[] = [];
     const handle = watchCorpus(root, (update) => updates.push(update), {
@@ -98,9 +92,7 @@ describe("watchCorpus", () => {
 
   it("refresh() re-reports immediately, without waiting for the debounce window", async () => {
     root = createFixtureCorpus({
-      requirements: [
-        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] }],
     });
     const updates: WatchUpdate[] = [];
     const handle = watchCorpus(root, (update) => updates.push(update), {
@@ -125,32 +117,19 @@ describe("isIgnoredWatchPath (B-12)", () => {
     const r = "/p/.criterion";
     expect(isIgnoredWatchPath(r, "/p/.criterion/.git/index")).toBe(true);
     expect(isIgnoredWatchPath(r, "/p/.criterion/.git")).toBe(true);
-    expect(isIgnoredWatchPath(r, "/p/.criterion/node_modules/x/a.md")).toBe(
-      true,
-    );
-    expect(isIgnoredWatchPath(r, "/p/.criterion/bin/__pycache__/a.pyc")).toBe(
-      true,
-    );
-    expect(
-      isIgnoredWatchPath(r, "/p/.criterion/requirements/REQ-000001-a.md"),
-    ).toBe(false);
+    expect(isIgnoredWatchPath(r, "/p/.criterion/node_modules/x/a.md")).toBe(true);
+    expect(isIgnoredWatchPath(r, "/p/.criterion/bin/__pycache__/a.pyc")).toBe(true);
+    expect(isIgnoredWatchPath(r, "/p/.criterion/requirements/REQ-000001-a.md")).toBe(false);
     expect(isIgnoredWatchPath(r, "/p/.criterion")).toBe(false);
     // Only segments inside the corpus count: a corpus living under a
     // folder named node_modules is still watched.
-    expect(
-      isIgnoredWatchPath(
-        "/x/node_modules/p/.criterion",
-        "/x/node_modules/p/.criterion/rules/a.md",
-      ),
-    ).toBe(false);
+    expect(isIgnoredWatchPath("/x/node_modules/p/.criterion", "/x/node_modules/p/.criterion/rules/a.md")).toBe(false);
   });
 
   it("does not report a change under .git", async () => {
     const { mkdirSync } = await import("node:fs");
     root = createFixtureCorpus({
-      requirements: [
-        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] }],
     });
     const updates: WatchUpdate[] = [];
     const handle = watchCorpus(root, (update) => updates.push(update), {

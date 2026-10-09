@@ -4,11 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  commandNames,
-  discoverSlashCommands,
-  parseSection4Commands,
-} from "../commands-discovery.js";
+import { commandNames, discoverSlashCommands, parseSection4Commands } from "../commands-discovery.js";
 
 const CODE_OF_CONDUCT = `# Code of conduct
 
@@ -40,19 +36,12 @@ describe("parseSection4Commands", () => {
   const byName = (name: string) => specs.find((s) => s.name === name);
 
   it("lists only §4's bullet commands, sorted, with their file", () => {
-    expect(specs.map((s) => s.name)).toEqual([
-      "alpha",
-      "beta",
-      "delta",
-      "gamma",
-    ]);
+    expect(specs.map((s) => s.name)).toEqual(["alpha", "beta", "delta", "gamma"]);
     expect(byName("alpha")?.filePath).toBe("/c/CODE-OF-CONDUCT.md");
   });
 
   it("takes the first sentence after the dash, whitespace collapsed", () => {
-    expect(byName("alpha")?.description).toBe(
-      "create an alpha thing immediately, e.g. for a quick note.",
-    );
+    expect(byName("alpha")?.description).toBe("create an alpha thing immediately, e.g. for a quick note.");
     expect(byName("delta")?.description).toBeUndefined();
   });
 
@@ -65,13 +54,7 @@ describe("parseSection4Commands", () => {
   it("treats further mentions before the dash as aliases", () => {
     expect(byName("beta")?.aliases).toEqual(["beta-long"]);
     expect(byName("beta-long")).toBeUndefined();
-    expect(commandNames(specs)).toEqual([
-      "alpha",
-      "beta",
-      "beta-long",
-      "delta",
-      "gamma",
-    ]);
+    expect(commandNames(specs)).toEqual(["alpha", "beta", "beta-long", "delta", "gamma"]);
   });
 
   it("caps a long description", () => {
@@ -111,22 +94,14 @@ describe("discoverSlashCommands", () => {
     writeFileSync(join(criterion, "CODE-OF-CONDUCT.md"), CODE_OF_CONDUCT);
 
     const specs = discoverSlashCommands(project);
-    expect(specs.map((s) => s.name)).toEqual([
-      "alpha",
-      "beta",
-      "delta",
-      "gamma",
-    ]);
+    expect(specs.map((s) => s.name)).toEqual(["alpha", "beta", "delta", "gamma"]);
     expect(specs[0].filePath).toBe(join(criterion, "CODE-OF-CONDUCT.md"));
   });
 
   it("ignores command files in the project's .claude/commands", () => {
     const project = join(scratch, "project");
     mkdirSync(join(project, ".claude", "commands"), { recursive: true });
-    writeFileSync(
-      join(project, ".claude", "commands", "alpha.md"),
-      "---\ndescription: stale\n---\n",
-    );
+    writeFileSync(join(project, ".claude", "commands", "alpha.md"), "---\ndescription: stale\n---\n");
     expect(discoverSlashCommands(project)).toEqual([]);
   });
 

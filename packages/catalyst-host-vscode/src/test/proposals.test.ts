@@ -18,10 +18,7 @@ function proposal(overrides: Partial<Proposal> & { id: string }): Proposal {
 
 describe("buildProposalSection", () => {
   it("labels the section with the proposal count and carries them through", () => {
-    const proposals = [
-      proposal({ id: "PROP-000001" }),
-      proposal({ id: "PROP-000002" }),
-    ];
+    const proposals = [proposal({ id: "PROP-000001" }), proposal({ id: "PROP-000002" })];
     const section = buildProposalSection(proposals);
     assert.strictEqual(section.label, "Proposals (2)");
     assert.deepStrictEqual(section.proposals, proposals);

@@ -10,20 +10,13 @@ function isStringArray(value: unknown): value is string[] {
 function coerceEntry(value: unknown): JournalEntry | null {
   if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
-  if (
-    typeof record.timestamp !== "string" ||
-    typeof record.actor !== "string" ||
-    typeof record.artifact !== "string"
-  ) {
+  if (typeof record.timestamp !== "string" || typeof record.actor !== "string" || typeof record.artifact !== "string") {
     return null;
   }
 
   const files = Array.isArray(record.files)
     ? record.files
-        .filter(
-          (f): f is Record<string, unknown> =>
-            typeof f === "object" && f !== null,
-        )
+        .filter((f): f is Record<string, unknown> => typeof f === "object" && f !== null)
         .map((f) => ({
           path: typeof f.path === "string" ? f.path : "",
           before: typeof f.before === "string" ? f.before : null,
@@ -84,10 +77,7 @@ export function parseJournal(corpusRoot: string): JournalEntry[] {
 }
 
 /** Mirrors the `/journal` slash-command's `--since/--actor/--artifact/--rule` filters, newest-first (ISO timestamps sort lexicographically). */
-export function queryJournal(
-  entries: JournalEntry[],
-  filters: JournalFilters,
-): JournalEntry[] {
+export function queryJournal(entries: JournalEntry[], filters: JournalFilters): JournalEntry[] {
   return entries
     .filter((e) => !filters.since || e.timestamp >= filters.since)
     .filter((e) => !filters.actor || e.actor === filters.actor)

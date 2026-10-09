@@ -3,9 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildChainModel } from "../graph.js";
 import type { ChainNode, ParseResult } from "../types.js";
 
-function node(
-  overrides: Partial<ChainNode> & Pick<ChainNode, "id" | "kind">,
-): ChainNode {
+function node(overrides: Partial<ChainNode> & Pick<ChainNode, "id" | "kind">): ChainNode {
   return {
     title: overrides.id,
     location: { file: "f.md", line: 1 },
@@ -47,12 +45,8 @@ describe("buildChainModel", () => {
     );
 
     expect(model.nodes.size).toBe(2);
-    expect(model.edges.get("REQ-000001")).toEqual(
-      new Set(["core-CONTRACT-001"]),
-    );
-    expect(model.reverseEdges.get("core-CONTRACT-001")).toEqual(
-      new Set(["REQ-000001"]),
-    );
+    expect(model.edges.get("REQ-000001")).toEqual(new Set(["core-CONTRACT-001"]));
+    expect(model.reverseEdges.get("core-CONTRACT-001")).toEqual(new Set(["REQ-000001"]));
   });
 
   it("does not create an edge for a reference that does not resolve", () => {
@@ -67,9 +61,7 @@ describe("buildChainModel", () => {
       references: ["nowhere-001"],
     });
 
-    const model = buildChainModel(
-      parseResult([{ file: "a.md", mtimeMs: 0, nodes: [a] }]),
-    );
+    const model = buildChainModel(parseResult([{ file: "a.md", mtimeMs: 0, nodes: [a] }]));
 
     expect(model.edges.has("REQ-000001")).toBe(false);
     expect(model.reverseEdges.has("nowhere-001")).toBe(false);
@@ -138,13 +130,9 @@ describe("buildChainModel", () => {
     );
 
     expect(model.edges.get("RM-000001")).toEqual(new Set(["FEAT-000001"]));
-    expect(model.reverseEdges.get("FEAT-000001")).toEqual(
-      new Set(["RM-000001"]),
-    );
+    expect(model.reverseEdges.get("FEAT-000001")).toEqual(new Set(["RM-000001"]));
     expect(model.edges.get("FEAT-000001")).toEqual(new Set(["RM-000001"]));
-    expect(model.reverseEdges.get("RM-000001")).toEqual(
-      new Set(["FEAT-000001"]),
-    );
+    expect(model.reverseEdges.get("RM-000001")).toEqual(new Set(["FEAT-000001"]));
   });
 
   it("links rule nodes to domain nodes and dev-artifacts to feature nodes", () => {
@@ -189,12 +177,8 @@ describe("buildChainModel", () => {
     );
 
     expect(model.edges.get("env-RUNTIME-001")).toEqual(new Set(["RUNTIME"]));
-    expect(model.reverseEdges.get("RUNTIME")).toEqual(
-      new Set(["env-RUNTIME-001"]),
-    );
-    expect(model.edges.get("REQ-000001")).toEqual(
-      new Set(["FEAT-000001", "env-RUNTIME-001"]),
-    );
+    expect(model.reverseEdges.get("RUNTIME")).toEqual(new Set(["env-RUNTIME-001"]));
+    expect(model.edges.get("REQ-000001")).toEqual(new Set(["FEAT-000001", "env-RUNTIME-001"]));
   });
 
   it("never creates a self-edge, even when a node's raw references include its own id", () => {
@@ -212,9 +196,7 @@ describe("buildChainModel", () => {
       references: ["REQ-000001"],
     });
 
-    const model = buildChainModel(
-      parseResult([{ file: "a.md", mtimeMs: 0, nodes: [a] }]),
-    );
+    const model = buildChainModel(parseResult([{ file: "a.md", mtimeMs: 0, nodes: [a] }]));
 
     expect(model.edges.has("REQ-000001")).toBe(false);
     expect(model.reverseEdges.has("REQ-000001")).toBe(false);
@@ -248,9 +230,7 @@ describe("buildChainModel", () => {
     );
 
     expect(model.edges.get("STEP-000001")).toEqual(new Set(["REQ-000001"]));
-    expect(model.reverseEdges.get("REQ-000001")).toEqual(
-      new Set(["STEP-000001"]),
-    );
+    expect(model.reverseEdges.get("REQ-000001")).toEqual(new Set(["STEP-000001"]));
   });
 
   it("resolves a test's Requirements/Steps links into forward and reverse edges, on top of its Targets", () => {
@@ -300,17 +280,11 @@ describe("buildChainModel", () => {
       ]),
     );
 
-    expect(model.edges.get("TEST-000001")).toEqual(
-      new Set(["env-RUNTIME-001", "REQ-000001", "STEP-000001"]),
-    );
+    expect(model.edges.get("TEST-000001")).toEqual(new Set(["env-RUNTIME-001", "REQ-000001", "STEP-000001"]));
     // REQ-000001 also has STEP-000001 as a reverse edge (the step's own
     // `requirement` link) — this test only asserts the test's contribution.
-    expect(model.reverseEdges.get("REQ-000001")).toEqual(
-      new Set(["STEP-000001", "TEST-000001"]),
-    );
-    expect(model.reverseEdges.get("STEP-000001")).toEqual(
-      new Set(["TEST-000001"]),
-    );
+    expect(model.reverseEdges.get("REQ-000001")).toEqual(new Set(["STEP-000001", "TEST-000001"]));
+    expect(model.reverseEdges.get("STEP-000001")).toEqual(new Set(["TEST-000001"]));
   });
 });
 
@@ -326,19 +300,17 @@ describe("buildChainModel — short-form references (B-03)", () => {
               id: "REQ-000014-UVqkd7cL",
               kind: "dev-artifact",
               targets: [],
-            } as Partial<ChainNode> & Pick<ChainNode, "id" | "kind">),
+            }),
             node({
               id: "BUG-000001-UVqkd7cL",
               kind: "dev-artifact",
               targets: [],
               references: ["REQ-000014"],
-            } as Partial<ChainNode> & Pick<ChainNode, "id" | "kind">),
+            }),
           ],
         },
       ]),
     );
-    expect([...(model.edges.get("BUG-000001-UVqkd7cL") ?? [])]).toEqual([
-      "REQ-000014-UVqkd7cL",
-    ]);
+    expect([...(model.edges.get("BUG-000001-UVqkd7cL") ?? [])]).toEqual(["REQ-000014-UVqkd7cL"]);
   });
 });

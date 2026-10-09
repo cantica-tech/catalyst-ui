@@ -5,14 +5,7 @@
  * "Architecture" decision (one protocol, three packages).
  */
 
-export type NodeKind =
-  | "work-item"
-  | "dev-artifact"
-  | "rule"
-  | "domain"
-  | "feature"
-  | "roadmap"
-  | "step";
+export type NodeKind = "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap" | "step";
 
 export type DevArtifactType = "bug" | "requirement" | "house-keeping" | "test";
 
@@ -145,14 +138,7 @@ export interface RoadmapNode extends ChainNodeBase {
   notes: string;
 }
 
-export type ChainNode =
-  | WorkItemNode
-  | DevArtifactNode
-  | RuleNode
-  | DomainNode
-  | FeatureNode
-  | RoadmapNode
-  | StepNode;
+export type ChainNode = WorkItemNode | DevArtifactNode | RuleNode | DomainNode | FeatureNode | RoadmapNode | StepNode;
 
 export interface ChainModel {
   nodes: Map<string, ChainNode>;
@@ -166,8 +152,7 @@ export interface ChainModel {
 
 export type IssueSeverity = "error" | "warning";
 
-export type IssueKind =
-  "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference";
+export type IssueKind = "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference";
 
 export interface ValidationIssue {
   kind: IssueKind;
@@ -207,8 +192,7 @@ export interface WatcherOptions {
   debounceMs?: number;
 }
 
-export type ProposalStatus =
-  "proposed" | "applying" | "applied" | "partial" | "stale";
+export type ProposalStatus = "proposed" | "applying" | "applied" | "partial" | "stale";
 
 /**
  * A reviewable, agent-mediated write request — the only path from a
@@ -270,8 +254,7 @@ export interface IamRole {
   actions: string[];
 }
 
-export type JournalAction =
-  "create" | "update" | "close" | "retire" | "status-change" | "sync";
+export type JournalAction = "create" | "update" | "close" | "retire" | "status-change" | "sync";
 
 export interface JournalFileChange {
   path: string;

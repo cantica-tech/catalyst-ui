@@ -44,11 +44,7 @@ function bulletBlocks(lines: string[]): string[] {
     }
     const block = [lines[i]];
     i += 1;
-    while (
-      i < lines.length &&
-      lines[i].startsWith("  ") &&
-      !BULLET_START.test(lines[i])
-    ) {
+    while (i < lines.length && lines[i].startsWith("  ") && !BULLET_START.test(lines[i])) {
       block.push(lines[i]);
       i += 1;
     }
@@ -66,9 +62,7 @@ function summarize(bullet: string): string | undefined {
   // First sentence: a stop followed by a capital (so "e.g. foo" doesn't end it).
   const sentence = /^(.*?[.!?])(?=\s+[A-Z`(]|$)/.exec(text);
   const first = sentence ? sentence[1] : text;
-  return first.length <= MAX_DESCRIPTION
-    ? first
-    : `${first.slice(0, MAX_DESCRIPTION - 1).trimEnd()}…`;
+  return first.length <= MAX_DESCRIPTION ? first : `${first.slice(0, MAX_DESCRIPTION - 1).trimEnd()}…`;
 }
 
 function argumentHintOf(bullet: string): string | undefined {
@@ -83,17 +77,11 @@ function argumentHintOf(bullet: string): string | undefined {
  * mentions before its "—" are aliases. A command with several bullets
  * (one per subcommand) is one entry. Sorted by name; `[]` with no §4.
  */
-export function parseSection4Commands(
-  text: string,
-  filePath = "CODE-OF-CONDUCT.md",
-): SlashCommandSpec[] {
+export function parseSection4Commands(text: string, filePath = "CODE-OF-CONDUCT.md"): SlashCommandSpec[] {
   const lines = section4Lines(text);
   if (!lines) return [];
 
-  const byName = new Map<
-    string,
-    { description?: string; hints: string[]; aliases: string[] }
-  >();
+  const byName = new Map<string, { description?: string; hints: string[]; aliases: string[] }>();
   const aliasOf = new Map<string, string>();
   for (const bullet of bulletBlocks(lines)) {
     const head = `${bullet.split("—", 1)[0]} `;

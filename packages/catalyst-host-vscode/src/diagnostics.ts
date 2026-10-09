@@ -1,9 +1,4 @@
-import type {
-  ChainModel,
-  IssueSeverity,
-  ValidationIssue,
-  ValidationReport,
-} from "catalyst-core";
+import type { ChainModel, IssueSeverity, ValidationIssue, ValidationReport } from "catalyst-core";
 
 export interface RawDiagnostic {
   line: number;
@@ -21,10 +16,7 @@ export interface RawDiagnostic {
  * one diagnostic per definition site instead of being dropped, since the
  * issue is inherently about more than one place.
  */
-export function buildDiagnosticsByFile(
-  report: ValidationReport,
-  model: ChainModel,
-): Map<string, RawDiagnostic[]> {
+export function buildDiagnosticsByFile(report: ValidationReport, model: ChainModel): Map<string, RawDiagnostic[]> {
   const byFile = new Map<string, RawDiagnostic[]>();
 
   const add = (file: string, line: number, issue: ValidationIssue) => {

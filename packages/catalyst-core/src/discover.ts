@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  lstatSync,
-  readFileSync,
-  readlinkSync,
-  statSync,
-} from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
@@ -100,9 +94,7 @@ export function resolveCorpusRoot(projectRoot: string): string | null {
  * (`repoed`, `catalyst_repo`, `catalyst_repo_url`, `criterion_branch`,
  * `created_by`). `null` under the same conditions as `resolveCorpusRoot`.
  */
-export function readCatalystPointer(
-  projectRoot: string,
-): CatalystPointer | null {
+export function readCatalystPointer(projectRoot: string): CatalystPointer | null {
   return readPointerFile(projectRoot);
 }
 
@@ -154,9 +146,7 @@ export const REQUIRED_KERNEL_VERSION = `>=${KERNEL_VERSION_FLOOR}`;
  * e.g. a missing/unreadable `version.txt`) is treated as satisfying it —
  * "can't safely compare" must never itself become a false failure.
  */
-export function meetsRequiredKernelVersion(
-  deployedVersion: string | null,
-): boolean {
+export function meetsRequiredKernelVersion(deployedVersion: string | null): boolean {
   if (!deployedVersion) return true;
   return satisfiesVersionSpecifier(deployedVersion, REQUIRED_KERNEL_VERSION);
 }
@@ -196,9 +186,7 @@ export function readEntityDefinition(
  * `.criterion` at all, and no fallback).
  */
 export type WorkingCopyState =
-  | { state: "reachable"; path: string }
-  | { state: "dangling"; target: string }
-  | { state: "missing" };
+  { state: "reachable"; path: string } | { state: "dangling"; target: string } | { state: "missing" };
 
 export function workingCopyState(projectRoot: string): WorkingCopyState {
   const resolved = resolveCorpusRoot(projectRoot);

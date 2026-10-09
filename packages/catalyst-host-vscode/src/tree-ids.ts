@@ -11,10 +11,7 @@
  * it shows — structural, so it survives a refresh that changes a label's
  * count. `label` is the fallback.
  */
-export function itemKey(
-  item: { type: string } & Record<string, unknown>,
-  label: string,
-): string {
+export function itemKey(item: { type: string } & Record<string, unknown>, label: string): string {
   if (item.type === "node") {
     const node = item.node as { id?: unknown } | undefined;
     if (typeof node?.id === "string") return `node:${node.id}`;
@@ -22,15 +19,7 @@ export function itemKey(
   if (item.type === "deployment" && typeof item.corpusRoot === "string") {
     return `deployment:${item.corpusRoot}`;
   }
-  for (const field of [
-    "section",
-    "group",
-    "proposal",
-    "run",
-    "user",
-    "role",
-    "step",
-  ]) {
+  for (const field of ["section", "group", "proposal", "run", "user", "role", "step"]) {
     const inner = item[field] as Record<string, unknown> | undefined;
     if (inner && typeof inner === "object") {
       for (const prop of ["kind", "id", "name", "key"]) {
@@ -43,11 +32,7 @@ export function itemKey(
 }
 
 /** A child's id: its parent's id, then its key — `#n` for a repeat among siblings. */
-export function childId(
-  parentId: string,
-  key: string,
-  taken: Map<string, number>,
-): string {
+export function childId(parentId: string, key: string, taken: Map<string, number>): string {
   const seen = taken.get(key) ?? 0;
   taken.set(key, seen + 1);
   return `${parentId}/${key}${seen ? `#${seen}` : ""}`;

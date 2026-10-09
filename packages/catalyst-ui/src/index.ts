@@ -8,8 +8,4 @@ export type { FrameworkVersionHeaderProps } from "./KernelVersionHeader.js";
 export { VersionControlIcon } from "./VersionControlIcon.js";
 export type { VersionControlIconProps } from "./VersionControlIcon.js";
 
-export {
-  linkifyReferences,
-  referenceTarget,
-  REFERENCE_CLASS,
-} from "./references.js";
+export { linkifyReferences, referenceTarget, REFERENCE_CLASS } from "./references.js";

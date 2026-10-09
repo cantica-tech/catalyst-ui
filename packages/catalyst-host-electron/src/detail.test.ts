@@ -67,11 +67,7 @@ describe("buildNodeDetail", () => {
       location: { file: "p.md", line: 1 },
     };
 
-    const detail = buildNodeDetail(
-      model,
-      req.id,
-      new Map([[req.id, [proposal]]]),
-    )!;
+    const detail = buildNodeDetail(model, req.id, new Map([[req.id, [proposal]]]))!;
     expect(detail.openProposals).toEqual([proposal]);
   });
 });

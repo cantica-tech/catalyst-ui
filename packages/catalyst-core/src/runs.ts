@@ -46,7 +46,7 @@ export function parseRuns(corpusRoot: string): Run[] {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
     if (entry.name === INDEX_FILENAME || entry.name === "README.md") continue;
 
-    const match = entry.name.match(RUN_ID_RE);
+    const match = RUN_ID_RE.exec(entry.name);
     if (!match) continue;
 
     const filePath = join(dir, entry.name);

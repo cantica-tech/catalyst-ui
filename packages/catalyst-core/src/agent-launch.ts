@@ -21,8 +21,7 @@ export function isAllowedAgentId(agent: string): boolean {
 }
 
 export type AgentLaunch =
-  | { ok: true; agentId: string; command: string; args: string[] }
-  | { ok: false; reason: string };
+  { ok: true; agentId: string; command: string; args: string[] } | { ok: false; reason: string };
 
 function readPointerAgent(workspaceRoot: string): string | null {
   const agent = readProjectFile(workspaceRoot)?.agent;

@@ -29,9 +29,7 @@ afterEach(() => {
 describe("main", () => {
   it("returns 2 and prints usage when no corpus root is given", () => {
     expect(main([])).toBe(2);
-    expect(vi.mocked(console.error)).toHaveBeenCalledWith(
-      expect.stringContaining("usage:"),
-    );
+    expect(vi.mocked(console.error)).toHaveBeenCalledWith(expect.stringContaining("usage:"));
   });
 
   it("returns 0 and prints a clean report for a well-formed corpus", () => {
@@ -44,15 +42,11 @@ describe("main", () => {
         },
       ],
       domains: [{ code: "RUNTIME" }],
-      requirements: [
-        { id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "x", targets: ["env-RUNTIME-001"] }],
     });
 
     expect(main([root])).toBe(0);
-    expect(vi.mocked(console.log)).toHaveBeenCalledWith(
-      expect.stringContaining("errors: 0"),
-    );
+    expect(vi.mocked(console.log)).toHaveBeenCalledWith(expect.stringContaining("errors: 0"));
   });
 
   it("returns 1 when the report has errors", () => {
@@ -76,9 +70,6 @@ describe("main", () => {
       requirements: [{ id: "REQ-000001", title: "x", targets: [] }],
     });
     expect(main([root, "--watch"])).toBeNull();
-    expect(vi.mocked(watchCorpus)).toHaveBeenCalledWith(
-      root,
-      expect.any(Function),
-    );
+    expect(vi.mocked(watchCorpus)).toHaveBeenCalledWith(root, expect.any(Function));
   });
 });

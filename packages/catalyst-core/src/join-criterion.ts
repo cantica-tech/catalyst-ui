@@ -1,12 +1,5 @@
 import { execFile } from "node:child_process";
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -40,13 +33,8 @@ async function runGit(args: string[], cwd?: string): Promise<string> {
     const { stdout } = await execFileAsync("git", args, { cwd });
     return stdout.trim();
   } catch (err) {
-    const stderr =
-      err && typeof err === "object" && "stderr" in err
-        ? String((err as { stderr: unknown }).stderr).trim()
-        : undefined;
-    throw new Error(
-      `git ${args.join(" ")} failed${stderr ? `: ${stderr}` : ""}`,
-    );
+    const stderr = err && typeof err === "object" && "stderr" in err ? String(err.stderr).trim() : undefined;
+    throw new Error(`git ${args.join(" ")} failed${stderr ? `: ${stderr}` : ""}`);
   }
 }
 
@@ -72,10 +60,7 @@ function todayIso(): string {
 }
 
 /** Writes `<project_name>.catalyst` at the project root as pretty-printed JSON, trailing newline included. */
-export function writeCatalystPointer(
-  projectRoot: string,
-  pointer: CatalystPointer,
-): void {
+export function writeCatalystPointer(projectRoot: string, pointer: CatalystPointer): void {
   const filePath = join(projectRoot, `${pointer.project_name}.catalyst`);
   writeFileSync(filePath, `${JSON.stringify(pointer, null, 2)}\n`);
 }
@@ -84,12 +69,7 @@ export function writeCatalystPointer(
 export const CRITERION_GITIGNORE_ENTRY = "/.criterion";
 
 /** Lines a `.gitignore` may already use to ignore the root `.criterion` — any of them counts as present. */
-const CRITERION_GITIGNORE_EQUIVALENTS = new Set([
-  "/.criterion",
-  "/.criterion/",
-  ".criterion",
-  ".criterion/",
-]);
+const CRITERION_GITIGNORE_EQUIVALENTS = new Set(["/.criterion", "/.criterion/", ".criterion", ".criterion/"]);
 
 /**
  * Ensures the project's `.gitignore` ignores its root `.criterion`,
@@ -100,9 +80,7 @@ const CRITERION_GITIGNORE_EQUIVALENTS = new Set([
 export function ensureCriterionGitignored(projectRoot: string): boolean {
   const gitignore = join(projectRoot, ".gitignore");
   const existing = existsSync(gitignore) ? readFileSync(gitignore, "utf8") : "";
-  const present = existing
-    .split(/\r?\n/)
-    .some((line) => CRITERION_GITIGNORE_EQUIVALENTS.has(line.trim()));
+  const present = existing.split(/\r?\n/).some((line) => CRITERION_GITIGNORE_EQUIVALENTS.has(line.trim()));
   if (present) return false;
 
   const separator = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
@@ -122,16 +100,12 @@ export interface JoinCriterionOptions {
 }
 
 /** `catalyst.toml` as catalyst writes it: flat `key = value` lines (kernel ADR-010). */
-export function writeProjectToml(
-  projectRoot: string,
-  data: Record<string, unknown>,
-): string {
+export function writeProjectToml(projectRoot: string, data: Record<string, unknown>): string {
   const lines = [
     "# catalyst project file: names this project's criterion ($HOME/.catalyst/projects/<project_name>/criterion). Never a path.",
   ];
   for (const [key, value] of Object.entries(data)) {
-    if (value === null || value === undefined || typeof value === "object")
-      continue;
+    if (value === null || value === undefined || typeof value === "object") continue;
     lines.push(`${key} = ${JSON.stringify(value)}`);
   }
   const path = join(projectRoot, PROJECT_FILE);
@@ -154,16 +128,12 @@ export function writeProjectToml(
  * `catalyst runtime install`, which this tries through the launcher when
  * it is installed.
  */
-export async function joinCriterionRepo(
-  options: JoinCriterionOptions,
-): Promise<CatalystPointer> {
+export async function joinCriterionRepo(options: JoinCriterionOptions): Promise<CatalystPointer> {
   const projectRoot = resolve(options.projectRoot);
   const { repoUrl, branch } = options;
   const existingFile = findProjectFile(projectRoot);
   if (existingFile && !existingFile.endsWith(PROJECT_FILE)) {
-    throw new Error(
-      `${basename(existingFile)} is a legacy pointer — run \`catalyst move --to-home\` first`,
-    );
+    throw new Error(`${basename(existingFile)} is a legacy pointer — run \`catalyst move --to-home\` first`);
   }
   const existing = readProjectFile(projectRoot) ?? {};
   const name = projectName(existing) ?? basename(projectRoot);
@@ -182,25 +152,10 @@ export async function joinCriterionRepo(
       );
     }
     await runGit(["-C", target, "fetch", "--quiet", "origin"]);
-    await runGit([
-      "-C",
-      target,
-      "checkout",
-      "--quiet",
-      "-B",
-      branch,
-      `origin/${branch}`,
-    ]);
+    await runGit(["-C", target, "checkout", "--quiet", "-B", branch, `origin/${branch}`]);
   } else {
     mkdirSync(dirname(target), { recursive: true });
-    await runGit([
-      "clone",
-      "--branch",
-      branch,
-      "--single-branch",
-      repoUrl,
-      target,
-    ]);
+    await runGit(["clone", "--branch", branch, "--single-branch", repoUrl, target]);
   }
 
   const createdBy = await currentGitUserName();
@@ -224,12 +179,7 @@ export async function joinCriterionRepo(
     try {
       await execFileAsync(
         process.platform === "win32" ? "py" : "python3",
-        [
-          ...(process.platform === "win32" ? ["-3"] : []),
-          launcher,
-          "runtime",
-          "install",
-        ],
+        [...(process.platform === "win32" ? ["-3"] : []), launcher, "runtime", "install"],
         { cwd: projectRoot },
       );
     } catch {

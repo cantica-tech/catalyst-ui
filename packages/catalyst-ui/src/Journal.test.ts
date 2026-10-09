@@ -5,9 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { Journal, matches } from "./Journal.js";
 
-function entry(
-  overrides: Partial<JournalEntry> & { artifact: string },
-): JournalEntry {
+function entry(overrides: Partial<JournalEntry> & { artifact: string }): JournalEntry {
   return {
     timestamp: "2026-08-01T00:00:00Z",
     actor: "alice",

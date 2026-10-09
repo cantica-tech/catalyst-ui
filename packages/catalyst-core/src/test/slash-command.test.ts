@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  composeCommandRequest,
-  composeSlashCommand,
-} from "../slash-command.js";
+import { composeCommandRequest, composeSlashCommand } from "../slash-command.js";
 
 describe("composeSlashCommand", () => {
   it("composes the command alone when there are no arguments", () => {

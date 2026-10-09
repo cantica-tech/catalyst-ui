@@ -142,18 +142,12 @@ describe("resolveParticipant", () => {
   });
 
   it("falls back to the preset registry", () => {
-    expect(
-      resolveParticipant({ name: "claude", binding: "chat-participant" }),
-    ).toBe("@claude");
-    expect(
-      resolveParticipant({ name: "copilot", binding: "chat-participant" }),
-    ).toBe("@workspace");
+    expect(resolveParticipant({ name: "claude", binding: "chat-participant" })).toBe("@claude");
+    expect(resolveParticipant({ name: "copilot", binding: "chat-participant" })).toBe("@workspace");
   });
 
   it("resolves the claude-code alias to the same preset as claude", () => {
-    expect(
-      resolveParticipant({ name: "claude-code", binding: "chat-participant" }),
-    ).toBe("@claude");
+    expect(resolveParticipant({ name: "claude-code", binding: "chat-participant" })).toBe("@claude");
   });
 
   it("falls back to a bare @name for an unrecognized agent with no override", () => {
@@ -168,9 +162,7 @@ describe("resolveParticipant", () => {
 
 describe("resolveBinding", () => {
   it("resolves a chat-participant binding via resolveParticipant", () => {
-    expect(
-      resolveBinding({ name: "claude", binding: "chat-participant" }),
-    ).toEqual({
+    expect(resolveBinding({ name: "claude", binding: "chat-participant" })).toEqual({
       kind: "chat-participant",
       participant: "@claude",
     });
@@ -187,9 +179,7 @@ describe("resolveBinding", () => {
   });
 
   it("falls back to the agent's own name as the command id when none is given", () => {
-    expect(
-      resolveBinding({ name: "myext.runLint", binding: "command" }),
-    ).toEqual({
+    expect(resolveBinding({ name: "myext.runLint", binding: "command" })).toEqual({
       kind: "command",
       commandId: "myext.runLint",
     });
@@ -202,9 +192,7 @@ describe("resolveBinding", () => {
   });
 });
 
-function detected(
-  overrides: Partial<DetectedAgent> & { participant: string },
-): DetectedAgent {
+function detected(overrides: Partial<DetectedAgent> & { participant: string }): DetectedAgent {
   return {
     extensionId: "some.extension",
     commands: [],
@@ -234,9 +222,7 @@ describe("findExactMatch", () => {
   });
 
   it("returns undefined when nothing matches", () => {
-    expect(
-      findExactMatch([detected({ participant: "@workspace" })], "@claude"),
-    ).toBeUndefined();
+    expect(findExactMatch([detected({ participant: "@workspace" })], "@claude")).toBeUndefined();
   });
 });
 

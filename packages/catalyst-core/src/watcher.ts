@@ -22,13 +22,7 @@ export interface WatcherHandle {
  * tool caches. Watching them turns every git fetch or CLI run into a
  * reparse storm (B-12).
  */
-const IGNORED_SEGMENTS = new Set([
-  ".git",
-  "node_modules",
-  "__pycache__",
-  ".pytest_cache",
-  ".mypy_cache",
-]);
+const IGNORED_SEGMENTS = new Set([".git", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache"]);
 
 /** Whether `path` (inside corpus `root`) is outside what the watcher follows. */
 export function isIgnoredWatchPath(root: string, path: string): boolean {

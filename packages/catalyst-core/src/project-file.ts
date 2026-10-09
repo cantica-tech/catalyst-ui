@@ -31,9 +31,7 @@ export function findProjectFile(directory: string): string | null {
   } catch {
     return null;
   }
-  const legacy = names
-    .filter((n) => n.endsWith(LEGACY_SUFFIX) && isFile(join(directory, n)))
-    .sort()[0];
+  const legacy = names.filter((n) => n.endsWith(LEGACY_SUFFIX) && isFile(join(directory, n))).sort()[0];
   return legacy ? join(directory, legacy) : null;
 }
 
@@ -66,19 +64,13 @@ export function parseProjectToml(text: string): Record<string, unknown> | null {
 }
 
 /** The project file's fields at `directory`; `null` when there is none or it cannot be parsed. */
-export function readProjectFile(
-  directory: string,
-): Record<string, unknown> | null {
+export function readProjectFile(directory: string): Record<string, unknown> | null {
   const path = findProjectFile(directory);
   if (!path) return null;
   try {
     const text = readFileSync(path, "utf8");
-    const data: unknown = path.endsWith(PROJECT_FILE)
-      ? parseProjectToml(text)
-      : JSON.parse(text);
-    return typeof data === "object" && data !== null
-      ? (data as Record<string, unknown>)
-      : null;
+    const data: unknown = path.endsWith(PROJECT_FILE) ? parseProjectToml(text) : JSON.parse(text);
+    return typeof data === "object" && data !== null ? (data as Record<string, unknown>) : null;
   } catch {
     return null;
   }
@@ -87,7 +79,7 @@ export function readProjectFile(
 /** catalyst's own space: `$CATALYST_HOME`, else `~/.catalyst`. */
 export function catalystHome(): string {
   const override = process.env.CATALYST_HOME;
-  return override && override.trim() ? override : join(homedir(), ".catalyst");
+  return override?.trim() ? override : join(homedir(), ".catalyst");
 }
 
 /** A project's criterion in the home store: `<catalystHome>/projects/<name>/criterion`. */
@@ -96,9 +88,7 @@ export function homeCriterion(name: string): string {
 }
 
 /** The project name a project file declares (`project_name`, else `name`). */
-export function projectName(
-  data: Record<string, unknown> | null,
-): string | null {
+export function projectName(data: Record<string, unknown> | null): string | null {
   const name = data?.project_name ?? data?.name;
   return typeof name === "string" && name ? name : null;
 }

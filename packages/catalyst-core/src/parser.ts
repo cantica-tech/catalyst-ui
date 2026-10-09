@@ -36,19 +36,14 @@ const DOMAIN_LINE_RE = /^>\s*\*\*Domain:\*\*\s*`([A-Z0-9_]+)`/;
 // literal, so a 3-digit legacy id and a 6-digit-plus-userid migrated id
 // (Rules-of-Rules.md §3/§20) are both recognized without this regex
 // drifting out of sync with ids.ts again.
-const RULE_HEADING_RE = new RegExp(
-  `^(#{1,4})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s*(.*)$`,
-);
+const RULE_HEADING_RE = new RegExp(`^(#{1,4})\\s+(?:\\d+\\.\\s+)?\`(${RULE_ID_PATTERN})\`\\s*(.*)$`);
 const STATUS_GLYPH_RE = /(✅|❌|🗑|⚠️)/;
-const ROADMAP_ROW_RE = new RegExp(
-  `^\\|\\s*\`(${ROADMAP_ID_PATTERN})\`\\s*\\|(.+)\\|\\s*$`,
-);
+const ROADMAP_ROW_RE = new RegExp(`^\\|\\s*\`(${ROADMAP_ID_PATTERN})\`\\s*\\|(.+)\\|\\s*$`);
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
 export function extractSlugFromRuleId(ruleId: string): string | undefined {
-  const re =
-    /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
-  const match = ruleId.match(re);
+  const re = /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
+  const match = re.exec(ruleId);
   if (match && match[2]) {
     const slug = match[2].replace(/-/g, " ").replace(/\s+/g, " ").trim();
     if (slug) return slug;
@@ -72,12 +67,8 @@ export function cleanRuleTitle(raw: string): string {
   return s;
 }
 
-export function detectRuleStatus(
-  text: string,
-  rawTitle: string,
-  fileFieldStatus?: string,
-): string {
-  const statusLineMatch = text.match(/(✅|❌|🗑|⚠️)[^\n]*/);
+export function detectRuleStatus(text: string, rawTitle: string, fileFieldStatus?: string): string {
+  const statusLineMatch = /(✅|❌|🗑|⚠️)[^\n]*/.exec(text);
   if (statusLineMatch) return statusLineMatch[0].trim();
   if (fileFieldStatus) return fileFieldStatus.trim();
 
@@ -108,11 +99,7 @@ export function detectRuleStatus(
 }
 
 /** Rule bullets in one rule document (`### id Title` or `## N. id Title`), plus index tables. */
-export function parseRuleDocument(
-  filePath: string,
-  docPrefix: string,
-  registeredRuleIds: Set<string>,
-): RuleNode[] {
+export function parseRuleDocument(filePath: string, docPrefix: string, registeredRuleIds: Set<string>): RuleNode[] {
   const lines = readFileSync(filePath, "utf8").split("\n");
   const nodesMap = new Map<string, RuleNode>();
   const fileFields = new Map<string, string>();
@@ -144,25 +131,15 @@ export function parseRuleDocument(
   const flush = () => {
     if (!current) return;
     const text = body.join("\n");
-    const rawStatus = detectRuleStatus(
-      text,
-      current.title,
-      fileFields.get("Status"),
-    );
+    const rawStatus = detectRuleStatus(text, current.title, fileFields.get("Status"));
     const domain = currentDomain || current.domain;
     const prefix = current.id.split("-")[0] || docPrefix;
     const cleanTitle = cleanRuleTitle(current.title);
     const slugName = extractSlugFromRuleId(current.id);
-    const idWithoutUserid = current.id.replace(
-      /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
-      "",
-    );
-    const resolvedTitle =
-      cleanTitle || slugName || idWithoutUserid || current.id;
+    const idWithoutUserid = current.id.replace(/-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/, "");
+    const resolvedTitle = cleanTitle || slugName || idWithoutUserid || current.id;
     const rawFieldName = fileFields.get("Name");
-    const cleanFieldName = rawFieldName
-      ? cleanRuleTitle(rawFieldName)
-      : undefined;
+    const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
     const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
 
     addNode(
@@ -176,8 +153,7 @@ export function parseRuleDocument(
         domain,
         status: rawStatus,
         signedOffBy: fileFields.get("Signed-off-by"),
-        registeredInRulesIndex:
-          prefix === "rr" || registeredRuleIds.has(current.id),
+        registeredInRulesIndex: prefix === "rr" || registeredRuleIds.has(current.id),
         // `rr` (Rules-of-Rules.md) documents the id scheme itself and cites
         // illustrative example ids (e.g. `br-AUTH-003-login-flow`) that were
         // never meant to resolve — same self-governing exemption as the
@@ -190,18 +166,16 @@ export function parseRuleDocument(
   };
 
   lines.forEach((line, i) => {
-    const fieldMatch = line.match(fieldRowRe);
+    const fieldMatch = fieldRowRe.exec(line);
     if (fieldMatch) fileFields.set(fieldMatch[1], fieldMatch[2]);
 
-    const domainMatch = line.match(DOMAIN_LINE_RE);
+    const domainMatch = DOMAIN_LINE_RE.exec(line);
     if (domainMatch) currentDomain = domainMatch[1];
 
     const headingMatch = line.match(RULE_HEADING_RE);
     if (headingMatch) {
       flush();
-      const rawTitle = headingMatch[3]
-        .trim()
-        .replace(/^[\u2014\u2013-]+\s*/, "");
+      const rawTitle = headingMatch[3].trim().replace(/^[\u2014\u2013-]+\s*/, "");
       const level = headingMatch[1].length;
       current = {
         id: headingMatch[2],
@@ -226,42 +200,28 @@ export function parseRuleDocument(
         let rowDomain = currentDomain;
 
         const idMatch =
-          cells[0].match(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/) ||
-          cells[0].match(/\b([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)\b/);
+          /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/.exec(cells[0]) ||
+          /\b([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)\b/.exec(cells[0]);
         if (idMatch) {
           ruleId = idMatch[1];
           if (
             STATUS_GLYPH_RE.test(cells[1]) ||
-            /^(?:working|implemented|not implemented|unimplemented|buggy|incomplete|fixed)/i.test(
-              cells[1],
-            )
+            /^(?:working|implemented|not implemented|unimplemented|buggy|incomplete|fixed)/i.test(cells[1])
           ) {
-            status = cells[1].match(STATUS_GLYPH_RE)?.[1] || cells[1];
-            title = cells[2]
-              ? cells[2].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
-              : ruleId;
+            status = STATUS_GLYPH_RE.exec(cells[1])?.[1] || cells[1];
+            title = cells[2] ? cells[2].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim() : ruleId;
           } else {
-            title = cells[1]
-              ? cells[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim()
-              : ruleId;
-            status = cells[2]
-              ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
-              : "";
+            title = cells[1] ? cells[1].replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim() : ruleId;
+            status = cells[2] ? STATUS_GLYPH_RE.exec(cells[2])?.[1] || cells[2] : "";
           }
         } else if (cells.length >= 4) {
           const fileIdMatch =
-            cells[0].match(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/) ||
-            cells[0].match(
-              /\/([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)(?:\.md|\))/,
-            );
+            /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/.exec(cells[0]) ||
+            /\/([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)(?:\.md|\))/.exec(cells[0]);
           if (fileIdMatch) {
             ruleId = fileIdMatch[1];
-            rowDomain = cells[1]
-              ? cells[1].replace(/[`"]/g, "").trim()
-              : currentDomain;
-            status = cells[2]
-              ? cells[2].match(STATUS_GLYPH_RE)?.[1] || cells[2]
-              : "";
+            rowDomain = cells[1] ? cells[1].replace(/[`"]/g, "").trim() : currentDomain;
+            status = cells[2] ? STATUS_GLYPH_RE.exec(cells[2])?.[1] || cells[2] : "";
             title = cells[3] ? cells[3].trim() : ruleId;
           }
         }
@@ -270,16 +230,10 @@ export function parseRuleDocument(
           const prefix = ruleId.split("-")[0];
           const cleanTitle = cleanRuleTitle(title);
           const slugName = extractSlugFromRuleId(ruleId);
-          const idWithoutUserid = ruleId.replace(
-            /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/,
-            "",
-          );
-          const resolvedTitle =
-            cleanTitle || slugName || idWithoutUserid || ruleId;
+          const idWithoutUserid = ruleId.replace(/-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?:-.*)?$/, "");
+          const resolvedTitle = cleanTitle || slugName || idWithoutUserid || ruleId;
           const rawFieldName = fileFields.get("Name");
-          const cleanFieldName = rawFieldName
-            ? cleanRuleTitle(rawFieldName)
-            : undefined;
+          const cleanFieldName = rawFieldName ? cleanRuleTitle(rawFieldName) : undefined;
           const resolvedName = cleanFieldName || rawFieldName || resolvedTitle;
           addNode(
             {
@@ -292,8 +246,7 @@ export function parseRuleDocument(
               domain: rowDomain,
               status,
               signedOffBy: fileFields.get("Signed-off-by"),
-              registeredInRulesIndex:
-                prefix === "rr" || registeredRuleIds.has(ruleId),
+              registeredInRulesIndex: prefix === "rr" || registeredRuleIds.has(ruleId),
               references: [],
               description: title,
             },
@@ -304,7 +257,7 @@ export function parseRuleDocument(
     }
 
     if (current) {
-      const anyHeading = line.match(/^(#{1,6})\s+/);
+      const anyHeading = /^(#{1,6})\s+/.exec(line);
       if (anyHeading) {
         const headingLevel = anyHeading[1].length;
         if (headingLevel <= current.level) {
@@ -323,25 +276,20 @@ export function parseRuleDocument(
 }
 
 /** The `rules/domains/domains.md` global index, plus each domain's own doc file presence. */
-export function parseDomainsIndex(
-  indexPath: string,
-  domainsDir: string,
-): DomainNode[] {
+export function parseDomainsIndex(indexPath: string, domainsDir: string): DomainNode[] {
   const lines = readFileSync(indexPath, "utf8").split("\n");
   const nodes: DomainNode[] = [];
   const processedCodes = new Set<string>();
 
   lines.forEach((line, i) => {
-    const codeMatch = line.match(/\|?\s*\[?`([A-Z0-9_]+)`\]?/);
+    const codeMatch = /\|?\s*\[?`([A-Z0-9_]+)`\]?/.exec(line);
     if (!codeMatch) return;
     const code = codeMatch[1];
     if (code === "Code" || code === "Domain" || code === "File") return;
     if (processedCodes.has(code)) return;
     processedCodes.add(code);
 
-    const linkMatch =
-      line.match(/\[[^\]]+\]\(([^)]+)\)/) ||
-      line.match(/\b([a-zA-Z0-9._-]+\.md)\b/);
+    const linkMatch = /\[[^\]]+\]\(([^)]+)\)/.exec(line) || /\b([a-zA-Z0-9._-]+\.md)\b/.exec(line);
     let docPath = "";
     if (linkMatch) {
       docPath = join(domainsDir, linkMatch[1]);
@@ -350,9 +298,7 @@ export function parseDomainsIndex(
     }
 
     if (!existsSync(docPath) && existsSync(domainsDir)) {
-      const candidates = readdirSync(domainsDir).filter(
-        (f) => f.endsWith(".md") && f.includes(code),
-      );
+      const candidates = readdirSync(domainsDir).filter((f) => f.endsWith(".md") && f.includes(code));
       if (candidates.length > 0) {
         docPath = join(domainsDir, candidates[0]);
       }
@@ -379,8 +325,7 @@ export function parseDomainsIndex(
 
   if (existsSync(domainsDir)) {
     const filesInDomainsDir = readdirSync(domainsDir).filter(
-      (f) =>
-        f.endsWith(".md") && f !== "domains.md" && !f.startsWith("TEMPLATE-"),
+      (f) => f.endsWith(".md") && f !== "domains.md" && !f.startsWith("TEMPLATE-"),
     );
     for (const f of filesInDomainsDir) {
       const docPath = join(domainsDir, f);
@@ -389,8 +334,7 @@ export function parseDomainsIndex(
       let code = domainField;
       if (!code) {
         const parts = f.split("-");
-        code =
-          parts.length >= 2 ? parts[1] : f.replace(/\.md$/, "").toUpperCase();
+        code = parts.length >= 2 ? parts[1] : f.replace(/\.md$/, "").toUpperCase();
       }
       if (code && !processedCodes.has(code)) {
         processedCodes.add(code);
@@ -420,14 +364,9 @@ interface IndexRow {
 }
 
 /** `| [ID](file) | Title | ... | Status |` rows keyed by id — the shape shared by every artifact-type index. */
-function parseIndexTable(
-  indexPath: string,
-  idPattern: string,
-): Map<string, IndexRow> {
+function parseIndexTable(indexPath: string, idPattern: string): Map<string, IndexRow> {
   const rows = new Map<string, IndexRow>();
-  const rowRe = new RegExp(
-    `^\\|\\s*\\[(${idPattern})\\]\\([^)]+\\)\\s*\\|(.+)\\|\\s*$`,
-  );
+  const rowRe = new RegExp(`^\\|\\s*\\[(${idPattern})\\]\\([^)]+\\)\\s*\\|(.+)\\|\\s*$`);
 
   readFileSync(indexPath, "utf8")
     .split("\n")
@@ -458,7 +397,7 @@ export function parseFieldTable(filePath: string): {
   const rowRe = /^\|\s*\*\*([A-Za-z-]+)\*\*\s*\|\s*(.*?)\s*\|\s*$/;
 
   for (const line of text.split("\n")) {
-    const match = line.match(rowRe);
+    const match = rowRe.exec(line);
     if (match) fields.set(match[1], match[2]);
   }
 
@@ -510,15 +449,11 @@ function filesById(
 
   for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-    if (entry.name === basename(indexPath) || entry.name === "README.md")
-      continue;
+    if (entry.name === basename(indexPath) || entry.name === "README.md") continue;
     const match = entry.name.match(idFromFilenameRe);
     if (!match) continue;
     const filePath = join(dirPath, entry.name);
-    found.set(
-      canonicalFileId(filePath, match[1], idFromFilenameRe, indexed),
-      filePath,
-    );
+    found.set(canonicalFileId(filePath, match[1], idFromFilenameRe, indexed), filePath);
   }
 
   return found;
@@ -547,39 +482,23 @@ function canonicalFileId(
   return extending.length === 1 ? extending[0] : fromFilename;
 }
 
-function buildDevArtifactNode(
-  id: string,
-  filePath: string,
-  registered: IndexRow | undefined,
-): DevArtifactNode {
+function buildDevArtifactNode(id: string, filePath: string, registered: IndexRow | undefined): DevArtifactNode {
   const { fields, text } = parseFieldTable(filePath);
   const targets = extractIds(fields.get("Targets") ?? "", BACKTICK_RULE_ID_RE);
-  const featureIds = extractIds(
-    fields.get("Feature") ?? "",
-    BACKTICK_FEATURE_ID_RE,
-  );
+  const featureIds = extractIds(fields.get("Feature") ?? "", BACKTICK_FEATURE_ID_RE);
   const artifactType = devArtifactType(id);
   // A requirement's document has no `## Description` heading of its own —
   // its equivalent is `## Summary` (see requirements.template.md); bug/
   // house-keeping/test all use `## Description` (bug.template.md,
   // house-keeping.template.md, test.template.md).
-  const descriptionHeading =
-    artifactType === "requirement" ? "Summary" : "Description";
+  const descriptionHeading = artifactType === "requirement" ? "Summary" : "Description";
   // Only a test carries these two fields (`Rules-of-Rules.md` §22) — a
   // requirement's own `Steps` field means something entirely different
   // (steps opened against it, already derivable via reverse edges from
   // `StepNode.requirement`), so it's deliberately never read here.
   const requirements =
-    artifactType === "test"
-      ? extractIds(
-          fields.get("Requirements") ?? "",
-          BACKTICK_DEV_ARTIFACT_ID_RE,
-        )
-      : undefined;
-  const steps =
-    artifactType === "test"
-      ? extractIds(fields.get("Steps") ?? "", BACKTICK_STEP_ID_RE)
-      : undefined;
+    artifactType === "test" ? extractIds(fields.get("Requirements") ?? "", BACKTICK_DEV_ARTIFACT_ID_RE) : undefined;
+  const steps = artifactType === "test" ? extractIds(fields.get("Steps") ?? "", BACKTICK_STEP_ID_RE) : undefined;
 
   return {
     id,
@@ -603,10 +522,7 @@ function buildDevArtifactNode(
 }
 
 /** One dev-artifact type's index + directory (requirements/, development/bugs/, development/house-keeping/). */
-function parseDevArtifactCollection(
-  indexPath: string,
-  dirPath: string,
-): ParsedFile[] {
+function parseDevArtifactCollection(indexPath: string, dirPath: string): ParsedFile[] {
   const index = parseIndexTable(indexPath, DEV_ARTIFACT_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${DEV_ARTIFACT_ID_PATTERN})-`);
   const onDisk = filesById(dirPath, indexPath, idFromFilenameRe, index.keys());
@@ -651,11 +567,7 @@ function parseDevArtifactCollection(
   return files;
 }
 
-function buildFeatureNode(
-  id: string,
-  filePath: string,
-  registered: IndexRow | undefined,
-): FeatureNode {
+function buildFeatureNode(id: string, filePath: string, registered: IndexRow | undefined): FeatureNode {
   const { fields, text } = parseFieldTable(filePath);
   return {
     id,
@@ -674,10 +586,7 @@ function buildFeatureNode(
 }
 
 /** features/ — same registered/on-disk cross-check as dev-artifacts, but never rule-linked (Rules-of-Rules.md §9). */
-function parseFeatureCollection(
-  indexPath: string,
-  dirPath: string,
-): ParsedFile[] {
+function parseFeatureCollection(indexPath: string, dirPath: string): ParsedFile[] {
   const index = parseIndexTable(indexPath, FEATURE_ID_PATTERN);
   const idFromFilenameRe = new RegExp(`^(${FEATURE_ID_PATTERN})-`);
   const onDisk = filesById(dirPath, indexPath, idFromFilenameRe, index.keys());
@@ -720,19 +629,10 @@ function parseFeatureCollection(
 }
 
 function isStepStatus(value: string | undefined): value is StepStatus {
-  return (
-    value === "planned" ||
-    value === "in-progress" ||
-    value === "done" ||
-    value === "abandoned"
-  );
+  return value === "planned" || value === "in-progress" || value === "done" || value === "abandoned";
 }
 
-function buildStepNode(
-  id: string,
-  filePath: string,
-  registered: IndexRow | undefined,
-): StepNode {
+function buildStepNode(id: string, filePath: string, registered: IndexRow | undefined): StepNode {
   const { fields, text } = parseFieldTable(filePath);
   const status = fields.get("Status") ?? registered?.status ?? "";
   return {
@@ -746,11 +646,7 @@ function buildStepNode(
     // hasn't run that migration yet. Either way the value is a single
     // `REQ-NNNNNN` or `BUG-NNNNNN`, both already matched by the generic
     // dev-artifact id pattern.
-    parent:
-      extractIds(
-        fields.get("Parent") ?? fields.get("Requirement") ?? "",
-        BACKTICK_DEV_ARTIFACT_ID_RE,
-      )[0] ?? "",
+    parent: extractIds(fields.get("Parent") ?? fields.get("Requirement") ?? "", BACKTICK_DEV_ARTIFACT_ID_RE)[0] ?? "",
     status: isStepStatus(status) ? status : "planned",
     signedOffBy: fields.get("Signed-off-by"),
     registered: registered !== undefined,
@@ -787,9 +683,7 @@ function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
         name: registeredRow.title,
         location: { file: indexPath, line: registeredRow.line },
         parent: "",
-        status: isStepStatus(registeredRow.status)
-          ? registeredRow.status
-          : "planned",
+        status: isStepStatus(registeredRow.status) ? registeredRow.status : "planned",
         registered: true,
         fileExists: false,
         references: [],
@@ -808,12 +702,7 @@ function parseStepCollection(indexPath: string, dirPath: string): ParsedFile[] {
 }
 
 function isRoadmapStatus(value: string | undefined): value is RoadmapStatus {
-  return (
-    value === "Not triaged" ||
-    value === "Triaged" ||
-    value === "In progress" ||
-    value === "Done"
-  );
+  return value === "Not triaged" || value === "Triaged" || value === "In progress" || value === "Done";
 }
 
 /**
@@ -825,10 +714,7 @@ function isRoadmapStatus(value: string | undefined): value is RoadmapStatus {
  * `Linked` `FEAT-`/`REQ-` id (and a feature's own back-citation of this
  * row's id) auto-resolve into real graph edges.
  */
-function parseRoadmapFile(
-  filePath: string,
-  roadmapName: string,
-): RoadmapNode[] {
+function parseRoadmapFile(filePath: string, roadmapName: string): RoadmapNode[] {
   const text = readFileSync(filePath, "utf8");
   const roadmapRetired = RETIRED_HEADER_RE.test(text);
   const nodes: RoadmapNode[] = [];
@@ -837,8 +723,7 @@ function parseRoadmapFile(
     const match = line.match(ROADMAP_ROW_RE);
     if (!match) return;
     const cells = match[2].split("|").map((c) => c.trim());
-    const [title, description, status, linkedCell, signedOffBy, ...rest] =
-      cells;
+    const [title, description, status, linkedCell, signedOffBy, ...rest] = cells;
     const linked = collectIdReferences(linkedCell ?? "")[0];
 
     nodes.push({
@@ -890,10 +775,7 @@ function parseRoadmapCollection(root: string): ParsedFile[] {
  * into per-file node lists. Never incremental — validation is inherently
  * global, so every pass rebuilds from the complete file set.
  */
-export function parseCorpus(
-  root: string,
-  options: ParseOptions = {},
-): ParseResult | null {
+export function parseCorpus(root: string, options: ParseOptions = {}): ParseResult | null {
   const start = performance.now();
   const shouldContinue = options.shouldContinue ?? (() => true);
   const files: ParsedFile[] = [];
@@ -914,17 +796,12 @@ export function parseCorpus(
         } else if (entry.isFile() && entry.name.endsWith(".md")) {
           if (entry.name.endsWith("-rules.md") || entry.name === "rules.md") {
             const text = readFileSync(fullPath, "utf8");
-            for (const match of text.matchAll(
-              /`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/g,
-            )) {
+            for (const match of text.matchAll(/`([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-[a-zA-Z0-9]+)*)`/g)) {
               registeredRuleIds.add(match[1]);
             }
           }
           if (!ruleDocs.some((d) => d.path === fullPath)) {
-            const prefix =
-              entry.name === "Rules-of-Rules.md"
-                ? "rr"
-                : entry.name.split("-")[0] || "rule";
+            const prefix = entry.name === "Rules-of-Rules.md" ? "rr" : entry.name.split("-")[0] || "rule";
             ruleDocs.push({ prefix, path: fullPath });
           }
         }
@@ -980,9 +857,7 @@ export function parseCorpus(
   if (!shouldContinue()) return null;
   const featuresIndexPath = join(root, "features", "features.md");
   if (existsSync(featuresIndexPath)) {
-    files.push(
-      ...parseFeatureCollection(featuresIndexPath, join(root, "features")),
-    );
+    files.push(...parseFeatureCollection(featuresIndexPath, join(root, "features")));
   }
 
   if (!shouldContinue()) return null;

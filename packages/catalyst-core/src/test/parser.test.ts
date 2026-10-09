@@ -3,25 +3,9 @@ import { join } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  cleanRuleTitle,
-  detectRuleStatus,
-  extractSlugFromRuleId,
-  parseCorpus,
-} from "../parser.js";
-import type {
-  DevArtifactNode,
-  DomainNode,
-  FeatureNode,
-  RoadmapNode,
-  RuleNode,
-  StepNode,
-} from "../types.js";
-import {
-  createFixtureCorpus,
-  removeFixtureCorpus,
-  writeRulesOfRules,
-} from "./test-support.js";
+import { cleanRuleTitle, detectRuleStatus, extractSlugFromRuleId, parseCorpus } from "../parser.js";
+import type { DevArtifactNode, DomainNode, FeatureNode, RoadmapNode, RuleNode, StepNode } from "../types.js";
+import { createFixtureCorpus, removeFixtureCorpus, writeRulesOfRules } from "./test-support.js";
 
 let root: string | undefined;
 
@@ -75,9 +59,7 @@ describe("parseCorpus", () => {
     expect(rule.domain).toBe("CONTRACT");
     expect(rule.docPrefix).toBe("core");
     expect(rule.registeredInRulesIndex).toBe(true);
-    expect(rule.description).toContain(
-      "Every node on the wire carries a stable shape.",
-    );
+    expect(rule.description).toContain("Every node on the wire carries a stable shape.");
 
     const domain = allNodes.find((n) => n.id === "CONTRACT") as DomainNode;
     expect(domain.hasDoc).toBe(true);
@@ -189,12 +171,8 @@ describe("parseCorpus", () => {
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
     // Exactly one entry for the full suffixed id — not a separate
     // truncated "REQ-000001" entry from a filename/index key mismatch.
-    expect(allNodes.filter((n) => n.id.startsWith("REQ-000001")).length).toBe(
-      1,
-    );
-    const req = allNodes.find(
-      (n) => n.id === "REQ-000001-Ab3xR9pQ",
-    ) as DevArtifactNode;
+    expect(allNodes.filter((n) => n.id.startsWith("REQ-000001")).length).toBe(1);
+    const req = allNodes.find((n) => n.id === "REQ-000001-Ab3xR9pQ") as DevArtifactNode;
     expect(req).toBeDefined();
     expect(req.registered).toBe(true);
     expect(req.fileExists).toBe(true);
@@ -358,13 +336,8 @@ describe("parseCorpus", () => {
     });
 
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
-    const roadmapNodes = allNodes.filter(
-      (n): n is RoadmapNode => n.kind === "roadmap",
-    );
-    expect(roadmapNodes.map((n) => n.id).sort()).toEqual([
-      "RM-000001",
-      "RM-000002",
-    ]);
+    const roadmapNodes = allNodes.filter((n): n is RoadmapNode => n.kind === "roadmap");
+    expect(roadmapNodes.map((n) => n.id).sort()).toEqual(["RM-000001", "RM-000002"]);
 
     const item1 = roadmapNodes.find((n) => n.id === "RM-000001")!;
     expect(item1.roadmapName).toBe("product");
@@ -405,9 +378,7 @@ describe("parseCorpus", () => {
     expect(step.status).toBe("done");
     expect(step.registered).toBe(true);
     expect(step.fileExists).toBe(true);
-    expect(step.description).toBe(
-      "Implemented the tokenizer for the corpus parser.",
-    );
+    expect(step.description).toBe("Implemented the tokenizer for the corpus parser.");
     expect(step.references).toContain("REQ-000001");
   });
 
@@ -432,9 +403,7 @@ describe("parseCorpus", () => {
   it("falls back to a legacy `Requirement` field for a corpus that hasn't run the 0.31.0 Parent rename", () => {
     root = createFixtureCorpus({
       requirements: [{ id: "REQ-000001", title: "Core parser" }],
-      steps: [
-        { id: "STEP-000001", title: "Legacy step", parent: "REQ-000001" },
-      ],
+      steps: [{ id: "STEP-000001", title: "Legacy step", parent: "REQ-000001" }],
     });
     // Overwrite with the pre-0.31.0 field name to simulate an unmigrated file.
     writeFileSync(
@@ -513,9 +482,7 @@ describe("parseCorpus", () => {
     });
 
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
-    const test = allNodes.find(
-      (n) => n.id === "TEST-000001",
-    ) as DevArtifactNode;
+    const test = allNodes.find((n) => n.id === "TEST-000001") as DevArtifactNode;
     expect(test).toBeDefined();
     expect(test.kind).toBe("dev-artifact");
     expect(test.artifactType).toBe("test");
@@ -525,9 +492,7 @@ describe("parseCorpus", () => {
     expect(test.status).toBe("passing");
     expect(test.registered).toBe(true);
     expect(test.fileExists).toBe(true);
-    expect(test.description).toBe(
-      "Round-trips a fixture corpus through the parser.",
-    );
+    expect(test.description).toBe("Round-trips a fixture corpus through the parser.");
   });
 
   it("leaves a test's Requirements/Steps empty when it names neither (both are optional)", () => {
@@ -542,18 +507,14 @@ describe("parseCorpus", () => {
     });
 
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
-    const test = allNodes.find(
-      (n) => n.id === "TEST-000001",
-    ) as DevArtifactNode;
+    const test = allNodes.find((n) => n.id === "TEST-000001") as DevArtifactNode;
     expect(test.requirements).toEqual([]);
     expect(test.steps).toEqual([]);
   });
 
   it("never reads a requirement's own Steps field into `requirements`/`steps` (only a test's do)", () => {
     root = createFixtureCorpus({
-      requirements: [
-        { id: "REQ-000001", title: "Core parser", steps: ["STEP-000001"] },
-      ],
+      requirements: [{ id: "REQ-000001", title: "Core parser", steps: ["STEP-000001"] }],
     });
 
     const allNodes = parseCorpus(root)!.files.flatMap((f) => f.nodes);
@@ -566,14 +527,10 @@ describe("parseCorpus", () => {
 
 describe("extractSlugFromRuleId and cleanRuleTitle", () => {
   it("extracts clean human-readable slug from 6-digit rule id with userid", () => {
-    expect(
-      extractSlugFromRuleId("env-CI-000001-z6qEx1Kf-github-actions-on-push"),
-    ).toBe("github actions on push");
-    expect(
-      extractSlugFromRuleId(
-        "cor-CORE-000001-z6qEx1Kf-telemetry-log-correlation",
-      ),
-    ).toBe("telemetry log correlation");
+    expect(extractSlugFromRuleId("env-CI-000001-z6qEx1Kf-github-actions-on-push")).toBe("github actions on push");
+    expect(extractSlugFromRuleId("cor-CORE-000001-z6qEx1Kf-telemetry-log-correlation")).toBe(
+      "telemetry log correlation",
+    );
     expect(extractSlugFromRuleId("br-REDIS-016")).toBeUndefined();
   });
 
@@ -628,10 +585,7 @@ describe("full-ID index rows and short filenames (BUG-000001-UVqkd7cL)", () => {
 
   it("still keys a file by its filename when it has no ID field and no index row extends it", () => {
     root = createFixtureCorpus({});
-    writeFileSync(
-      join(root, "requirements", "REQ-000020-plain.md"),
-      "# REQ-000020 — Plain\n",
-    );
+    writeFileSync(join(root, "requirements", "REQ-000020-plain.md"), "# REQ-000020 — Plain\n");
     const ids = parseCorpus(root)!
       .files.flatMap((f) => f.nodes)
       .map((n) => n.id);

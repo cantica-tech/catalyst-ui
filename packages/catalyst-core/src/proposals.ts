@@ -10,11 +10,7 @@ const INDEX_FILENAME = "proposals.md";
 
 function isProposalStatus(value: string | undefined): value is ProposalStatus {
   return (
-    value === "proposed" ||
-    value === "applying" ||
-    value === "applied" ||
-    value === "partial" ||
-    value === "stale"
+    value === "proposed" || value === "applying" || value === "applied" || value === "partial" || value === "stale"
   );
 }
 
@@ -35,7 +31,7 @@ export function parseProposals(corpusRoot: string): Proposal[] {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
     if (entry.name === INDEX_FILENAME || entry.name === "README.md") continue;
 
-    const match = entry.name.match(PROPOSAL_ID_RE);
+    const match = PROPOSAL_ID_RE.exec(entry.name);
     if (!match) continue;
 
     const filePath = join(dir, entry.name);
@@ -66,9 +62,7 @@ export function nextProposalId(existing: Proposal[]): string {
 }
 
 /** Every non-`applied` proposal, grouped by each id it targets — for pending-state lookups. */
-export function openProposalsByTarget(
-  existing: Proposal[],
-): Map<string, Proposal[]> {
+export function openProposalsByTarget(existing: Proposal[]): Map<string, Proposal[]> {
   const byTarget = new Map<string, Proposal[]>();
 
   for (const proposal of existing) {

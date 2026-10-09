@@ -21,14 +21,12 @@ export function scanAvailableAgents(): DetectedAgent[] {
   return vscode.extensions.all
     .filter((ext) => ext.packageJSON?.contributes?.chatParticipants)
     .flatMap((ext): DetectedAgent[] =>
-      ext.packageJSON.contributes.chatParticipants.map(
-        (p: { name: string; commands?: { name: string }[] }) => ({
-          extensionId: ext.id,
-          participant: `@${p.name}`,
-          commands: (p.commands ?? []).map((c) => c.name),
-          active: ext.isActive,
-        }),
-      ),
+      ext.packageJSON.contributes.chatParticipants.map((p: { name: string; commands?: { name: string }[] }) => ({
+        extensionId: ext.id,
+        participant: `@${p.name}`,
+        commands: (p.commands ?? []).map((c) => c.name),
+        active: ext.isActive,
+      })),
     );
 }
 
@@ -37,14 +35,8 @@ export function scanAvailableCommands(): Thenable<string[]> {
 }
 
 /** Drives the Chat view; auth is entirely the target extension's problem. Fire-and-forget — there's no structured return value. */
-export async function invokeChatParticipant(
-  participant: string,
-  slashCommand: string,
-  args: string,
-): Promise<void> {
-  const query = [participant, slashCommand, args.trim()]
-    .filter((part) => part.length > 0)
-    .join(" ");
+export async function invokeChatParticipant(participant: string, slashCommand: string, args: string): Promise<void> {
+  const query = [participant, slashCommand, args.trim()].filter((part) => part.length > 0).join(" ");
   await vscode.commands.executeCommand("workbench.action.chat.open", {
     query,
     isPartialQuery: false,
@@ -52,10 +44,7 @@ export async function invokeChatParticipant(
 }
 
 /** Purely in-process VS Code command dispatch. No auth involved at all. */
-export async function invokeCommand(
-  commandId: string,
-  args: string,
-): Promise<void> {
+export async function invokeCommand(commandId: string, args: string): Promise<void> {
   await vscode.commands.executeCommand(commandId, args);
 }
 
@@ -68,10 +57,7 @@ export async function invokeCommand(
  * `engines.vscode`'s current floor) — treated the same as "no models
  * available" rather than throwing a raw `TypeError`.
  */
-export async function invokeLmModel(
-  vendor: string | undefined,
-  prompt: string,
-): Promise<string> {
+export async function invokeLmModel(vendor: string | undefined, prompt: string): Promise<string> {
   if (typeof vscode.lm === "undefined") {
     throw new Error("No language model available");
   }
@@ -99,16 +85,12 @@ export async function offerModelFallback(
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
   if (typeof vscode.lm === "undefined") {
-    void vscode.window.showErrorMessage(
-      "No AI agent or language model is available in this VS Code instance.",
-    );
+    void vscode.window.showErrorMessage("No AI agent or language model is available in this VS Code instance.");
     return;
   }
   const models = await vscode.lm.selectChatModels();
   if (models.length === 0) {
-    void vscode.window.showErrorMessage(
-      "No AI agent or language model is available in this VS Code instance.",
-    );
+    void vscode.window.showErrorMessage("No AI agent or language model is available in this VS Code instance.");
     return;
   }
   const pick = await vscode.window.showQuickPick(
@@ -121,10 +103,7 @@ export async function offerModelFallback(
   );
   if (!pick) return;
 
-  const result = await invokeLmModel(
-    pick.model.vendor,
-    composeCommandRequest(slashCommand, args),
-  );
+  const result = await invokeLmModel(pick.model.vendor, composeCommandRequest(slashCommand, args));
   outputChannel.appendLine(result);
   outputChannel.show(true);
 }
@@ -176,17 +155,12 @@ export async function resolveAndInvoke(
 
   if (resolved.kind === "lm-model") {
     try {
-      const result = await invokeLmModel(
-        resolved.vendor,
-        composeCommandRequest(slashCommand, args),
-      );
+      const result = await invokeLmModel(resolved.vendor, composeCommandRequest(slashCommand, args));
       outputChannel.appendLine(result);
       outputChannel.show(true);
     } catch (err) {
       void vscode.window.showErrorMessage(
-        `"${agentDef.name}" has no language model available: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `"${agentDef.name}" has no language model available: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
     return;
@@ -201,17 +175,9 @@ export async function resolveAndInvoke(
     // form; any other gets the plain request naming catalyst's MCP server
     // (catalyst writes no command files, so a bare `/name` resolves nowhere).
     if (declaresCommand(exact, slashCommand)) {
-      await invokeChatParticipant(
-        resolved.participant,
-        composeSlashCommand(slashCommand, ""),
-        args,
-      );
+      await invokeChatParticipant(resolved.participant, composeSlashCommand(slashCommand, ""), args);
     } else {
-      await invokeChatParticipant(
-        resolved.participant,
-        "",
-        composeCommandRequest(slashCommand, args),
-      );
+      await invokeChatParticipant(resolved.participant, "", composeCommandRequest(slashCommand, args));
     }
     return;
   }

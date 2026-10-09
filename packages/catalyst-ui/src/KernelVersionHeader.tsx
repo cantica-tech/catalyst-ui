@@ -6,9 +6,7 @@ export interface FrameworkVersionHeaderProps {
   versionInfo?: KernelVersionInfo;
 }
 
-export function KernelVersionHeader({
-  versionInfo,
-}: FrameworkVersionHeaderProps) {
+export function KernelVersionHeader({ versionInfo }: FrameworkVersionHeaderProps) {
   const meets = versionInfo ? versionInfo.meetsRequirement : true;
   const [open, setOpen] = useState(!meets);
 
@@ -28,8 +26,7 @@ export function KernelVersionHeader({
         borderBottom: "1px solid var(--vscode-panel-border, #808080)",
         padding: "8px 12px",
         marginBottom: "12px",
-        backgroundColor:
-          "var(--vscode-sideBar-background, rgba(127, 127, 127, 0.05))",
+        backgroundColor: "var(--vscode-sideBar-background, rgba(127, 127, 127, 0.05))",
       }}
     >
       <div
@@ -42,7 +39,9 @@ export function KernelVersionHeader({
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             type="button"
-            onClick={() => setOpen((prev) => !prev)}
+            onClick={() => {
+              setOpen((prev) => !prev);
+            }}
             title="Toggle Catalyst Kernel Version Info"
             style={{
               display: "inline-flex",
@@ -51,23 +50,14 @@ export function KernelVersionHeader({
               padding: "4px 8px",
               cursor: "pointer",
               borderRadius: "4px",
-              border: meets
-                ? "1px solid var(--vscode-button-border, transparent)"
-                : "1px solid #ef4444",
-              backgroundColor: meets
-                ? "var(--vscode-button-secondaryBackground, #3a3d41)"
-                : "#7f1d1d",
-              color: meets
-                ? "var(--vscode-button-secondaryForeground, #ffffff)"
-                : "#fca5a5",
+              border: meets ? "1px solid var(--vscode-button-border, transparent)" : "1px solid #ef4444",
+              backgroundColor: meets ? "var(--vscode-button-secondaryBackground, #3a3d41)" : "#7f1d1d",
+              color: meets ? "var(--vscode-button-secondaryForeground, #ffffff)" : "#fca5a5",
               fontWeight: 500,
               fontSize: "12px",
             }}
           >
-            <VersionControlIcon
-              size={14}
-              fill={meets ? "currentColor" : "#fca5a5"}
-            />
+            <VersionControlIcon size={14} fill={meets ? "currentColor" : "#fca5a5"} />
             <span>Kernel Version</span>
             {!meets ? (
               <span
@@ -103,17 +93,11 @@ export function KernelVersionHeader({
             backgroundColor: meets
               ? "var(--vscode-inputValidation-infoBackground, rgba(16, 185, 129, 0.1))"
               : "rgba(239, 68, 68, 0.15)",
-            border: meets
-              ? "1px solid var(--vscode-inputValidation-infoBorder, #10b981)"
-              : "1px solid #ef4444",
-            color: meets
-              ? "var(--vscode-inputValidation-infoForeground, #34d399)"
-              : "#f87171",
+            border: meets ? "1px solid var(--vscode-inputValidation-infoBorder, #10b981)" : "1px solid #ef4444",
+            color: meets ? "var(--vscode-inputValidation-infoForeground, #34d399)" : "#f87171",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}
-          >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
             {!meets ? (
               <span
                 style={{
@@ -135,8 +119,7 @@ export function KernelVersionHeader({
             ) : null}
             <div>
               <p style={{ margin: "0 0 4px 0", fontWeight: "bold" }}>
-                Catalyst Kernel Version: {versionDisplay} (Expected:{" "}
-                {requiredDisplay})
+                Catalyst Kernel Version: {versionDisplay} (Expected: {requiredDisplay})
               </p>
               <p style={{ margin: 0 }}>{explanation}</p>
             </div>
