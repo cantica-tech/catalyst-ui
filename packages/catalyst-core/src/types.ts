@@ -262,7 +262,7 @@ export interface JournalFileChange {
   after: string;
 }
 
-/** One append-only line of `development/journal.jsonl` (`rr-META-012`) — transaction-log-grade, not prose. */
+/** One append-only line of the journal (`development/journal/` shards, legacy `development/journal.jsonl`; `rr-META-012`) — transaction-log-grade, not prose. */
 export interface JournalEntry {
   timestamp: string;
   actor: string;

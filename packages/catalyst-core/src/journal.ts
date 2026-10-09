@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { JournalEntry, JournalFilters } from "./types.js";
@@ -45,11 +45,35 @@ function coerceEntry(value: unknown): JournalEntry | null {
 }
 
 /**
- * `development/journal.jsonl` (`rr-META-012`) — one JSON object per line,
- * strictly append-only. A line that fails to parse is skipped rather than
- * failing the whole read, the same posture as `runs.ts`'s `parseStep`
- * skipping an unrecognized checklist line: the agent-authored content here
- * isn't validated the way UI-authored content is.
+ * Every file the journal is read from (`rr-META-012`, INV-17): the legacy
+ * `development/journal.jsonl` of a deployment made before kernel 0.50, then
+ * each shard `development/journal/<actor>@<machine>/<YYYY-MM>.jsonl`, in a
+ * stable order.
+ */
+export function journalSources(corpusRoot: string): string[] {
+  const legacy = join(corpusRoot, "development", "journal.jsonl");
+  const shardsRoot = join(corpusRoot, "development", "journal");
+  const shards: string[] = [];
+  const walk = (dir: string, rel: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const childRel = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) walk(join(dir, entry.name), childRel);
+      else if (entry.isFile() && entry.name.endsWith(".jsonl")) shards.push(childRel);
+    }
+  };
+  if (existsSync(shardsRoot)) walk(shardsRoot, "");
+  shards.sort();
+  return [...(existsSync(legacy) ? [legacy] : []), ...shards.map((rel) => join(shardsRoot, ...rel.split("/")))];
+}
+
+/**
+ * The journal: one JSON object per line, strictly append-only, across the
+ * legacy file and every shard, in timestamp order (a source's own order kept
+ * on ties). A line that fails to parse is skipped rather than failing the
+ * whole read, the same posture as `runs.ts`'s `parseStep` skipping an
+ * unrecognized checklist line: the agent-authored content here isn't
+ * validated the way UI-authored content is. The CLI's causal order
+ * (`catalyst journal show --json`) is authoritative; this read is for display.
  *
  * Deliberately not part of `WatchUpdate`/`watchCorpus` — the journal can
  * grow to thousands of lines over a project's life, and nothing in the
@@ -58,22 +82,21 @@ function coerceEntry(value: unknown): JournalEntry | null {
  * Called only on demand, when that command actually runs.
  */
 export function parseJournal(corpusRoot: string): JournalEntry[] {
-  const filePath = join(corpusRoot, "development", "journal.jsonl");
-  if (!existsSync(filePath)) return [];
-
   const entries: JournalEntry[] = [];
-  const lines = readFileSync(filePath, "utf8").split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed.length === 0) continue;
-    try {
-      const entry = coerceEntry(JSON.parse(trimmed));
-      if (entry) entries.push(entry);
-    } catch {
-      continue;
+  for (const filePath of journalSources(corpusRoot)) {
+    for (const line of readFileSync(filePath, "utf8").split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.length === 0) continue;
+      try {
+        const entry = coerceEntry(JSON.parse(trimmed));
+        if (entry) entries.push(entry);
+      } catch {
+        continue;
+      }
     }
   }
-  return entries;
+  // Array.prototype.sort is stable: equal timestamps keep their read order
+  return entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
 /** Mirrors the `/journal` slash-command's `--since/--actor/--artifact/--rule` filters, newest-first (ISO timestamps sort lexicographically). */

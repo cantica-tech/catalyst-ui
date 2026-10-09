@@ -59,7 +59,7 @@ export {
   writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
-export { parseJournal, queryJournal } from "./journal.js";
+export { journalSources, parseJournal, queryJournal } from "./journal.js";
 export { cleanRuleTitle, extractSlugFromRuleId, parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
 export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
 export { parseRuns, hasDrift } from "./runs.js";

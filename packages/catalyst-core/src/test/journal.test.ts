@@ -68,6 +68,24 @@ describe("parseJournal", () => {
     expect(parseJournal(root).map((e) => e.artifact)).toEqual(["REQ-000001", "REQ-000002"]);
   });
 
+  it("reads every shard beside the legacy file, in timestamp order", () => {
+    root = createFixtureCorpus({});
+    const legacy = join(root, "development", "journal.jsonl");
+    const ada = join(root, "development", "journal", "ada@k3j9q2");
+    const bob = join(root, "development", "journal", "bob@x7p2m4");
+    mkdirSync(ada, { recursive: true });
+    mkdirSync(bob, { recursive: true });
+    const line = (timestamp: string, actor: string, artifact: string): string =>
+      `${JSON.stringify({ timestamp, actor, artifact })}\n`;
+    writeFileSync(legacy, line("2026-08-01T00:00:00Z", "ada", "OLD"));
+    writeFileSync(join(ada, "2026-10.jsonl"), line("2026-10-02T00:00:00Z", "ada", "A2"));
+    writeFileSync(join(ada, "2026-09.jsonl"), line("2026-09-01T00:00:00Z", "ada", "A1"));
+    writeFileSync(join(bob, "2026-10.jsonl"), line("2026-10-01T00:00:00Z", "bob", "B1"));
+    writeFileSync(join(bob, "notes.txt"), "not a shard\n");
+
+    expect(parseJournal(root).map((e) => e.artifact)).toEqual(["OLD", "A1", "B1", "A2"]);
+  });
+
   it("skips an entry missing a required field", () => {
     root = createFixtureCorpus({});
     mkdirSync(join(root, "development"), { recursive: true });
