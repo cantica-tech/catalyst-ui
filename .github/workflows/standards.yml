@@ -1,0 +1,18 @@
+# cantica-tech code standards (https://github.com/cantica-tech/standards): the repository's copy of the
+# standards is in sync, and `task lint` / `task typecheck` pass, exactly as they do locally.
+name: Standards
+
+on:
+  pull_request:
+  push:
+    branches: [development]
+
+permissions:
+  contents: read
+
+jobs:
+  standards:
+    uses: cantica-tech/standards/.github/workflows/lint.yml@v0.1.0
+    with:
+      ref: v0.1.0
+      typecheck: false
