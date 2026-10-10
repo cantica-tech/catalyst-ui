@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { bulletItems, parseFieldTable } from "./parser.js";
+import { bulletItems, parseFieldTable } from "./markdown.js";
 import type { Run, RunStatus, RunStep, RunStepStatus } from "./types.js";
 
 const RUN_ID_RE = /^(RUN-\d{6})-/;
@@ -46,7 +46,7 @@ export function parseRuns(corpusRoot: string): Run[] {
     if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
     if (entry.name === INDEX_FILENAME || entry.name === "README.md") continue;
 
-    const match = entry.name.match(RUN_ID_RE);
+    const match = RUN_ID_RE.exec(entry.name);
     if (!match) continue;
 
     const filePath = join(dir, entry.name);

@@ -33,9 +33,7 @@ export function buildRoadmapSection(nodes: RoadmapNode[]): RoadmapSection {
     group.items.push(node);
   }
 
-  const groups = [...byName.values()].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  const groups = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
   for (const group of groups) {
     group.items.sort((a, b) => a.id.localeCompare(b.id));
   }

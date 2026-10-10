@@ -2,11 +2,7 @@ import * as assert from "assert";
 
 import type { Run } from "catalyst-core";
 
-import {
-  buildRunSection,
-  formatRunLabel,
-  formatStepLabel,
-} from "../runmonitor.js";
+import { buildRunSection, formatRunLabel, formatStepLabel } from "../runmonitor.js";
 
 function run(overrides: Partial<Run> & { id: string }): Run {
   return {
@@ -46,10 +42,7 @@ describe("buildRunSection", () => {
 
 describe("formatRunLabel", () => {
   it("shows id and status with no drift marker when nothing drifted", () => {
-    assert.strictEqual(
-      formatRunLabel(run({ id: "RUN-000001", status: "completed" })),
-      "RUN-000001 — completed",
-    );
+    assert.strictEqual(formatRunLabel(run({ id: "RUN-000001", status: "completed" })), "RUN-000001 — completed");
   });
 
   it("appends a drift marker when any step is drift", () => {
@@ -67,21 +60,9 @@ describe("formatRunLabel", () => {
 
 describe("formatStepLabel", () => {
   it("renders the glyph matching each step status", () => {
-    assert.strictEqual(
-      formatStepLabel({ status: "done", text: "Ran tests" }),
-      "✅ Ran tests",
-    );
-    assert.strictEqual(
-      formatStepLabel({ status: "failed", text: "Build broke" }),
-      "❌ Build broke",
-    );
-    assert.strictEqual(
-      formatStepLabel({ status: "pending", text: "Waiting" }),
-      "⏳ Waiting",
-    );
-    assert.strictEqual(
-      formatStepLabel({ status: "drift", text: "Found an orphan" }),
-      "⚠️ Found an orphan",
-    );
+    assert.strictEqual(formatStepLabel({ status: "done", text: "Ran tests" }), "✅ Ran tests");
+    assert.strictEqual(formatStepLabel({ status: "failed", text: "Build broke" }), "❌ Build broke");
+    assert.strictEqual(formatStepLabel({ status: "pending", text: "Waiting" }), "⏳ Waiting");
+    assert.strictEqual(formatStepLabel({ status: "drift", text: "Found an orphan" }), "⚠️ Found an orphan");
   });
 });

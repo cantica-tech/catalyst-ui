@@ -14,10 +14,7 @@ import {
 } from "../kernel-version.js";
 import { compareVersions, satisfiesVersionSpecifier } from "../versioning.js";
 
-const repoRoot = resolve(
-  fileURLToPath(new URL(".", import.meta.url)),
-  "../../../..",
-);
+const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../../..");
 const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
 describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
@@ -26,19 +23,12 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
   });
 
   it("matches the VS Code host's declared catalyst.kernelVersion", () => {
-    const host = readJson(
-      join(repoRoot, "packages", "catalyst-host-vscode", "package.json"),
-    );
+    const host = readJson(join(repoRoot, "packages", "catalyst-host-vscode", "package.json"));
     expect(host.catalyst.kernelVersion).toBe(REQUIRED_KERNEL_VERSION);
   });
 
   it("verifies at least the floor it requires", () => {
-    expect(
-      satisfiesVersionSpecifier(
-        VERIFIED_KERNEL_VERSION,
-        REQUIRED_KERNEL_VERSION,
-      ),
-    ).toBe(true);
+    expect(satisfiesVersionSpecifier(VERIFIED_KERNEL_VERSION, REQUIRED_KERNEL_VERSION)).toBe(true);
   });
 
   it("never offers a sync to a version at or below the deployed one", () => {
@@ -59,12 +49,8 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
 
 describe("package VERSION constant", () => {
   it("is the package's own version (version.txt is the release source)", () => {
-    const pkg = readJson(
-      join(repoRoot, "packages", "catalyst-core", "package.json"),
-    );
+    const pkg = readJson(join(repoRoot, "packages", "catalyst-core", "package.json"));
     expect(VERSION).toBe(pkg.version);
-    expect(readFileSync(join(repoRoot, "version.txt"), "utf8").trim()).toBe(
-      pkg.version,
-    );
+    expect(readFileSync(join(repoRoot, "version.txt"), "utf8").trim()).toBe(pkg.version);
   });
 });

@@ -4,19 +4,10 @@ import { breadthFirst, childId, itemKey } from "../tree-ids.js";
 
 describe("tree identities (REQ-000017)", () => {
   it("keys items structurally", () => {
+    assert.strictEqual(itemKey({ type: "node", node: { id: "REQ-000001-Ab3xR9pQ" } }, "x"), "node:REQ-000001-Ab3xR9pQ");
+    assert.strictEqual(itemKey({ type: "deployment", corpusRoot: "/a/.criterion" }, "a"), "deployment:/a/.criterion");
     assert.strictEqual(
-      itemKey({ type: "node", node: { id: "REQ-000001-Ab3xR9pQ" } }, "x"),
-      "node:REQ-000001-Ab3xR9pQ",
-    );
-    assert.strictEqual(
-      itemKey({ type: "deployment", corpusRoot: "/a/.criterion" }, "a"),
-      "deployment:/a/.criterion",
-    );
-    assert.strictEqual(
-      itemKey(
-        { type: "section", section: { kind: "requirement", nodes: [] } },
-        "Requirements (3)",
-      ),
+      itemKey({ type: "section", section: { kind: "requirement", nodes: [] } }, "Requirements (3)"),
       "section:requirement",
     );
     assert.strictEqual(itemKey({ type: "separator" }, "———"), "separator:———");
@@ -24,19 +15,16 @@ describe("tree identities (REQ-000017)", () => {
 
   it("makes sibling ids unique", () => {
     const taken = new Map<string, number>();
-    assert.strictEqual(
-      childId("/root", "separator:-", taken),
-      "/root/separator:-",
-    );
-    assert.strictEqual(
-      childId("/root", "separator:-", taken),
-      "/root/separator:-#1",
-    );
+    assert.strictEqual(childId("/root", "separator:-", taken), "/root/separator:-");
+    assert.strictEqual(childId("/root", "separator:-", taken), "/root/separator:-#1");
     assert.strictEqual(childId("/root", "node:A", taken), "/root/node:A");
   });
 
   it("finds the shallowest match, bounded", () => {
-    type T = { name: string; kids?: T[] };
+    interface T {
+      name: string;
+      kids?: T[];
+    }
     const deep: T = { name: "target" };
     const tree: T[] = [
       { name: "a", kids: [{ name: "b", kids: [deep] }] },

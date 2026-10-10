@@ -8,10 +8,7 @@ import type {
   ReferenceInfo,
 } from "catalyst-core";
 
-function resolveAll(
-  model: ChainModel,
-  ids: Set<string> | undefined,
-): ChainNode[] {
+function resolveAll(model: ChainModel, ids: Set<string> | undefined): ChainNode[] {
   if (!ids) return [];
   const nodes: ChainNode[] = [];
   for (const id of ids) {
@@ -47,29 +44,19 @@ export function buildNodeDetail(
 }
 
 /** Builds a user's detail payload: itself plus the role objects its `roles` array names (cross-referenced by name, since IAM has no ID-shaped scheme). */
-export function buildIamUserDetail(
-  user: IamUser,
-  allRoles: IamRole[],
-): { user: IamUser; roles: IamRole[] } {
+export function buildIamUserDetail(user: IamUser, allRoles: IamRole[]): { user: IamUser; roles: IamRole[] } {
   const names = new Set(user.roles);
   return {
     user,
-    roles: allRoles
-      .filter((r) => names.has(r.name))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+    roles: allRoles.filter((r) => names.has(r.name)).sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
 
 /** Builds a role's detail payload: itself plus every user whose `roles` array names it. */
-export function buildIamRoleDetail(
-  role: IamRole,
-  allUsers: IamUser[],
-): { role: IamRole; users: IamUser[] } {
+export function buildIamRoleDetail(role: IamRole, allUsers: IamUser[]): { role: IamRole; users: IamUser[] } {
   return {
     role,
-    users: allUsers
-      .filter((u) => u.roles.includes(role.name))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+    users: allUsers.filter((u) => u.roles.includes(role.name)).sort((a, b) => a.name.localeCompare(b.name)),
   };
 }
 
@@ -94,10 +81,7 @@ export function describeFromContent(content: string): string {
       if (text) return text;
     }
   }
-  const tableEnd = lines.reduce(
-    (last, l, i) => (l.trim().startsWith("|") ? i : last),
-    -1,
-  );
+  const tableEnd = lines.reduce((last, l, i) => (l.trim().startsWith("|") ? i : last), -1);
   const paragraph: string[] = [];
   for (const line of lines.slice(tableEnd + 1)) {
     const t = line.trim();
@@ -119,9 +103,7 @@ export function describeFromContent(content: string): string {
 export function shortSummary(node: ChainNode): string {
   const raw =
     ("description" in node && node.description) ||
-    ("content" in node && node.content
-      ? describeFromContent(node.content)
-      : "");
+    ("content" in node && node.content ? describeFromContent(node.content) : "");
   const plain = raw
     .replace(/```[\s\S]*?```/g, " ")
     .replace(/`([^`]*)`/g, "$1")
@@ -130,9 +112,7 @@ export function shortSummary(node: ChainNode): string {
     .replace(/\s+/g, " ")
     .trim();
   const sentence = /^(.+?[.!?])(\s|$)/.exec(plain)?.[1] ?? plain;
-  return sentence.length > SUMMARY_MAX
-    ? `${sentence.slice(0, SUMMARY_MAX - 1).trimEnd()}…`
-    : sentence;
+  return sentence.length > SUMMARY_MAX ? `${sentence.slice(0, SUMMARY_MAX - 1).trimEnd()}…` : sentence;
 }
 
 function info(node: ChainNode): ReferenceInfo {
@@ -171,8 +151,7 @@ export function buildReferenceTable(
       if (at < 0) return false;
       const before = text[at - 1];
       const after = text[at + token.length];
-      if (!(before && /[\w-]/.test(before)) && !(after && /[\w-]/.test(after)))
-        return true;
+      if (!(before && /[\w-]/.test(before)) && !(after && /[\w-]/.test(after))) return true;
       from = at + 1;
     }
   };
@@ -186,19 +165,9 @@ export function buildReferenceTable(
 }
 
 /** The references of a node panel: its content, and its upstream/downstream lists. */
-export function referencesForNode(
-  model: ChainModel,
-  payload: NodeDetailPayload,
-): Record<string, ReferenceInfo> {
+export function referencesForNode(model: ChainModel, payload: NodeDetailPayload): Record<string, ReferenceInfo> {
   const node = payload.node;
-  const text =
-    "content" in node && node.content
-      ? node.content
-      : "description" in node
-        ? node.description
-        : "";
-  const listed = [...payload.upstream, ...payload.downstream]
-    .map((n) => n.id)
-    .join(" ");
+  const text = "content" in node && node.content ? node.content : "description" in node ? node.description : "";
+  const listed = [...payload.upstream, ...payload.downstream].map((n) => n.id).join(" ");
   return buildReferenceTable(model, [text, listed], node.id);
 }

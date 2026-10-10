@@ -5,3 +5,6 @@ package-lock.json
 .claude
 # Golden corpus for the kernel parity test: kept byte-for-byte as the kernel reads it
 packages/catalyst-core/src/test/fixtures
+# synced from the cantica-tech standards: never reformatted here
+.standards
+eslint-suppressions.json

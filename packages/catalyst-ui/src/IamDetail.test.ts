@@ -51,9 +51,7 @@ describe("IamUserDetail", () => {
     );
     expect(withRoles).toContain("Developer");
 
-    const withoutRoles = renderToStaticMarkup(
-      IamUserDetail({ user: user({ name: "alice" }), roles: [] }),
-    );
+    const withoutRoles = renderToStaticMarkup(IamUserDetail({ user: user({ name: "alice" }), roles: [] }));
     expect(withoutRoles).toContain("None.");
   });
 });
@@ -79,9 +77,7 @@ describe("IamRoleDetail", () => {
     );
     expect(withUsers).toContain("alice");
 
-    const withoutUsers = renderToStaticMarkup(
-      IamRoleDetail({ role: role({ name: "Developer" }), users: [] }),
-    );
+    const withoutUsers = renderToStaticMarkup(IamRoleDetail({ role: role({ name: "Developer" }), users: [] }));
     expect(withoutUsers).toContain("None.");
   });
 });

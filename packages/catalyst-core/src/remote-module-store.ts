@@ -1,20 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  readManifestKernelVersion,
-  UiModuleManager,
-  type RawUiModuleManifest,
-  type UiModuleLoadResult,
-} from "./ui-module-manager.js";
+import type { UiModuleManager } from "./ui-module-manager.js";
+import { readManifestKernelVersion, type RawUiModuleManifest, type UiModuleLoadResult } from "./ui-module-manager.js";
 
 export interface RemoteModuleInfo {
   id: string;
@@ -39,21 +29,16 @@ export interface ArtifactSourceLocation {
   apiTreeUrl?: string;
 }
 
-export const DEFAULT_MODULE_SOURCE_URL =
-  "git@github.com:oliben67/cantica-tech.git/catalyst/";
+export const DEFAULT_MODULE_SOURCE_URL = "git@github.com:oliben67/cantica-tech.git/catalyst/";
 
-export const GITHUB_RAW_BASE =
-  "https://raw.githubusercontent.com/oliben67/cantica-tech/main/catalyst/modules";
-export const GITHUB_API_TREE_URL =
-  "https://api.github.com/repos/oliben67/cantica-tech/git/trees/main?recursive=1";
+export const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/oliben67/cantica-tech/main/catalyst/modules";
+export const GITHUB_API_TREE_URL = "https://api.github.com/repos/oliben67/cantica-tech/git/trees/main?recursive=1";
 
 /**
  * Parses a module or framework source location string (Git SSH URL with path,
  * GitHub web URL, raw GitHub URL, standard VCS URI, or local file path) into a structured location.
  */
-export function parseArtifactSourceLocation(
-  sourceUrl: string = DEFAULT_MODULE_SOURCE_URL,
-): ArtifactSourceLocation {
+export function parseArtifactSourceLocation(sourceUrl: string = DEFAULT_MODULE_SOURCE_URL): ArtifactSourceLocation {
   const trimmed = sourceUrl.trim();
   let owner: string | undefined;
   let repo: string | undefined;
@@ -69,9 +54,7 @@ export function parseArtifactSourceLocation(
     subpath = "";
   } else if (trimmed.startsWith("git@")) {
     type = "git";
-    const match = trimmed.match(
-      /^git@([^:]+):([^/]+)\/([^/]+?)(?:\.git)?(?:\/(.*))?$/,
-    );
+    const match = /^git@([^:]+):([^/]+)\/([^/]+?)(?:\.git)?(?:\/(.*))?$/.exec(trimmed);
     if (match) {
       const host = match[1];
       owner = match[2];
@@ -82,8 +65,8 @@ export function parseArtifactSourceLocation(
     }
   } else if (trimmed.startsWith("git+")) {
     type = "git";
-    const vcsMatch = trimmed.match(
-      /^git\+(?:https?|ssh):\/\/(?:[^@]+@)?([^/]+)\/([^/]+)\/([^/]+?)(?:\.git)?(?:#(.*?))?$/,
+    const vcsMatch = /^git\+(?:https?|ssh):\/\/(?:[^@]+@)?([^/]+)\/([^/]+)\/([^/]+?)(?:\.git)?(?:#(.*?))?$/.exec(
+      trimmed,
     );
     if (vcsMatch) {
       const host = vcsMatch[1];
@@ -101,9 +84,7 @@ export function parseArtifactSourceLocation(
     }
   } else if (trimmed.includes("raw.githubusercontent.com")) {
     type = "raw-http";
-    const rawMatch = trimmed.match(
-      /^https?:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(?:\/(.*))?$/,
-    );
+    const rawMatch = /^https?:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)(?:\/(.*))?$/.exec(trimmed);
     if (rawMatch) {
       owner = rawMatch[1];
       repo = rawMatch[2];
@@ -114,8 +95,8 @@ export function parseArtifactSourceLocation(
     }
   } else if (trimmed.includes("github.com")) {
     type = "github";
-    const ghMatch = trimmed.match(
-      /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/([^/]+))?(?:\/(.*))?$/,
+    const ghMatch = /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/tree\/([^/]+))?(?:\/(.*))?$/.exec(
+      trimmed,
     );
     if (ghMatch) {
       owner = ghMatch[1];
@@ -153,14 +134,9 @@ export function parseArtifactSourceLocation(
             ? `${subpath}/kernel`
             : "kernel";
 
-  const rawBaseUrl =
-    owner && repo
-      ? `https://raw.githubusercontent.com/${owner}/${repo}/${branch}`
-      : undefined;
+  const rawBaseUrl = owner && repo ? `https://raw.githubusercontent.com/${owner}/${repo}/${branch}` : undefined;
   const apiTreeUrl =
-    owner && repo
-      ? `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`
-      : undefined;
+    owner && repo ? `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1` : undefined;
 
   return {
     type,
@@ -180,10 +156,7 @@ export function parseArtifactSourceLocation(
 /**
  * Syncs/clones a git repository to a local cache directory in OS temp.
  */
-export function syncGitRepoToCache(
-  gitUrl: string,
-  branch: string = "main",
-): string | null {
+export function syncGitRepoToCache(gitUrl: string, branch = "main"): string | null {
   try {
     const hash = createHash("sha256").update(gitUrl).digest("hex").slice(0, 12);
     const cacheDir = join(tmpdir(), "catalyst-git-remotes", hash);
@@ -207,14 +180,10 @@ export function syncGitRepoToCache(
     }
 
     mkdirSync(join(tmpdir(), "catalyst-git-remotes"), { recursive: true });
-    execFileSync(
-      "git",
-      ["clone", "--depth=1", "-b", branch, gitUrl, cacheDir],
-      {
-        stdio: "ignore",
-        timeout: 15000,
-      },
-    );
+    execFileSync("git", ["clone", "--depth=1", "-b", branch, gitUrl, cacheDir], {
+      stdio: "ignore",
+      timeout: 15000,
+    });
     return cacheDir;
   } catch {
     return null;
@@ -224,10 +193,7 @@ export function syncGitRepoToCache(
 /**
  * Scans a local directory structure for process module releases and manifests.
  */
-export function scanModulesFromLocalDirectory(
-  baseDir: string,
-  moduleSubpath: string,
-): RemoteModuleInfo[] {
+export function scanModulesFromLocalDirectory(baseDir: string, moduleSubpath: string): RemoteModuleInfo[] {
   const rawCandidates = [
     join(baseDir, moduleSubpath),
     join(baseDir, moduleSubpath + "s"),
@@ -267,9 +233,7 @@ export function scanModulesFromLocalDirectory(
         if (!existsSync(manifestPath)) continue;
 
         try {
-          const json = JSON.parse(
-            readFileSync(manifestPath, "utf8"),
-          ) as RawUiModuleManifest;
+          const json = JSON.parse(readFileSync(manifestPath, "utf8")) as RawUiModuleManifest;
           const kernelVersion = readManifestKernelVersion(json);
           if (json.id && json.version && kernelVersion) {
             const key = `${json.id}@${json.version}`;
@@ -313,21 +277,13 @@ export async function downloadModuleZip(
   downloadUrl: string,
   fetchFn: typeof fetch = globalThis.fetch,
 ): Promise<Buffer> {
-  if (
-    downloadUrl.startsWith("file://") ||
-    downloadUrl.startsWith("/") ||
-    !downloadUrl.startsWith("http")
-  ) {
-    const cleanPath = downloadUrl.startsWith("file://")
-      ? downloadUrl.slice(7)
-      : downloadUrl;
+  if (downloadUrl.startsWith("file://") || downloadUrl.startsWith("/") || !downloadUrl.startsWith("http")) {
+    const cleanPath = downloadUrl.startsWith("file://") ? downloadUrl.slice(7) : downloadUrl;
     return readFileSync(cleanPath);
   }
   const res = await fetchFn(downloadUrl);
   if (!res.ok) {
-    throw new Error(
-      `HTTP ${res.status} downloading module zip from ${downloadUrl}`,
-    );
+    throw new Error(`HTTP ${res.status} downloading module zip from ${downloadUrl}`);
   }
   const arrayBuf = await res.arrayBuffer();
   return Buffer.from(arrayBuf);
@@ -355,10 +311,7 @@ export async function fetchRemoteUiModules(
 
   // Strategy 1: Local directory path
   if (loc.type === "local" && loc.localPath && existsSync(loc.localPath)) {
-    const localMods = scanModulesFromLocalDirectory(
-      loc.localPath,
-      loc.moduleSubpath,
-    );
+    const localMods = scanModulesFromLocalDirectory(loc.localPath, loc.moduleSubpath);
     if (localMods.length > 0) return localMods;
   }
 
@@ -366,10 +319,7 @@ export async function fetchRemoteUiModules(
   if (loc.gitUrl) {
     const cachedDir = syncGitRepoToCache(loc.gitUrl, loc.branch);
     if (cachedDir) {
-      const gitMods = scanModulesFromLocalDirectory(
-        cachedDir,
-        loc.moduleSubpath,
-      );
+      const gitMods = scanModulesFromLocalDirectory(cachedDir, loc.moduleSubpath);
       if (gitMods.length > 0) return gitMods;
     }
   }
@@ -382,7 +332,7 @@ export async function fetchRemoteUiModules(
       });
       if (res.ok) {
         const data = (await res.json()) as {
-          tree?: Array<{ path: string; type: string }>;
+          tree?: { path: string; type: string }[];
         };
         if (data.tree) {
           const prefix = `${loc.moduleSubpath}/`;
@@ -390,8 +340,7 @@ export async function fetchRemoteUiModules(
             ? `${loc.moduleSubpath.slice(0, -1)}/`
             : `${loc.moduleSubpath}s/`;
 
-          const isMatchingPrefix = (p: string) =>
-            p.startsWith(prefix) || p.startsWith(altPrefix);
+          const isMatchingPrefix = (p: string) => p.startsWith(prefix) || p.startsWith(altPrefix);
 
           const manifestPaths = data.tree
             .map((item) => item.path)
@@ -408,13 +357,8 @@ export async function fetchRemoteUiModules(
           const modules: RemoteModuleInfo[] = [];
 
           for (const manifestPath of manifestPaths) {
-            const dir = manifestPath.substring(
-              0,
-              manifestPath.lastIndexOf("/"),
-            );
-            const matchedPrefix = manifestPath.startsWith(prefix)
-              ? prefix
-              : altPrefix;
+            const dir = manifestPath.substring(0, manifestPath.lastIndexOf("/"));
+            const matchedPrefix = manifestPath.startsWith(prefix) ? prefix : altPrefix;
             const relative = manifestPath.slice(matchedPrefix.length);
             const parts = relative.split("/");
             if (parts.length === 3) {
@@ -465,10 +409,7 @@ export async function fetchRemoteUiModules(
 /**
  * Persists the active UI module zip buffer locally to globalStorageUri.
  */
-export function saveModuleLocally(
-  storageDir: string,
-  zipBuffer: Buffer,
-): string {
+export function saveModuleLocally(storageDir: string, zipBuffer: Buffer): string {
   if (!existsSync(storageDir)) {
     mkdirSync(storageDir, { recursive: true });
   }
@@ -494,9 +435,7 @@ export function loadLocalSavedModule(
   } catch (err) {
     return {
       success: false,
-      error: `Failed to load saved local module: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
+      error: `Failed to load saved local module: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
 }

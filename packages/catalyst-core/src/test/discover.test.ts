@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -43,14 +37,9 @@ describe("resolveCorpusRoot", () => {
     const agentOwned = join(projectRoot, "agent-owned", ".criterion");
     mkdirSync(agentOwned, { recursive: true });
     symlinkSync(agentOwned, join(projectRoot, ".criterion"), "dir");
-    writeFileSync(
-      join(projectRoot, "my-project.catalyst"),
-      JSON.stringify({ project_name: "my-project" }),
-    );
+    writeFileSync(join(projectRoot, "my-project.catalyst"), JSON.stringify({ project_name: "my-project" }));
 
-    expect(resolveCorpusRoot(projectRoot)).toBe(
-      join(projectRoot, ".criterion"),
-    );
+    expect(resolveCorpusRoot(projectRoot)).toBe(join(projectRoot, ".criterion"));
   });
 
   it("prefers the .criterion symlink over a legacy pointer agent-source", () => {
@@ -65,20 +54,14 @@ describe("resolveCorpusRoot", () => {
       JSON.stringify({ project_name: "my-project", "agent-source": legacy }),
     );
 
-    expect(resolveCorpusRoot(projectRoot)).toBe(
-      join(projectRoot, ".criterion"),
-    );
+    expect(resolveCorpusRoot(projectRoot)).toBe(join(projectRoot, ".criterion"));
   });
 
   it("falls back to the legacy agent-source when .criterion is a dangling symlink", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
     const legacy = join(projectRoot, "legacy-criterion");
     mkdirSync(legacy, { recursive: true });
-    symlinkSync(
-      join(projectRoot, "gone"),
-      join(projectRoot, ".criterion"),
-      "dir",
-    );
+    symlinkSync(join(projectRoot, "gone"), join(projectRoot, ".criterion"), "dir");
     writeFileSync(
       join(projectRoot, "my-project.catalyst"),
       JSON.stringify({ project_name: "my-project", "agent-source": legacy }),
@@ -123,34 +106,20 @@ describe("resolveCorpusRoot", () => {
   });
 
   it("returns null when the project root itself does not exist", () => {
-    expect(
-      resolveCorpusRoot(join(tmpdir(), "does-not-exist-at-all")),
-    ).toBeNull();
+    expect(resolveCorpusRoot(join(tmpdir(), "does-not-exist-at-all"))).toBeNull();
   });
 });
 
 describe("claudeCodeStoragePath", () => {
   it("replaces every non-alphanumeric character of the project path with '-'", () => {
     expect(claudeCodeStoragePath("/Users/me/src/my_app.v2")).toBe(
-      join(
-        homedir(),
-        ".claude",
-        "projects",
-        "-Users-me-src-my-app-v2",
-        ".criterion",
-      ),
+      join(homedir(), ".claude", "projects", "-Users-me-src-my-app-v2", ".criterion"),
     );
   });
 
   it("slugs a Windows-style path the same way", () => {
     expect(claudeCodeStoragePath("C:\\Users\\me\\my app")).toBe(
-      join(
-        homedir(),
-        ".claude",
-        "projects",
-        "C--Users-me-my-app",
-        ".criterion",
-      ),
+      join(homedir(), ".claude", "projects", "C--Users-me-my-app", ".criterion"),
     );
   });
 });
@@ -188,10 +157,7 @@ describe("readCatalystPointer", () => {
 
   it("returns a pointer even when repoed fields are absent", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeFileSync(
-      join(projectRoot, "my-project.catalyst"),
-      JSON.stringify({ project_name: "my-project" }),
-    );
+    writeFileSync(join(projectRoot, "my-project.catalyst"), JSON.stringify({ project_name: "my-project" }));
 
     expect(readCatalystPointer(projectRoot)?.repoed).toBeUndefined();
   });
@@ -224,9 +190,7 @@ describe("hasCatalystPointer", () => {
     expect(hasCatalystPointer(projectRoot)).toBe(false);
     // resolveCorpusRoot's richer fallback chain still finds it — that's a
     // separate concern from "should an install be offered."
-    expect(resolveCorpusRoot(projectRoot)).toBe(
-      join(projectRoot, ".criterion"),
-    );
+    expect(resolveCorpusRoot(projectRoot)).toBe(join(projectRoot, ".criterion"));
   });
 
   it("is false when the pointer file is malformed JSON", () => {
@@ -261,12 +225,12 @@ describe("meetsRequiredKernelVersion", () => {
   });
 
   it("returns true for a deployment at or above the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.46.0")).toBe(true);
-    expect(meetsRequiredKernelVersion("0.47.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.54.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.55.0")).toBe(true);
   });
 
   it("returns false for a deployment below the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.45.9")).toBe(false);
+    expect(meetsRequiredKernelVersion("0.53.9")).toBe(false);
     expect(meetsRequiredKernelVersion("0.31.0")).toBe(false);
   });
 
@@ -304,21 +268,13 @@ describe("readEntityDefinition", () => {
 
   it("returns null when the Version field is missing", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeDefinition(
-      projectRoot,
-      "rule",
-      "# `rule`\n\n## Description\n\nA rule.\n",
-    );
+    writeDefinition(projectRoot, "rule", "# `rule`\n\n## Description\n\nA rule.\n");
     expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
   });
 
   it("returns null when the Description section is missing", () => {
     projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeDefinition(
-      projectRoot,
-      "rule",
-      "# `rule`\n\n| Field | Value |\n|---|---|\n| **Version** | 1 |\n",
-    );
+    writeDefinition(projectRoot, "rule", "# `rule`\n\n| Field | Value |\n|---|---|\n| **Version** | 1 |\n");
     expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
   });
 });
@@ -362,14 +318,8 @@ describe("resolveCorpusRoot — no memory-note scan (B-13)", () => {
       mkdirSync(elsewhere, { recursive: true });
       const memDir = join(fakeHome, ".claude", "memories");
       mkdirSync(memDir, { recursive: true });
-      writeFileSync(
-        join(memDir, "note.md"),
-        `About ${name}-legacy.\nworking copy: ${elsewhere}\n`,
-      );
-      writeFileSync(
-        join(projectRoot, "p.catalyst"),
-        JSON.stringify({ project_name: "p" }),
-      );
+      writeFileSync(join(memDir, "note.md"), `About ${name}-legacy.\nworking copy: ${elsewhere}\n`);
+      writeFileSync(join(projectRoot, "p.catalyst"), JSON.stringify({ project_name: "p" }));
       expect(resolveCorpusRoot(projectRoot)).toBeNull();
     } finally {
       process.env.HOME = savedHome;

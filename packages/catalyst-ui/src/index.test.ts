@@ -6,9 +6,7 @@ import { VERSION } from "./index.js";
 
 describe("catalyst-ui scaffold", () => {
   it("exposes a version", () => {
-    const pkg = JSON.parse(
-      readFileSync(join(process.cwd(), "package.json"), "utf8"),
-    );
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
     expect(VERSION).toBe(pkg.version);
   });
 });

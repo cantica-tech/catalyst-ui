@@ -60,9 +60,10 @@ npm run typecheck
 npm test
 ```
 
-Or via [Task](https://taskfile.dev): `task --list` shows every available
-task, including one per catalyst slash command (`task check-rules`,
-`task show-backlog`, ...) from the deployed `Taskfile.common.yml`.
+Or via [Task](https://taskfile.dev): `task --list` shows this project's own
+tasks. catalyst's commands are not in this Taskfile: `catalyst task` lists
+them, from the criterion's own `Taskfile.common.yml` (`catalyst task
+check-rules`, `catalyst task show-backlog`, ...).
 
 This project is itself governed by catalyst — see its `.criterion`
 working copy (agent-owned, not in this repo) for the dev-environment

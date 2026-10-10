@@ -9,6 +9,7 @@ import type {
   KernelVersionInfo,
   IamRole,
   IamUser,
+  JournalEntry,
   Proposal,
   RemoteModuleInfo,
   RoadmapNode,
@@ -23,7 +24,6 @@ import type {
 } from "catalyst-core";
 import {
   AGENT_PRESETS,
-  defaultAgentSource,
   defaultChatAgent,
   discoverSlashCommands,
   downloadModuleZip,
@@ -36,7 +36,6 @@ import {
   openProposalsByTarget,
   packageUiModule,
   parseChatAgents,
-  parseJournal,
   readCatalystPointer,
   readDeployedKernelVersion,
   findDeployments,
@@ -52,41 +51,20 @@ import {
   saveModuleLocally,
   suggestCriterionBranch,
   UiModuleManager,
-  watchCorpus,
+  watchProject,
 } from "catalyst-core";
 import * as vscode from "vscode";
 
-import {
-  invokeChatParticipant,
-  resolveAndInvoke,
-  scanAvailableAgents,
-} from "./agent-bridge.js";
-import {
-  buildAuthoringProposalContent,
-  type ComposableArtifactType,
-} from "./composer.js";
+import { invokeChatParticipant, resolveAndInvoke, scanAvailableAgents } from "./agent-bridge.js";
+import { buildAuthoringProposalContent, type ComposableArtifactType } from "./composer.js";
 import { buildProposeFixContent, canProposeFix } from "./codeactions.js";
 import { buildCodeLensesForFile } from "./codelens.js";
 import { resolveDefinitionAt } from "./definitions.js";
 import { breadthFirst, childId, itemKey } from "./tree-ids.js";
-import {
-  devcontainerMount,
-  environmentLabel,
-  unreachableAdvice,
-} from "./remote.js";
-import {
-  PANEL_GROUPING_SETTING,
-  readGrouping,
-  targetColumn,
-  type OpenDetailPanel,
-} from "./panel-groups.js";
+import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
+import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { buildDiagnosticsByFile } from "./diagnostics.js";
-import {
-  panelKeysFor,
-  parseWebviewMessage,
-  proposalWriteBlockedMessage,
-  webviewCsp,
-} from "./webview-protocol.js";
+import { panelKeysFor, parseWebviewMessage, proposalWriteBlockedMessage, webviewCsp } from "./webview-protocol.js";
 import {
   buildIamRoleDetail,
   buildIamUserDetail,
@@ -94,28 +72,11 @@ import {
   buildReferenceTable,
   referencesForNode,
 } from "./detail.js";
-import {
-  buildInstantiationPrompt,
-  findSiblingFrameworkRepo,
-} from "./framework-discovery.js";
-import {
-  buildRoleSection,
-  buildUserSection,
-  type RoleSection,
-  type UserSection,
-} from "./iam.js";
+import { buildInstantiationPrompt, findSiblingFrameworkRepo } from "./framework-discovery.js";
+import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "./iam.js";
 import { buildProposalSection, type ProposalSection } from "./proposals.js";
-import {
-  buildRoadmapSection,
-  type RoadmapGroup,
-  type RoadmapSection,
-} from "./roadmaps.js";
-import {
-  buildRunSection,
-  formatRunLabel,
-  formatStepLabel,
-  type RunSection,
-} from "./runmonitor.js";
+import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "./roadmaps.js";
+import { buildRunSection, formatRunLabel, formatStepLabel, type RunSection } from "./runmonitor.js";
 import {
   buildTreeSections,
   formatNodeLabel,
@@ -128,10 +89,7 @@ import {
 
 const VIEW_ID = "catalystChainInspector";
 /** The chain inspector view slots, one per deployment (package.json `views`). */
-const INSPECTOR_VIEW_IDS = [
-  VIEW_ID,
-  ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${VIEW_ID}${n}`),
-];
+const INSPECTOR_VIEW_IDS = [VIEW_ID, ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${VIEW_ID}${n}`)];
 const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
 /** `catalyst.trackEntityInTree`: reveal the entity a detail panel shows (REQ-000017-UVqkd7cL). */
 const TRACK_SETTING = "trackEntityInTree";
@@ -152,12 +110,7 @@ const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
-const COMPOSABLE_TYPES: ComposableArtifactType[] = [
-  "rule",
-  "requirement",
-  "bug",
-  "house-keeping",
-];
+const COMPOSABLE_TYPES: ComposableArtifactType[] = ["rule", "requirement", "bug", "house-keeping"];
 
 interface DeploymentView {
   corpusRoot: string;
@@ -247,10 +200,7 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
  * the label) if none are found, e.g. a deployment that predates INV-23
  * and hasn't migrated yet.
  */
-function sectionTooltip(
-  corpusRoot: string,
-  entityTypes: string[],
-): vscode.MarkdownString | undefined {
+function sectionTooltip(corpusRoot: string, entityTypes: string[]): vscode.MarkdownString | undefined {
   const blocks: string[] = [];
   for (const entityType of entityTypes) {
     const definition = readEntityDefinition(corpusRoot, entityType);
@@ -258,9 +208,7 @@ function sectionTooltip(
     const label = ENTITY_TYPE_LABELS[entityType] ?? entityType;
     blocks.push(`**${label}**\n\n${definition.description}`);
   }
-  return blocks.length > 0
-    ? new vscode.MarkdownString(blocks.join("\n\n"))
-    : undefined;
+  return blocks.length > 0 ? new vscode.MarkdownString(blocks.join("\n\n")) : undefined;
 }
 
 /** Icon basename for an individual chain-model node, by its kind (and dev-artifact sub-type). */
@@ -337,20 +285,8 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   /** Light/dark pair for an icon basename under resources/icons/. */
   private iconUris(name: string): { light: vscode.Uri; dark: vscode.Uri } {
     return {
-      light: vscode.Uri.joinPath(
-        this.extensionUri,
-        "resources",
-        "icons",
-        "light",
-        `${name}.svg`,
-      ),
-      dark: vscode.Uri.joinPath(
-        this.extensionUri,
-        "resources",
-        "icons",
-        "dark",
-        `${name}.svg`,
-      ),
+      light: vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "light", `${name}.svg`),
+      dark: vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "dark", `${name}.svg`),
     };
   }
 
@@ -427,32 +363,17 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   private treeItemOf(element: InspectorTreeItem): vscode.TreeItem {
     if (element.type === "deployment") {
-      return new vscode.TreeItem(
-        element.folderName,
-        vscode.TreeItemCollapsibleState.Expanded,
-      );
+      return new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.Expanded);
     }
     if (element.type === "dev-artifact-group") {
-      const total = element.group.sections.reduce(
-        (sum, s) => sum + s.nodes.length,
-        0,
-      );
-      const item = new vscode.TreeItem(
-        `${element.group.label} (${total})`,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
+      const item = new vscode.TreeItem(`${element.group.label} (${total})`, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("dev-artifacts");
       return item;
     }
     if (element.type === "rule-group") {
-      const total = element.group.sections.reduce(
-        (sum, s) => sum + s.nodes.length,
-        0,
-      );
-      const item = new vscode.TreeItem(
-        `${element.group.label} (${total})`,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
+      const item = new vscode.TreeItem(`${element.group.label} (${total})`, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("rule");
       return item;
     }
@@ -479,10 +400,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "roadmap-section") {
-      const item = new vscode.TreeItem(
-        element.section.label,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("roadmap");
       item.tooltip = sectionTooltip(element.corpusRoot, ["roadmap"]);
       return item;
@@ -497,10 +415,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "proposal-section") {
-      const item = new vscode.TreeItem(
-        element.section.label,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("proposals");
       return item;
     }
@@ -513,50 +428,32 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "run-section") {
-      const item = new vscode.TreeItem(
-        element.section.label,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("runs");
       return item;
     }
     if (element.type === "run") {
-      const item = new vscode.TreeItem(
-        formatRunLabel(element.run),
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(formatRunLabel(element.run), vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("runs");
       return item;
     }
     if (element.type === "run-step") {
-      return new vscode.TreeItem(
-        formatStepLabel(element.step),
-        vscode.TreeItemCollapsibleState.None,
-      );
+      return new vscode.TreeItem(formatStepLabel(element.step), vscode.TreeItemCollapsibleState.None);
     }
     if (element.type === "run-ledger-entry") {
-      const item = new vscode.TreeItem(
-        element.text,
-        vscode.TreeItemCollapsibleState.None,
-      );
+      const item = new vscode.TreeItem(element.text, vscode.TreeItemCollapsibleState.None);
       item.iconPath = this.iconUris("ledger");
       return item;
     }
     if (element.type === "user-section") {
-      const item = new vscode.TreeItem(
-        element.section.label,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("users");
       item.tooltip = sectionTooltip(element.corpusRoot, ["user"]);
       return item;
     }
     if (element.type === "user") {
       const inactiveMark = element.user.active ? "" : " (inactive)";
-      const item = new vscode.TreeItem(
-        `${element.user.name}${inactiveMark}`,
-        vscode.TreeItemCollapsibleState.None,
-      );
+      const item = new vscode.TreeItem(`${element.user.name}${inactiveMark}`, vscode.TreeItemCollapsibleState.None);
       item.command = {
         command: SHOW_IAM_DETAIL_COMMAND,
         title: "Show detail",
@@ -566,19 +463,13 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "role-section") {
-      const item = new vscode.TreeItem(
-        element.section.label,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
+      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("roles");
       item.tooltip = sectionTooltip(element.corpusRoot, ["role"]);
       return item;
     }
     if (element.type === "role") {
-      const item = new vscode.TreeItem(
-        element.role.name,
-        vscode.TreeItemCollapsibleState.None,
-      );
+      const item = new vscode.TreeItem(element.role.name, vscode.TreeItemCollapsibleState.None);
       item.command = {
         command: SHOW_IAM_DETAIL_COMMAND,
         title: "Show detail",
@@ -588,16 +479,10 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "separator") {
-      return new vscode.TreeItem(
-        "─".repeat(24),
-        vscode.TreeItemCollapsibleState.None,
-      );
+      return new vscode.TreeItem("─".repeat(24), vscode.TreeItemCollapsibleState.None);
     }
     if (element.type === "journal-entry") {
-      const item = new vscode.TreeItem(
-        "Journal",
-        vscode.TreeItemCollapsibleState.None,
-      );
+      const item = new vscode.TreeItem("Journal", vscode.TreeItemCollapsibleState.None);
       item.command = {
         command: OPEN_JOURNAL_COMMAND,
         title: "Journal",
@@ -608,10 +493,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       return item;
     }
     if (element.type === "backlog-entry") {
-      const item = new vscode.TreeItem(
-        "Backlog",
-        vscode.TreeItemCollapsibleState.None,
-      );
+      const item = new vscode.TreeItem("Backlog", vscode.TreeItemCollapsibleState.None);
       item.command = {
         command: OPEN_BACKLOG_COMMAND,
         title: "Backlog",
@@ -653,11 +535,8 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
    * duplicate of it, since `(0,n)` doesn't single out one owner the way
    * a step's own required parent does.
    */
-  private childKindsFor(node: ChainNode): Array<"step" | "test"> {
-    if (
-      node.kind === "dev-artifact" &&
-      (node.artifactType === "requirement" || node.artifactType === "bug")
-    ) {
+  private childKindsFor(node: ChainNode): ("step" | "test")[] {
+    if (node.kind === "dev-artifact" && (node.artifactType === "requirement" || node.artifactType === "bug")) {
       return ["test"];
     }
     if (node.kind === "step") return ["test"];
@@ -666,9 +545,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
 
   private isChildOfKind(candidate: ChainNode, kind: "step" | "test"): boolean {
     if (kind === "step") return candidate.kind === "step";
-    return (
-      candidate.kind === "dev-artifact" && candidate.artifactType === "test"
-    );
+    return candidate.kind === "dev-artifact" && candidate.artifactType === "test";
   }
 
   /** True when `node` has at least one child of a kind `childKindsFor` names, resolved via reverse edges. */
@@ -688,10 +565,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   }
 
   /** `node`'s own steps and/or tests, resolved via the chain model's reverse edges — sorted by id. */
-  private childNodesFor(
-    corpusRoot: string,
-    node: ChainNode,
-  ): InspectorTreeItem[] {
+  private childNodesFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
     const kinds = this.childKindsFor(node);
     if (kinds.length === 0) return [];
     const model = this.getModel(corpusRoot);
@@ -699,10 +573,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
     if (!model || !reverse) return [];
     return [...reverse]
       .map((id) => model.nodes.get(id))
-      .filter(
-        (n): n is ChainNode =>
-          n !== undefined && kinds.some((k) => this.isChildOfKind(n, k)),
-      )
+      .filter((n): n is ChainNode => n !== undefined && kinds.some((k) => this.isChildOfKind(n, k)))
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((childNode) => ({
         type: "node" as const,
@@ -713,11 +584,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
-    const {
-      devArtifacts,
-      rules,
-      sections: otherSections,
-    } = buildTreeSections(view.model);
+    const { devArtifacts, rules, sections: otherSections } = buildTreeSections(view.model);
     const sections: InspectorTreeItem[] = [
       {
         type: "dev-artifact-group",
@@ -735,9 +602,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         section,
       })),
     ];
-    const roadmapNodes = [...view.model.nodes.values()].filter(
-      (n): n is RoadmapNode => n.kind === "roadmap",
-    );
+    const roadmapNodes = [...view.model.nodes.values()].filter((n): n is RoadmapNode => n.kind === "roadmap");
     sections.push({
       type: "roadmap-section",
       corpusRoot: view.corpusRoot,
@@ -771,10 +636,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
   // Stable identities, so TreeView.reveal can select a node
   // (REQ-000017-UVqkd7cL): each child remembers its parent and gets an id
   // from its parent's id and its structural key (tree-ids.ts).
-  private readonly parents = new WeakMap<
-    InspectorTreeItem,
-    InspectorTreeItem | undefined
-  >();
+  private readonly parents = new WeakMap<InspectorTreeItem, InspectorTreeItem | undefined>();
   private readonly ids = new WeakMap<InspectorTreeItem, string>();
 
   getTreeItem(element: InspectorTreeItem): vscode.TreeItem {
@@ -792,10 +654,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       const label = this.treeItemOf(child).label;
       const text = typeof label === "string" ? label : (label?.label ?? "");
       this.parents.set(child, element);
-      this.ids.set(
-        child,
-        childId(parentId, itemKey(child as never, text), taken),
-      );
+      this.ids.set(child, childId(parentId, itemKey(child, text), taken));
     }
     return children;
   }
@@ -817,10 +676,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
       const label = this.treeItemOf(child).label;
       const text = typeof label === "string" ? label : (label?.label ?? "");
       this.parents.set(child, undefined);
-      this.ids.set(
-        child,
-        childId(`panel:${corpusRoot}`, itemKey(child as never, text), taken),
-      );
+      this.ids.set(child, childId(`panel:${corpusRoot}`, itemKey(child, text), taken));
     }
     return sections;
   }
@@ -834,10 +690,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
         return this.getChildren(item);
       },
-      (item) =>
-        item.type === "node" &&
-        item.corpusRoot === corpusRoot &&
-        item.node.id === nodeId,
+      (item) => item.type === "node" && item.corpusRoot === corpusRoot && item.node.id === nodeId,
     );
   }
 
@@ -923,9 +776,7 @@ class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeIte
         type: "run-step",
         step,
       }));
-      const ledgerItems: InspectorTreeItem[] = element.run.ledger.map(
-        (text) => ({ type: "run-ledger-entry", text }),
-      );
+      const ledgerItems: InspectorTreeItem[] = element.run.ledger.map((text) => ({ type: "run-ledger-entry", text }));
       return [...stepItems, ...ledgerItems];
     }
     if (element.type === "user-section") {
@@ -1010,11 +861,7 @@ blockquote {
 }
 `;
 
-function renderWebviewHtml(
-  scriptUri: vscode.Uri,
-  payload: WebviewPayload,
-  cspSource: string,
-): string {
+function renderWebviewHtml(scriptUri: vscode.Uri, payload: WebviewPayload, cspSource: string): string {
   const nonce = randomBytes(16).toString("hex");
   // A node's raw markdown content (full file text, since the description
   // feature) can legitimately contain the literal substring `</script>`
@@ -1068,9 +915,7 @@ function refreshDiagnosticsForDeployment(
           new vscode.Diagnostic(
             lineRange(d.line),
             d.message,
-            d.severity === "error"
-              ? vscode.DiagnosticSeverity.Error
-              : vscode.DiagnosticSeverity.Warning,
+            d.severity === "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning,
           ),
       ),
     );
@@ -1093,22 +938,14 @@ function slugify(text: string): string {
  * Writes a PROP- file. Refused in an untrusted workspace (B-11), which
  * stays read-only; returns whether the file was written.
  */
-async function writeProposal(
-  corpusRoot: string,
-  id: string,
-  title: string,
-  content: string,
-): Promise<boolean> {
+async function writeProposal(corpusRoot: string, id: string, title: string, content: string): Promise<boolean> {
   const blocked = proposalWriteBlockedMessage(vscode.workspace.isTrusted);
   if (blocked) {
     void vscode.window.showWarningMessage(blocked);
     return false;
   }
   const filePath = join(corpusRoot, "proposals", `${id}-${slugify(title)}.md`);
-  await vscode.workspace.fs.writeFile(
-    vscode.Uri.file(filePath),
-    Buffer.from(content, "utf8"),
-  );
+  await vscode.workspace.fs.writeFile(vscode.Uri.file(filePath), Buffer.from(content, "utf8"));
   return true;
 }
 
@@ -1144,10 +981,7 @@ function detectDefaultAgentBinding(): {
  * needs a first-time install (`offerAgentDrivenInstantiation`, which still
  * needs a reasoning agent for BOOTSTRAP.md's judgment calls).
  */
-async function offerToInstall(
-  context: vscode.ExtensionContext,
-  folder: vscode.WorkspaceFolder,
-): Promise<void> {
+async function offerToInstall(context: vscode.ExtensionContext, folder: vscode.WorkspaceFolder): Promise<void> {
   const dismissKey = ONBOARDING_DISMISSED_PREFIX + folder.uri.fsPath;
   if (context.workspaceState.get<boolean>(dismissKey)) return;
 
@@ -1179,11 +1013,7 @@ async function offerToInstall(
     // Personal, this workspace only: catalyst.ignoredFolders.
     const config = vscode.workspace.getConfiguration("catalyst", folder.uri);
     const ignored = config.get<string[]>(IGNORED_FOLDERS_SETTING, []);
-    await config.update(
-      IGNORED_FOLDERS_SETTING,
-      [...ignored, folder.uri.fsPath],
-      vscode.ConfigurationTarget.Workspace,
-    );
+    await config.update(IGNORED_FOLDERS_SETTING, [...ignored, folder.uri.fsPath], vscode.ConfigurationTarget.Workspace);
     return;
   }
   if (choice !== "Set up catalyst…") return;
@@ -1199,13 +1029,12 @@ async function offerToInstall(
       {
         label: "Connect to an existing criterion repo",
         detail:
-          "Clone an already-repoed deployment's branch — a git clone, a .criterion link and a pointer file, no agent involved.",
+          "Clone an already-repoed deployment's branch into ~/.catalyst and write catalyst.toml — no agent involved.",
         action: "connect" as const,
       },
       {
         label: "Create a brand new deployment",
-        detail:
-          "First-time instantiation — needs a reasoning agent to follow BOOTSTRAP.md.",
+        detail: "First-time instantiation — needs a reasoning agent to follow BOOTSTRAP.md.",
         action: "create" as const,
       },
     ],
@@ -1223,16 +1052,12 @@ async function offerToInstall(
 }
 
 /**
- * `/criterion get`'s mechanical half, done in code rather than handed to
- * an agent: cloning a branch into agent-owned storage, linking it as the
- * project's gitignored `.criterion` and writing a (path-free) pointer file
- * needs no judgment calls. Deliberately skips that command's identity-migration half
- * (rewriting existing artifacts' `Signed-off-by` fields) — a project with
- * no deployment a moment ago has no local artifacts to migrate.
+ * `catalyst criterion join`'s mechanical half, done in code rather than
+ * handed to an agent: cloning the branch into the home store
+ * (`~/.catalyst/projects/<name>/criterion`) and writing `catalyst.toml`
+ * need no judgment calls (kernel 0.48.0, ADR-010).
  */
-async function connectExistingCriterionRepo(
-  folder: vscode.WorkspaceFolder,
-): Promise<void> {
+async function connectExistingCriterionRepo(folder: vscode.WorkspaceFolder): Promise<void> {
   const repoUrl = await vscode.window.showInputBox({
     title: "Criterion repo",
     prompt: "Git URL of the existing criterion repo",
@@ -1243,14 +1068,12 @@ async function connectExistingCriterionRepo(
 
   const branch = await vscode.window.showInputBox({
     title: "Branch to check out",
-    prompt:
-      'Your own "<name>.criterion" branch, or "criterion" itself for single-maintainer mode',
+    prompt: 'Your own "<name>.criterion" branch, or "criterion" itself for single-maintainer mode',
     value: "criterion",
     ignoreFocusOut: true,
   });
   if (!branch) return;
 
-  const agentSource = defaultAgentSource(folder.uri.fsPath);
   const agentBinding = detectDefaultAgentBinding();
 
   try {
@@ -1258,17 +1081,12 @@ async function connectExistingCriterionRepo(
       projectRoot: folder.uri.fsPath,
       repoUrl,
       branch,
-      agentSource,
       agentId: agentBinding?.id,
     });
-    void vscode.window.showInformationMessage(
-      `Connected "${folder.name}" to ${repoUrl} (${branch}).`,
-    );
+    void vscode.window.showInformationMessage(`Connected "${folder.name}" to ${repoUrl} (${branch}).`);
   } catch (err) {
     void vscode.window.showErrorMessage(
-      `Couldn't connect to the criterion repo: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
+      `Couldn't connect to the criterion repo: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }
@@ -1284,9 +1102,7 @@ async function connectExistingCriterionRepo(
  * only as the last-resort fallback when no known agent extension is
  * detected at all — there's nothing to dispatch to.
  */
-async function offerAgentDrivenInstantiation(
-  folder: vscode.WorkspaceFolder,
-): Promise<void> {
+async function offerAgentDrivenInstantiation(folder: vscode.WorkspaceFolder): Promise<void> {
   const frameworkPath =
     findSiblingFrameworkRepo(folder.uri.fsPath) ??
     vscode.workspace.getConfiguration("catalyst").get<string>("frameworkPath");
@@ -1297,18 +1113,12 @@ async function offerAgentDrivenInstantiation(
       "Open Settings",
     );
     if (pick === "Open Settings") {
-      void vscode.commands.executeCommand(
-        "workbench.action.openSettings",
-        "catalyst.frameworkPath",
-      );
+      void vscode.commands.executeCommand("workbench.action.openSettings", "catalyst.frameworkPath");
     }
     return;
   }
 
-  const instruction = buildInstantiationPrompt(
-    frameworkPath,
-    folder.uri.fsPath,
-  );
+  const instruction = buildInstantiationPrompt(frameworkPath, folder.uri.fsPath);
   const agentBinding = detectDefaultAgentBinding();
 
   if (!agentBinding) {
@@ -1320,9 +1130,7 @@ async function offerAgentDrivenInstantiation(
   }
 
   await invokeChatParticipant(agentBinding.participant, "", instruction);
-  void vscode.window.showInformationMessage(
-    `Sent the instantiation instruction to ${agentBinding.participant}.`,
-  );
+  void vscode.window.showInformationMessage(`Sent the instantiation instruction to ${agentBinding.participant}.`);
 }
 
 /** The chat-agent binding to target for a project root: its first configured `chatAgents` entry, or the zero-config default derived from the plain `agent` field. */
@@ -1370,11 +1178,7 @@ async function offerToSyncKernel(
     ? `"${target.name}" is on catalyst ${deployed}; this extension supports syncing to ${syncTarget}.`
     : `"${target.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${syncTarget}?`;
 
-  const choice = await vscode.window.showInformationMessage(
-    message,
-    "Sync now",
-    "Don't ask again",
-  );
+  const choice = await vscode.window.showInformationMessage(message, "Sync now", "Don't ask again");
 
   if (choice === "Don't ask again") {
     await context.workspaceState.update(dismissKey, true);
@@ -1390,12 +1194,7 @@ async function offerToSyncKernel(
     return;
   }
 
-  await resolveAndInvoke(
-    agentDef,
-    "/sync-framework",
-    syncTarget,
-    outputChannel,
-  );
+  await resolveAndInvoke(agentDef, "/sync-framework", syncTarget, outputChannel);
 }
 
 /** One deployment as the tree shows it: its display name and its project directory. */
@@ -1403,6 +1202,9 @@ interface DeploymentTarget {
   name: string;
   path: string;
 }
+
+/** Each deployment's journal, oldest first, as catalyst last served it (the journal view reads it). */
+const journalByCorpus = new Map<string, JournalEntry[]>();
 
 interface RegisteredDeployment {
   handle: WatcherHandle;
@@ -1417,34 +1219,28 @@ function setupDeployment(
   provider: ChainInspectorProvider,
   diagnostics: vscode.DiagnosticCollection,
   codeLensChangeEmitter: vscode.EventEmitter<void>,
-  onUpdate: (corpusRoot: string) => void = () => {},
+  onUpdate: (corpusRoot: string) => void = () => undefined,
+  log: (message: string) => void = () => undefined,
 ): RegisteredDeployment {
   const ownedDiagnosticFiles = new Set<string>();
   let latestReport: ValidationReport | undefined;
 
-  const handle = watchCorpus(
+  // Through catalyst serve (REQ-000019); when catalyst cannot serve the project, say why (REQ-000020).
+  const handle = watchProject(
+    target.path,
     corpusRoot,
-    ({ model, report, proposals, runs, users, roles }) => {
-      provider.setState(
-        corpusRoot,
-        target.name,
-        target.path,
-        model,
-        proposals,
-        runs,
-        users,
-        roles,
-      );
+    ({ model, report, journal, proposals, runs, users, roles }) => {
+      journalByCorpus.set(corpusRoot, journal);
+      provider.setState(corpusRoot, target.name, target.path, model, proposals, runs, users, roles);
       latestReport = report;
-      refreshDiagnosticsForDeployment(
-        diagnostics,
-        ownedDiagnosticFiles,
-        report,
-        model,
-      );
+      refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
       codeLensChangeEmitter.fire();
       // Open detail panels of this deployment show the new state (B-10).
       onUpdate(corpusRoot);
+    },
+    log,
+    (reason) => {
+      void vscode.window.showWarningMessage(`Catalyst: ${reason}`);
     },
   );
 
@@ -1459,16 +1255,9 @@ function setupDeployment(
       provideDefinition(document, position) {
         const model = provider.getModel(corpusRoot);
         if (!model) return null;
-        const location = resolveDefinitionAt(
-          model,
-          document.lineAt(position.line).text,
-          position.character,
-        );
+        const location = resolveDefinitionAt(model, document.lineAt(position.line).text, position.character);
         if (!location) return null;
-        return new vscode.Location(
-          vscode.Uri.file(location.file),
-          lineRange(location.line).start,
-        );
+        return new vscode.Location(vscode.Uri.file(location.file), lineRange(location.line).start);
       },
     }),
   );
@@ -1495,29 +1284,18 @@ function setupDeployment(
     vscode.languages.registerCodeActionsProvider(
       selector,
       {
-        provideCodeActions(
-          document: vscode.TextDocument,
-          range: vscode.Range,
-        ): vscode.CodeAction[] {
+        provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] {
           if (!latestReport) return [];
-          const openTargetIds = new Set(
-            provider.getPendingTargets(corpusRoot).keys(),
-          );
+          const openTargetIds = new Set(provider.getPendingTargets(corpusRoot).keys());
           const line = range.start.line + 1;
 
           return latestReport.issues
             .filter(
-              (issue) =>
-                issue.location &&
-                issue.location.file === document.uri.fsPath &&
-                issue.location.line === line,
+              (issue) => issue.location && issue.location.file === document.uri.fsPath && issue.location.line === line,
             )
             .filter((issue) => canProposeFix(issue, openTargetIds))
             .map((issue) => {
-              const action = new vscode.CodeAction(
-                `Propose fix: ${issue.kind}`,
-                vscode.CodeActionKind.QuickFix,
-              );
+              const action = new vscode.CodeAction(`Propose fix: ${issue.kind}`, vscode.CodeActionKind.QuickFix);
               action.command = {
                 command: PROPOSE_FIX_COMMAND,
                 title: "Propose fix",
@@ -1551,12 +1329,10 @@ interface PickedCommand {
  * Returns `undefined` if the user dismissed a picker, or there was
  * nothing to pick from (already reported to the user in that case).
  */
-async function pickCommandAndArgs(
-  candidates: CommandCandidate[],
-): Promise<PickedCommand | undefined> {
+async function pickCommandAndArgs(candidates: CommandCandidate[]): Promise<PickedCommand | undefined> {
   if (candidates.length === 0) {
     void vscode.window.showInformationMessage(
-      "No .claude/commands found in this workspace.",
+      "No catalyst commands found: is a catalyst criterion reachable for this workspace?",
     );
     return undefined;
   }
@@ -1630,11 +1406,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const root = roots[index];
       panel.provider.corpusRoot = root;
       panel.view.description = root ? targets.get(root)?.name : undefined;
-      void vscode.commands.executeCommand(
-        "setContext",
-        `catalyst.inspectorSlot${index}`,
-        index === 0 || !!root,
-      );
+      void vscode.commands.executeCommand("setContext", `catalyst.inspectorSlot${index}`, index === 0 || !!root);
     });
     if (roots.length > panels.length && !warnedTooMany) {
       warnedTooMany = true;
@@ -1646,14 +1418,9 @@ export function activate(context: vscode.ExtensionContext): void {
   }
   /** Select a node in its deployment's panel — only while that panel is visible, never moving focus. */
   function revealNode(corpusRoot: string, nodeId: string): void {
-    if (
-      !vscode.workspace
-        .getConfiguration("catalyst")
-        .get<boolean>(TRACK_SETTING, true)
-    )
-      return;
+    if (!vscode.workspace.getConfiguration("catalyst").get<boolean>(TRACK_SETTING, true)) return;
     const panel = panels.find((p) => p.provider.corpusRoot === corpusRoot);
-    if (!panel || !panel.view.visible) return;
+    if (!panel?.view.visible) return;
     const element = provider.findNode(corpusRoot, nodeId);
     if (element)
       void panel.view.reveal(element, {
@@ -1663,9 +1430,7 @@ export function activate(context: vscode.ExtensionContext): void {
       });
   }
 
-  const diagnostics = vscode.languages.createDiagnosticCollection(
-    DIAGNOSTIC_COLLECTION_NAME,
-  );
+  const diagnostics = vscode.languages.createDiagnosticCollection(DIAGNOSTIC_COLLECTION_NAME);
   context.subscriptions.push(diagnostics);
 
   const codeLensChangeEmitter = new vscode.EventEmitter<void>();
@@ -1673,8 +1438,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const registeredDeployments = new Map<string, RegisteredDeployment>();
 
-  const agentBridgeOutputChannel =
-    vscode.window.createOutputChannel("Catalyst");
+  const agentBridgeOutputChannel = vscode.window.createOutputChannel("Catalyst");
   context.subscriptions.push(agentBridgeOutputChannel);
 
   // Every deployment of a workspace folder, nested ones included, by the
@@ -1684,31 +1448,22 @@ export function activate(context: vscode.ExtensionContext): void {
   const deploymentTargets = new Map<string, DeploymentTarget>();
 
   const ignoredFoldersFor = (folder: vscode.WorkspaceFolder): string[] =>
-    vscode.workspace
-      .getConfiguration("catalyst", folder.uri)
-      .get<string[]>(IGNORED_FOLDERS_SETTING, []);
+    vscode.workspace.getConfiguration("catalyst", folder.uri).get<string[]>(IGNORED_FOLDERS_SETTING, []);
 
   // A deployment whose working copy is not reachable here (a remote
   // environment without the installing machine's agent-owned space) is
   // reported once, with the fix that fits (REQ-000016-UVqkd7cL).
   const reportedUnreachable = new Set<string>();
-  function reportUnreachable(
-    name: string,
-    projectRoot: string,
-    target: string | undefined,
-  ): void {
+  function reportUnreachable(name: string, projectRoot: string, target: string | undefined): void {
     if (reportedUnreachable.has(projectRoot)) return;
     reportedUnreachable.add(projectRoot);
     const advice = unreachableAdvice(name, target, vscode.env.remoteName);
     const labels: Record<string, string> = {
       "copy-mount": "Copy devcontainer mount",
-      share: "Share with /criterion create",
+      share: "Share with /share create",
     };
     void vscode.window
-      .showWarningMessage(
-        advice.message,
-        ...advice.actions.map((a) => labels[a]),
-      )
+      .showWarningMessage(advice.message, ...advice.actions.map((a) => labels[a]))
       .then(async (choice) => {
         if (choice === labels["copy-mount"] && target) {
           await vscode.env.clipboard.writeText(devcontainerMount(target));
@@ -1723,12 +1478,7 @@ export function activate(context: vscode.ExtensionContext): void {
             );
             return;
           }
-          await resolveAndInvoke(
-            agentDef,
-            "/criterion",
-            "create",
-            agentBridgeOutputChannel,
-          );
+          await resolveAndInvoke(agentDef, "/share", "create", agentBridgeOutputChannel);
         }
       });
   }
@@ -1741,9 +1491,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const roots: string[] = [];
     folderDeployments.set(folder.uri.toString(), roots);
     if (found.length === 0) {
-      const leftOut =
-        optedOut(folder.uri.fsPath) ||
-        isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
+      const leftOut = optedOut(folder.uri.fsPath) || isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
       // Untrusted, catalyst only reads: no install offer (Workspace Trust).
       // No automatic module download here (B-06): fetching remote UI
       // modules is only ever started by the user ("Switch Process UI
@@ -1756,11 +1504,7 @@ export function activate(context: vscode.ExtensionContext): void {
     for (const deployment of found) {
       const wc = workingCopyState(deployment.projectRoot);
       if (wc.state !== "reachable") {
-        reportUnreachable(
-          deployment.name,
-          deployment.projectRoot,
-          wc.state === "dangling" ? wc.target : undefined,
-        );
+        reportUnreachable(deployment.name, deployment.projectRoot, wc.state === "dangling" ? wc.target : undefined);
         continue;
       }
       const corpusRoot = wc.path;
@@ -1776,16 +1520,16 @@ export function activate(context: vscode.ExtensionContext): void {
           provider,
           diagnostics,
           codeLensChangeEmitter,
-          (root) => refreshDetailPanelsFor(root),
+          (root) => {
+            refreshDetailPanelsFor(root);
+          },
+          (message) => {
+            agentBridgeOutputChannel.appendLine(message);
+          },
         ),
       );
       if (vscode.workspace.isTrusted) {
-        void offerToSyncKernel(
-          context,
-          target,
-          corpusRoot,
-          agentBridgeOutputChannel,
-        );
+        void offerToSyncKernel(context, target, corpusRoot, agentBridgeOutputChannel);
       }
     }
     updateStatusBar();
@@ -1806,8 +1550,7 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   function teardownFolder(folder: vscode.WorkspaceFolder): void {
-    for (const corpusRoot of folderDeployments.get(folder.uri.toString()) ??
-      []) {
+    for (const corpusRoot of folderDeployments.get(folder.uri.toString()) ?? []) {
       teardownDeployment(corpusRoot);
     }
     folderDeployments.delete(folder.uri.toString());
@@ -1823,19 +1566,13 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   // The deployment owning the active editor's file, if any.
-  const statusBar = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    50,
-  );
+  const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
   context.subscriptions.push(statusBar);
   function updateStatusBar(): void {
     const file = vscode.window.activeTextEditor?.document.uri;
     const roots = [...deploymentTargets.values()].map((t) => t.path);
-    const owner =
-      file?.scheme === "file" ? owningDeployment(roots, file.fsPath) : null;
-    const entry = owner
-      ? [...deploymentTargets.entries()].find(([, t]) => t.path === owner)
-      : undefined;
+    const owner = file?.scheme === "file" ? owningDeployment(roots, file.fsPath) : null;
+    const entry = owner ? [...deploymentTargets.entries()].find(([, t]) => t.path === owner) : undefined;
     if (!entry) {
       statusBar.hide();
       return;
@@ -1853,7 +1590,9 @@ export function activate(context: vscode.ExtensionContext): void {
     statusBar.show();
   }
   context.subscriptions.push(
-    vscode.window.onDidChangeActiveTextEditor(() => updateStatusBar()),
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      updateStatusBar();
+    }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration(`catalyst.${IGNORED_FOLDERS_SETTING}`)) {
         reresolveAll();
@@ -1861,7 +1600,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     // Trust granted: the offers and agent commands an untrusted
     // workspace held back become available.
-    vscode.workspace.onDidGrantWorkspaceTrust(() => reresolveAll()),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => {
+      reresolveAll();
+    }),
   );
 
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
@@ -1874,20 +1615,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const localRes = loadLocalSavedModule(
     storagePath,
     uiModuleManager,
-    restoreKernelVersion(
-      [...deploymentTargets.keys()].map((root) =>
-        readDeployedKernelVersion(root),
-      ),
-    ),
+    restoreKernelVersion([...deploymentTargets.keys()].map((root) => readDeployedKernelVersion(root))),
   );
   if (localRes && localRes.success) {
     void vscode.window.showInformationMessage(
       `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
   } else if (localRes && !localRes.success) {
-    agentBridgeOutputChannel.appendLine(
-      `Saved UI module not restored: ${localRes.error}`,
-    );
+    agentBridgeOutputChannel.appendLine(`Saved UI module not restored: ${localRes.error}`);
   }
 
   context.subscriptions.push(
@@ -1907,23 +1642,13 @@ export function activate(context: vscode.ExtensionContext): void {
   });
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      PROPOSE_FIX_COMMAND,
-      async (corpusRoot: string, issue: ValidationIssue) => {
-        const id = nextProposalId(provider.getAllProposals(corpusRoot));
-        const content = buildProposeFixContent(issue, id);
-        const written = await writeProposal(
-          corpusRoot,
-          id,
-          `propose-fix-${issue.kind}`,
-          content,
-        );
-        if (!written) return;
-        void vscode.window.showInformationMessage(
-          `Created ${id} — an agent still needs to act on it.`,
-        );
-      },
-    ),
+    vscode.commands.registerCommand(PROPOSE_FIX_COMMAND, async (corpusRoot: string, issue: ValidationIssue) => {
+      const id = nextProposalId(provider.getAllProposals(corpusRoot));
+      const content = buildProposeFixContent(issue, id);
+      const written = await writeProposal(corpusRoot, id, `propose-fix-${issue.kind}`, content);
+      if (!written) return;
+      void vscode.window.showInformationMessage(`Created ${id} — an agent still needs to act on it.`);
+    }),
   );
 
   context.subscriptions.push(
@@ -1959,8 +1684,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!domain) return;
       const title = await vscode.window.showInputBox({ prompt: "Title" });
       if (!title) return;
-      const description =
-        (await vscode.window.showInputBox({ prompt: "Description" })) ?? "";
+      const description = (await vscode.window.showInputBox({ prompt: "Description" })) ?? "";
       const targetsRaw =
         (await vscode.window.showInputBox({
           prompt: "Related ids (comma-separated, optional)",
@@ -1971,14 +1695,9 @@ export function activate(context: vscode.ExtensionContext): void {
         .filter((t) => t.length > 0);
 
       const id = nextProposalId(provider.getAllProposals(corpusRoot));
-      const content = buildAuthoringProposalContent(
-        { type, domain, targets, title, description },
-        id,
-      );
+      const content = buildAuthoringProposalContent({ type, domain, targets, title, description }, id);
       if (!(await writeProposal(corpusRoot, id, title, content))) return;
-      void vscode.window.showInformationMessage(
-        `Created ${id} — an agent still needs to act on it.`,
-      );
+      void vscode.window.showInformationMessage(`Created ${id} — an agent still needs to act on it.`);
     }),
   );
 
@@ -2007,12 +1726,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      await resolveAndInvoke(
-        agentDef,
-        `/${picked.cmd.name}`,
-        picked.args,
-        agentBridgeOutputChannel,
-      );
+      await resolveAndInvoke(agentDef, `/${picked.cmd.name}`, picked.args, agentBridgeOutputChannel);
     }),
   );
 
@@ -2020,9 +1734,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(CONFIGURE_CRITERION_COMMAND, async () => {
       const corpusRoots = provider.getCorpusRoots();
       if (corpusRoots.length === 0) {
-        void vscode.window.showErrorMessage(
-          "No catalyst deployment is open in this workspace.",
-        );
+        void vscode.window.showErrorMessage("No catalyst deployment is open in this workspace.");
         return;
       }
 
@@ -2042,13 +1754,13 @@ export function activate(context: vscode.ExtensionContext): void {
       const projectRoot = provider.getProjectRoot(corpusRoot);
       if (!projectRoot) return;
 
-      // Gathers <name>/<git-info>, then dispatches the real /criterion
-      // command — this never mutates the pointer or runs git itself; the
-      // agent running /criterion create owns that, including branch
-      // selection and the already-repoed/branching cases (Rules-of-Rules
-      // §13). This UI only ever drives "create" — "get" is the join path
-      // for a folder with no local .criterion/ yet, which doesn't apply
-      // to a deployment already resolved here.
+      // Gathers the repository's URL, then dispatches the real /share
+      // command — this never mutates catalyst.toml or runs git itself; the
+      // agent running /share create owns that, including the preview and the
+      // user's assent before anything is published (Rules-of-Rules §13). This
+      // UI only ever drives "create" — "join" (catalyst open) is the path for
+      // a machine without the criterion, which doesn't apply to a deployment
+      // already resolved here.
       const pointer = readCatalystPointer(projectRoot);
       const statusText = pointer?.repoed
         ? `Currently linked to ${pointer.catalyst_repo_url ?? pointer.catalyst_repo} (pushing to ${pointer.criterion_branch ?? "an unrecorded branch"}).`
@@ -2072,9 +1784,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       if (!pointer?.repoed) {
         const users = provider.getUsers(corpusRoot);
-        const suggested = users[0]
-          ? suggestCriterionBranch(users[0].name)
-          : undefined;
+        const suggested = users[0] ? suggestCriterionBranch(users[0].name) : undefined;
         if (suggested) {
           void vscode.window.showInformationMessage(
             `The agent will ask which branch to push to — the suggested default is "${suggested}"; choosing "criterion" itself is also valid (single-maintainer mode).`,
@@ -2090,21 +1800,14 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      await resolveAndInvoke(
-        agentDef,
-        "/criterion",
-        `create ${name} ${gitInfo}`,
-        agentBridgeOutputChannel,
-      );
+      await resolveAndInvoke(agentDef, "/share", `create ${gitInfo}`, agentBridgeOutputChannel);
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(REFRESH_CHAIN_INSPECTOR_COMMAND, () => {
       if (registeredDeployments.size === 0) {
-        void vscode.window.showInformationMessage(
-          "No catalyst deployment is open in this workspace.",
-        );
+        void vscode.window.showInformationMessage("No catalyst deployment is open in this workspace.");
         return;
       }
       // Bypasses the watcher's own debounce for an immediate re-parse —
@@ -2119,10 +1822,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(OPEN_SETTINGS_COMMAND, () => {
-      void vscode.commands.executeCommand(
-        "workbench.action.openSettings",
-        "catalyst",
-      );
+      void vscode.commands.executeCommand("workbench.action.openSettings", "catalyst");
     }),
   );
 
@@ -2139,8 +1839,7 @@ export function activate(context: vscode.ExtensionContext): void {
         },
       ];
       const pick = await vscode.window.showQuickPick(picks, {
-        placeHolder:
-          "Select a Catalyst kernel version to load into extension memory:",
+        placeHolder: "Select a Catalyst kernel version to load into extension memory:",
       });
       if (!pick) return;
 
@@ -2208,10 +1907,7 @@ export function activate(context: vscode.ExtensionContext): void {
         currentKernelVersion = REQUIRED_KERNEL_VERSION;
       }
 
-      const res = uiModuleManager.loadAndActivateZipModule(
-        zipPath,
-        currentKernelVersion,
-      );
+      const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentKernelVersion);
 
       if (res.success) {
         saveModuleLocally(storagePath, readFileSync(zipPath));
@@ -2221,9 +1917,7 @@ export function activate(context: vscode.ExtensionContext): void {
           `Successfully loaded UI module "${res.module.manifest.name}" (v${res.module.manifest.version}) for kernel version ${currentKernelVersion}.`,
         );
       } else {
-        void vscode.window.showErrorMessage(
-          `Failed to load UI module: ${res.error}`,
-        );
+        void vscode.window.showErrorMessage(`Failed to load UI module: ${res.error}`);
       }
     }),
   );
@@ -2277,9 +1971,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 
     const moduleSourceUrl =
-      vscode.workspace
-        .getConfiguration("catalyst")
-        .get<string>("moduleSourceUrl") ||
+      vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl") ||
       "git@github.com:oliben67/cantica-tech.git/catalyst/";
 
     const remoteModules = await vscode.window.withProgress(
@@ -2291,18 +1983,16 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     if (remoteModules.length === 0) {
-      void vscode.window.showErrorMessage(
-        `No process UI modules found at ${moduleSourceUrl}`,
-      );
+      void vscode.window.showErrorMessage(`No process UI modules found at ${moduleSourceUrl}`);
       return;
     }
 
-    const items: Array<{
+    const items: {
       label: string;
       description?: string;
       detail?: string;
       module: RemoteModuleInfo;
-    }> = remoteModules.map((m) => ({
+    }[] = remoteModules.map((m) => ({
       label: `$(symbol-module) ${m.name} (v${m.version})`,
       description: `[${m.id}] Kernel ${m.kernelVersion}`,
       detail: m.description || `Module ID: ${m.id}`,
@@ -2325,10 +2015,7 @@ export function activate(context: vscode.ExtensionContext): void {
         async () => downloadModuleZip(mod.downloadUrl),
       );
 
-      const loadRes = uiModuleManager.loadAndActivateZipModule(
-        zipBuffer,
-        currentKernelVersion,
-      );
+      const loadRes = uiModuleManager.loadAndActivateZipModule(zipBuffer, currentKernelVersion);
 
       if (loadRes.success) {
         saveModuleLocally(storagePath, zipBuffer);
@@ -2338,15 +2025,11 @@ export function activate(context: vscode.ExtensionContext): void {
           `Successfully activated UI module "${loadRes.module.manifest.name}" (v${loadRes.module.manifest.version}). Display refreshed!`,
         );
       } else {
-        void vscode.window.showErrorMessage(
-          `Failed to activate downloaded module: ${loadRes.error}`,
-        );
+        void vscode.window.showErrorMessage(`Failed to activate downloaded module: ${loadRes.error}`);
       }
     } catch (err) {
       void vscode.window.showErrorMessage(
-        `Failed to download module: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `Failed to download module: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   }
@@ -2367,12 +2050,7 @@ export function activate(context: vscode.ExtensionContext): void {
    * existing panel; opening something different always gets its own new
    * panel, never clobbering what was already showing.
    */
-  function showDetailPanel(
-    key: string,
-    project: string,
-    title: string,
-    build: () => WebviewPayload | null,
-  ): void {
+  function showDetailPanel(key: string, project: string, title: string, build: () => WebviewPayload | null): void {
     const payload = build();
     if (!payload) return;
     panelBuilders.set(key, build);
@@ -2385,11 +2063,7 @@ export function activate(context: vscode.ExtensionContext): void {
       // At most one editor group per project (or one for all): only a
       // project's first panel opens beside; later ones join its group as
       // tabs (REQ-000013-UVqkd7cL, panel-groups.ts).
-      const grouping = readGrouping(
-        vscode.workspace
-          .getConfiguration("catalyst")
-          .get(PANEL_GROUPING_SETTING),
-      );
+      const grouping = readGrouping(vscode.workspace.getConfiguration("catalyst").get(PANEL_GROUPING_SETTING));
       const open: OpenDetailPanel[] = [];
       for (const [openKey, openPanel] of detailPanels.entries()) {
         const meta = panelMeta.get(openKey);
@@ -2403,9 +2077,7 @@ export function activate(context: vscode.ExtensionContext): void {
         {
           enableScripts: true,
           // Only the bundled webview script is loadable.
-          localResourceRoots: [
-            vscode.Uri.joinPath(context.extensionUri, "dist"),
-          ],
+          localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "dist")],
         },
       );
       const created = panel;
@@ -2427,9 +2099,9 @@ export function activate(context: vscode.ExtensionContext): void {
         const msg = parseWebviewMessage(message);
         if (msg) {
           const target = msg.id;
-          void vscode.commands
-            .executeCommand(SHOW_DETAIL_COMMAND, project, target)
-            .then(() => revealNode(project, target));
+          void vscode.commands.executeCommand(SHOW_DETAIL_COMMAND, project, target).then(() => {
+            revealNode(project, target);
+          });
         }
       });
       created.onDidDispose(() => {
@@ -2440,14 +2112,8 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     }
 
-    const scriptUri = panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"),
-    );
-    panel.webview.html = renderWebviewHtml(
-      scriptUri,
-      payload,
-      panel.webview.cspSource,
-    );
+    const scriptUri = panel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, "dist", "webview.js"));
+    panel.webview.html = renderWebviewHtml(scriptUri, payload, panel.webview.cspSource);
   }
 
   function getKernelVersionInfo(corpusRoot: string): KernelVersionInfo {
@@ -2472,32 +2138,20 @@ export function activate(context: vscode.ExtensionContext): void {
   // Each command passes a payload *builder*, re-run when the deployment's
   // watcher fires so an open panel follows the files (B-10).
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      SHOW_DETAIL_COMMAND,
-      (corpusRoot: string, nodeId: string) => {
-        showDetailPanel(
-          `node:${corpusRoot}:${nodeId}`,
-          corpusRoot,
-          `Node: ${nodeId}`,
-          () => {
-            const model = provider.getModel(corpusRoot);
-            if (!model) return null;
-            const payload = buildNodeDetail(
-              model,
-              nodeId,
-              provider.getPendingTargets(corpusRoot),
-            );
-            if (!payload) return null;
-            return {
-              type: "node",
-              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-              references: referencesForNode(model, payload),
-              ...payload,
-            };
-          },
-        );
-      },
-    ),
+    vscode.commands.registerCommand(SHOW_DETAIL_COMMAND, (corpusRoot: string, nodeId: string) => {
+      showDetailPanel(`node:${corpusRoot}:${nodeId}`, corpusRoot, `Node: ${nodeId}`, () => {
+        const model = provider.getModel(corpusRoot);
+        if (!model) return null;
+        const payload = buildNodeDetail(model, nodeId, provider.getPendingTargets(corpusRoot));
+        if (!payload) return null;
+        return {
+          type: "node",
+          kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+          references: referencesForNode(model, payload),
+          ...payload,
+        };
+      });
+    }),
   );
 
   context.subscriptions.push(
@@ -2505,96 +2159,98 @@ export function activate(context: vscode.ExtensionContext): void {
       SHOW_IAM_DETAIL_COMMAND,
       (corpusRoot: string, kind: "user" | "role", name: string) => {
         if (kind === "user") {
-          showDetailPanel(
-            `iam-user:${corpusRoot}:${name}`,
-            corpusRoot,
-            `User: ${name}`,
-            () => {
-              const user = provider
-                .getUsers(corpusRoot)
-                .find((u) => u.name === name);
-              if (!user) return null;
-              return {
-                type: "iam-user",
-                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-                ...buildIamUserDetail(user, provider.getRoles(corpusRoot)),
-              };
-            },
-          );
+          showDetailPanel(`iam-user:${corpusRoot}:${name}`, corpusRoot, `User: ${name}`, () => {
+            const user = provider.getUsers(corpusRoot).find((u) => u.name === name);
+            if (!user) return null;
+            return {
+              type: "iam-user",
+              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+              ...buildIamUserDetail(user, provider.getRoles(corpusRoot)),
+            };
+          });
         } else {
-          showDetailPanel(
-            `iam-role:${corpusRoot}:${name}`,
-            corpusRoot,
-            `Role: ${name}`,
-            () => {
-              const role = provider
-                .getRoles(corpusRoot)
-                .find((r) => r.name === name);
-              if (!role) return null;
-              return {
-                type: "iam-role",
-                kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-                ...buildIamRoleDetail(role, provider.getUsers(corpusRoot)),
-              };
-            },
-          );
+          showDetailPanel(`iam-role:${corpusRoot}:${name}`, corpusRoot, `Role: ${name}`, () => {
+            const role = provider.getRoles(corpusRoot).find((r) => r.name === name);
+            if (!role) return null;
+            return {
+              type: "iam-role",
+              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+              ...buildIamRoleDetail(role, provider.getUsers(corpusRoot)),
+            };
+          });
         }
       },
     ),
   );
 
+  /**
+   * The deployment a command acts on: the one the tree passed, else (run
+   * from the Command Palette, with no argument) the only deployment, or the
+   * one the user picks among several.
+   */
+  async function chooseDeployment(arg: unknown): Promise<string | undefined> {
+    if (typeof arg === "string" && arg) return arg;
+    const roots = [...deploymentTargets.keys()];
+    if (roots.length === 0) {
+      void vscode.window.showWarningMessage("Catalyst: no catalyst project is open in this workspace.");
+      return undefined;
+    }
+    if (roots.length === 1) return roots[0];
+    const pick = await vscode.window.showQuickPick(
+      roots.map((root) => ({ label: deploymentTargets.get(root)?.name ?? root, description: root, root })),
+      { placeHolder: "Which catalyst project?" },
+    );
+    return pick?.root;
+  }
+
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      OPEN_JOURNAL_COMMAND,
-      (corpusRoot: string) => {
-        // The full, unfiltered list — filtering happens reactively inside the
-        // webview itself, not via a host round-trip; journal size is bounded
-        // by project lifetime, not unbounded, so shipping it all up front is
-        // cheap and simpler than the alternative.
-        showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", () => ({
-          type: "journal",
+    vscode.commands.registerCommand(OPEN_JOURNAL_COMMAND, async (arg: unknown) => {
+      const corpusRoot = await chooseDeployment(arg);
+      if (!corpusRoot) return;
+      // The full, unfiltered list — filtering happens reactively inside the
+      // webview itself, not via a host round-trip; journal size is bounded
+      // by project lifetime, not unbounded, so shipping it all up front is
+      // cheap and simpler than the alternative.
+      showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", () => ({
+        type: "journal",
+        kernelVersionInfo: getKernelVersionInfo(corpusRoot),
+        entries: journalByCorpus.get(corpusRoot) ?? [],
+      }));
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(OPEN_BACKLOG_COMMAND, async (arg: unknown) => {
+      const corpusRoot = await chooseDeployment(arg);
+      if (!corpusRoot) return;
+      const backlogPath = join(corpusRoot, "development", "BACKLOG.md");
+      if (!existsSync(backlogPath)) {
+        void vscode.window.showWarningMessage("No BACKLOG.md found — run /show-backlog first.");
+        return;
+      }
+      // Rendered, not raw source — BACKLOG.md is generated prose for a
+      // human to read, not something authored/edited by hand in place.
+      // Through the same keyed panel mechanism as node/IAM/journal
+      // detail, not `markdown.showPreview` — that command's own
+      // built-in preview tab is a VS Code singleton shared across
+      // *any* markdown file previewed anywhere in the workspace, which
+      // is exactly the "everything lands in the same place" problem
+      // this mechanism exists to avoid.
+      showDetailPanel(`backlog:${corpusRoot}`, corpusRoot, "Backlog", () => {
+        if (!existsSync(backlogPath)) return null;
+        const markdown = readFileSync(backlogPath, "utf8");
+        const backlogModel = provider.getModel(corpusRoot);
+        return {
+          type: "backlog",
           kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-          entries: parseJournal(corpusRoot),
-        }));
-      },
-    ),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      OPEN_BACKLOG_COMMAND,
-      (corpusRoot: string) => {
-        const backlogPath = join(corpusRoot, "development", "BACKLOG.md");
-        if (!existsSync(backlogPath)) {
-          void vscode.window.showWarningMessage(
-            "No BACKLOG.md found — run /show-backlog first.",
-          );
-          return;
-        }
-        // Rendered, not raw source — BACKLOG.md is generated prose for a
-        // human to read, not something authored/edited by hand in place.
-        // Through the same keyed panel mechanism as node/IAM/journal
-        // detail, not `markdown.showPreview` — that command's own
-        // built-in preview tab is a VS Code singleton shared across
-        // *any* markdown file previewed anywhere in the workspace, which
-        // is exactly the "everything lands in the same place" problem
-        // this mechanism exists to avoid.
-        showDetailPanel(`backlog:${corpusRoot}`, corpusRoot, "Backlog", () => {
-          if (!existsSync(backlogPath)) return null;
-          const markdown = readFileSync(backlogPath, "utf8");
-          const backlogModel = provider.getModel(corpusRoot);
-          return {
-            type: "backlog",
-            kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-            references: backlogModel
-              ? buildReferenceTable(backlogModel, [markdown])
-              : undefined,
-            markdown,
-          };
-        });
-      },
-    ),
+          references: backlogModel ? buildReferenceTable(backlogModel, [markdown]) : undefined,
+          markdown,
+        };
+      });
+    }),
   );
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+  // nothing to release: every disposable is registered in context.subscriptions
+}

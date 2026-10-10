@@ -14,13 +14,7 @@ export interface JournalProps {
  * bundled with `esbuild --platform=browser`. Exported so it can be unit
  * tested directly without simulating DOM input events.
  */
-export function matches(
-  entry: JournalEntry,
-  since: string,
-  actor: string,
-  artifact: string,
-  rule: string,
-): boolean {
+export function matches(entry: JournalEntry, since: string, actor: string, artifact: string, rule: string): boolean {
   if (since && entry.timestamp < since) return false;
   if (actor && entry.actor !== actor) return false;
   if (artifact && entry.artifact !== artifact) return false;
@@ -53,19 +47,38 @@ function JournalFilters({
         Since{" "}
         <input
           value={since}
-          onChange={(e) => onSince(e.target.value)}
+          onChange={(e) => {
+            onSince(e.target.value);
+          }}
           placeholder="2026-01-01T00:00:00Z"
         />
       </label>
       <label>
-        Actor <input value={actor} onChange={(e) => onActor(e.target.value)} />
+        Actor{" "}
+        <input
+          value={actor}
+          onChange={(e) => {
+            onActor(e.target.value);
+          }}
+        />
       </label>
       <label>
         Artifact{" "}
-        <input value={artifact} onChange={(e) => onArtifact(e.target.value)} />
+        <input
+          value={artifact}
+          onChange={(e) => {
+            onArtifact(e.target.value);
+          }}
+        />
       </label>
       <label>
-        Rule <input value={rule} onChange={(e) => onRule(e.target.value)} />
+        Rule{" "}
+        <input
+          value={rule}
+          onChange={(e) => {
+            onRule(e.target.value);
+          }}
+        />
       </label>
     </div>
   );
@@ -74,11 +87,8 @@ function JournalFilters({
 function JournalEntryRow({ entry }: { entry: JournalEntry }) {
   return (
     <li>
-      <code>{entry.timestamp}</code> — {entry.actor} {entry.command} (
-      {entry.action}) on <code>{entry.artifact}</code>
-      {entry.targets.length > 0 ? (
-        <> targets {entry.targets.join(", ")}</>
-      ) : null}
+      <code>{entry.timestamp}</code> — {entry.actor} {entry.command} ({entry.action}) on <code>{entry.artifact}</code>
+      {entry.targets.length > 0 ? <> targets {entry.targets.join(", ")}</> : null}
       {entry.intent.length > 0 ? <p>{entry.intent.join(" ")}</p> : null}
     </li>
   );
@@ -126,10 +136,7 @@ export function Journal({ entries }: JournalProps) {
       ) : (
         <ul>
           {filtered.map((e, i) => (
-            <JournalEntryRow
-              key={`${e.timestamp}-${e.artifact}-${i}`}
-              entry={e}
-            />
+            <JournalEntryRow key={`${e.timestamp}-${e.artifact}-${i}`} entry={e} />
           ))}
         </ul>
       )}

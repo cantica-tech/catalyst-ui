@@ -3,10 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
-import {
-  buildInstantiationPrompt,
-  findSiblingFrameworkRepo,
-} from "../framework-discovery.js";
+import { buildInstantiationPrompt, findSiblingFrameworkRepo } from "../framework-discovery.js";
 
 let root: string;
 
@@ -48,19 +45,13 @@ describe("findSiblingFrameworkRepo", () => {
   });
 
   it("returns null when the parent directory doesn't exist", () => {
-    assert.strictEqual(
-      findSiblingFrameworkRepo(join(root, "nowhere", "my-project")),
-      null,
-    );
+    assert.strictEqual(findSiblingFrameworkRepo(join(root, "nowhere", "my-project")), null);
   });
 });
 
 describe("buildInstantiationPrompt", () => {
   it("names the framework path and project root", () => {
-    const prompt = buildInstantiationPrompt(
-      "/path/to/catalyst",
-      "/path/to/project",
-    );
+    const prompt = buildInstantiationPrompt("/path/to/catalyst", "/path/to/project");
     assert.match(prompt, /BOOTSTRAP\.md/);
     assert.match(prompt, /\/path\/to\/catalyst/);
     assert.match(prompt, /\/path\/to\/project/);

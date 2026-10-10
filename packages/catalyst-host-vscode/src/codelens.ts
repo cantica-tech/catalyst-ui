@@ -18,10 +18,7 @@ function idsOf(ids: Set<string> | undefined): string[] {
  * (`catalyst.showNodeDetail`, from Phase 2), which already renders both
  * directions.
  */
-export function buildCodeLensesForFile(
-  model: ChainModel,
-  filePath: string,
-): CodeLensSpec[] {
+export function buildCodeLensesForFile(model: ChainModel, filePath: string): CodeLensSpec[] {
   const lenses: CodeLensSpec[] = [];
 
   for (const node of model.nodes.values()) {
@@ -38,8 +35,7 @@ export function buildCodeLensesForFile(
     // backwards for the latter (a rule doesn't "target" a requirement).
     const parts: string[] = [];
     if (targets.length > 0) parts.push(`Links to ${targets.join(", ")}`);
-    if (referencedBy.length > 0)
-      parts.push(`Linked from ${referencedBy.join(", ")}`);
+    if (referencedBy.length > 0) parts.push(`Linked from ${referencedBy.join(", ")}`);
 
     lenses.push({
       line: node.location.line,

@@ -1,9 +1,6 @@
 import * as assert from "assert";
 
-import {
-  buildAuthoringProposalContent,
-  type ComposerInput,
-} from "../composer.js";
+import { buildAuthoringProposalContent, type ComposerInput } from "../composer.js";
 
 function input(overrides: Partial<ComposerInput> = {}): ComposerInput {
   return {
@@ -34,13 +31,7 @@ describe("buildAuthoringProposalContent", () => {
   });
 
   it("states the never-reused-id expectation, matching the roadmap's exit criterion", () => {
-    const content = buildAuthoringProposalContent(
-      input({ type: "rule" }),
-      "PROP-000001",
-    );
-    assert.match(
-      content,
-      /new rule artifact exists with a valid, never-reused id/,
-    );
+    const content = buildAuthoringProposalContent(input({ type: "rule" }), "PROP-000001");
+    assert.match(content, /new rule artifact exists with a valid, never-reused id/);
   });
 });

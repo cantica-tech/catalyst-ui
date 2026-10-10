@@ -56,9 +56,7 @@ describe("renderMarkdown (sanitised)", () => {
   });
 
   it("is what the Backlog view renders", () => {
-    const html = renderToStaticMarkup(
-      Backlog({ markdown: "<script>alert(1)</script>\n\n# ok" }),
-    );
+    const html = renderToStaticMarkup(Backlog({ markdown: "<script>alert(1)</script>\n\n# ok" }));
     expect(html).not.toMatch(/<script/i);
     expect(html).toContain("<h1>ok</h1>");
   });

@@ -56,11 +56,9 @@ describe("buildTreeSections", () => {
       fileExists: true,
       description: "",
       content: "",
-    } as ChainNode;
+    };
 
-    const { devArtifacts } = buildTreeSections(
-      modelOf([stepNode, node({ id: "REQ-000001" })]),
-    );
+    const { devArtifacts } = buildTreeSections(modelOf([stepNode, node({ id: "REQ-000001" })]));
     const stepSection = devArtifacts.sections.find((s) => s.kind === "step")!;
     assert.strictEqual(stepSection.label, "Steps");
     assert.deepStrictEqual(
@@ -85,13 +83,9 @@ describe("buildTreeSections", () => {
     ]);
 
     const { devArtifacts } = buildTreeSections(model);
-    const requirements = devArtifacts.sections.find(
-      (s) => s.kind === "requirement",
-    )!;
+    const requirements = devArtifacts.sections.find((s) => s.kind === "requirement")!;
     const bugs = devArtifacts.sections.find((s) => s.kind === "bug")!;
-    const houseKeeping = devArtifacts.sections.find(
-      (s) => s.kind === "house-keeping",
-    )!;
+    const houseKeeping = devArtifacts.sections.find((s) => s.kind === "house-keeping")!;
 
     assert.deepStrictEqual(
       requirements.nodes.map((n) => n.id),
@@ -176,9 +170,7 @@ describe("buildTreeSections", () => {
     ]);
 
     const { devArtifacts } = buildTreeSections(model);
-    const section = devArtifacts.sections.find(
-      (s) => s.kind === "requirement",
-    )!;
+    const section = devArtifacts.sections.find((s) => s.kind === "requirement")!;
     assert.deepStrictEqual(
       section.nodes.map((n) => n.id),
       ["REQ-000001", "REQ-000002"],
@@ -192,9 +184,7 @@ describe("buildTreeSections", () => {
     ]);
 
     const { devArtifacts } = buildTreeSections(model);
-    const section = devArtifacts.sections.find(
-      (s) => s.kind === "requirement",
-    )!;
+    const section = devArtifacts.sections.find((s) => s.kind === "requirement")!;
     assert.deepStrictEqual(
       section.nodes.map((n) => n.id),
       ["REQ-000001-Ab3xR9pQ", "REQ-000002-Zz9kM2wT"],

@@ -15,21 +15,9 @@ function settingsPath() {
   const home = os.homedir();
   switch (process.platform) {
     case "darwin":
-      return path.join(
-        home,
-        "Library",
-        "Application Support",
-        "Code",
-        "User",
-        "settings.json",
-      );
+      return path.join(home, "Library", "Application Support", "Code", "User", "settings.json");
     case "win32":
-      return path.join(
-        process.env.APPDATA || path.join(home, "AppData", "Roaming"),
-        "Code",
-        "User",
-        "settings.json",
-      );
+      return path.join(process.env.APPDATA || path.join(home, "AppData", "Roaming"), "Code", "User", "settings.json");
     default:
       return path.join(home, ".config", "Code", "User", "settings.json");
   }
@@ -37,9 +25,7 @@ function settingsPath() {
 
 const file = settingsPath();
 const key = "extensions.verifySignature";
-const keyPattern = new RegExp(
-  `("${key.replace(/\./g, "\\.")}"\\s*:\\s*)(true|false)`,
-);
+const keyPattern = new RegExp(`("${key.replace(/\./g, "\\.")}"\\s*:\\s*)(true|false)`);
 
 fs.mkdirSync(path.dirname(file), { recursive: true });
 
@@ -55,16 +41,12 @@ if (keyPattern.test(raw)) {
 } else {
   const braceIndex = raw.indexOf("{");
   if (braceIndex === -1) {
-    console.error(
-      `Could not find an opening "{" in ${file} — add "${key}": false to it manually.`,
-    );
+    console.error(`Could not find an opening "{" in ${file} — add "${key}": false to it manually.`);
     process.exit(1);
   }
   const rest = raw.slice(braceIndex + 1);
   const isEmptyObject = rest.replace(/^\s+/, "").startsWith("}");
-  const insertion = isEmptyObject
-    ? `\n  "${key}": false\n`
-    : `\n  "${key}": false,`;
+  const insertion = isEmptyObject ? `\n  "${key}": false\n` : `\n  "${key}": false,`;
   raw = raw.slice(0, braceIndex + 1) + insertion + rest;
 }
 

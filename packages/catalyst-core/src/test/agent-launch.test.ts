@@ -4,11 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  isAllowedAgentId,
-  resolveAgentCommand,
-  resolveAgentLaunch,
-} from "../agent-launch.js";
+import { isAllowedAgentId, resolveAgentCommand, resolveAgentLaunch } from "../agent-launch.js";
 
 let root: string;
 

@@ -1,12 +1,6 @@
 import * as assert from "assert";
 
-import type {
-  ChainModel,
-  ChainNode,
-  IamRole,
-  IamUser,
-  Proposal,
-} from "catalyst-core";
+import type { ChainModel, ChainNode, IamRole, IamUser, Proposal } from "catalyst-core";
 
 import {
   buildIamRoleDetail,
@@ -126,7 +120,7 @@ describe("buildNodeDetail", () => {
       fileExists: true,
       description: "",
       content: "",
-    } as ChainNode;
+    };
     const model: ChainModel = {
       nodes: new Map([
         [req.id, req],
@@ -164,7 +158,7 @@ describe("buildNodeDetail", () => {
       fileExists: true,
       description: "",
       content: "",
-    } as ChainNode;
+    };
     const test = node({
       id: "TEST-000001",
       kind: "dev-artifact",
@@ -215,11 +209,7 @@ describe("buildNodeDetail", () => {
 describe("buildIamUserDetail", () => {
   it("resolves the role objects a user's roles array names, sorted by name", () => {
     const alice = user({ name: "alice", roles: ["Tech Lead", "Developer"] });
-    const roles = [
-      role({ name: "Developer" }),
-      role({ name: "Tech Lead" }),
-      role({ name: "QA" }),
-    ];
+    const roles = [role({ name: "Developer" }), role({ name: "Tech Lead" }), role({ name: "QA" })];
 
     const detail = buildIamUserDetail(alice, roles);
     assert.strictEqual(detail.user, alice);
@@ -254,9 +244,7 @@ describe("buildIamRoleDetail", () => {
   });
 
   it("returns an empty users list when no user has this role", () => {
-    const detail = buildIamRoleDetail(role({ name: "Orphan Role" }), [
-      user({ name: "alice", roles: ["Developer"] }),
-    ]);
+    const detail = buildIamRoleDetail(role({ name: "Orphan Role" }), [user({ name: "alice", roles: ["Developer"] })]);
     assert.deepStrictEqual(detail.users, []);
   });
 });
@@ -290,13 +278,8 @@ describe("reference table (REQ-000014)", () => {
       node("REQ-000002-Ab3xR9pQ"),
       node("BUG-000003-Ab3xR9pQ"),
     );
-    const table = buildReferenceTable(model, [
-      "Fixes `REQ-000001-Ab3xR9pQ`; see BUG-000003.",
-    ]);
-    assert.deepStrictEqual(Object.keys(table).sort(), [
-      "BUG-000003",
-      "REQ-000001-Ab3xR9pQ",
-    ]);
+    const table = buildReferenceTable(model, ["Fixes `REQ-000001-Ab3xR9pQ`; see BUG-000003."]);
+    assert.deepStrictEqual(Object.keys(table).sort(), ["BUG-000003", "REQ-000001-Ab3xR9pQ"]);
     assert.deepStrictEqual(table["REQ-000001-Ab3xR9pQ"], {
       id: "REQ-000001-Ab3xR9pQ",
       kind: "dev-artifact",
@@ -307,11 +290,7 @@ describe("reference table (REQ-000014)", () => {
   });
 
   it("never matches inside a longer token, an ambiguous short form, or the panel's own node", () => {
-    const model = modelOf(
-      node("REQ-000001-Ab3xR9pQ"),
-      node("REQ-000001-Zz9xR9pQ"),
-      node("STEP-000004-Ab3xR9pQ"),
-    );
+    const model = modelOf(node("REQ-000001-Ab3xR9pQ"), node("REQ-000001-Zz9xR9pQ"), node("STEP-000004-Ab3xR9pQ"));
     const table = buildReferenceTable(
       model,
       ["XREQ-000001-Ab3xR9pQ and REQ-000001 and STEP-000004-Ab3xR9pQ"],
@@ -346,9 +325,7 @@ describe("hover descriptions from content (BUG-000001 follow-up)", () => {
 
   it("falls back to the first paragraph after the field table", () => {
     assert.strictEqual(
-      describeFromContent(
-        "Boilerplate.\n\n| **ID** | `X` |\n\nThe real text\ncontinues.\n\nMore.",
-      ),
+      describeFromContent("Boilerplate.\n\n| **ID** | `X` |\n\nThe real text\ncontinues.\n\nMore."),
       "The real text continues.",
     );
   });

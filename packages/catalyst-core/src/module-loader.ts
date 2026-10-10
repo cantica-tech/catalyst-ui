@@ -5,8 +5,7 @@ import { readCatalystPointer, resolveCorpusRoot } from "./discover.js";
 
 export type GroundingKind = "required" | "inherited" | "none";
 
-export type FieldKind =
-  "text" | "enum" | "ref" | "ref-list" | "date" | "user" | "user-list";
+export type FieldKind = "text" | "enum" | "ref" | "ref-list" | "date" | "user" | "user-list";
 
 export interface FieldDefinition {
   name: string;
@@ -69,10 +68,9 @@ export interface ModuleManifest {
   templates: TemplateRegistration[];
 }
 
-export type YamlValue =
-  string | number | boolean | null | YamlValue[] | { [key: string]: YamlValue };
+export type YamlValue = string | number | boolean | null | YamlValue[] | { [key: string]: YamlValue };
 
-type YamlMap = { [key: string]: YamlValue };
+type YamlMap = Record<string, YamlValue>;
 
 interface YamlLine {
   indent: number;
@@ -168,9 +166,7 @@ export function parseSimpleYaml(text: string): YamlMap {
   let pos = 0;
 
   function parseNode(indent: number): YamlValue {
-    return isListItem(lines[pos].content)
-      ? parseList(indent)
-      : parseMap(indent);
+    return isListItem(lines[pos].content) ? parseList(indent) : parseMap(indent);
   }
 
   /** Value for a `key:` / `-` with nothing after it: a nested block, or null. */
@@ -178,11 +174,7 @@ export function parseSimpleYaml(text: string): YamlMap {
     const next = lines[pos];
     if (!next) return null;
     if (next.indent > ownerIndent) return parseNode(next.indent);
-    if (
-      allowSameIndentList &&
-      next.indent === ownerIndent &&
-      isListItem(next.content)
-    ) {
+    if (allowSameIndentList && next.indent === ownerIndent && isListItem(next.content)) {
       return parseList(ownerIndent);
     }
     return null;
@@ -232,9 +224,7 @@ export function parseSimpleYaml(text: string): YamlMap {
 }
 
 function asMap(value: YamlValue | undefined): YamlMap | undefined {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? value
-    : undefined;
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : undefined;
 }
 
 function asList(value: YamlValue | undefined): YamlValue[] {
@@ -264,15 +254,7 @@ function readYamlFile(path: string): YamlMap | undefined {
 }
 
 const GROUNDING_KINDS: GroundingKind[] = ["required", "inherited", "none"];
-const FIELD_KINDS: FieldKind[] = [
-  "text",
-  "enum",
-  "ref",
-  "ref-list",
-  "date",
-  "user",
-  "user-list",
-];
+const FIELD_KINDS: FieldKind[] = ["text", "enum", "ref", "ref-list", "date", "user", "user-list"];
 
 /** Maps one parsed `schemas/<entity>.yaml` (snake_case keys) onto an ETD. */
 export function parseEntityTypeDefinition(data: YamlMap): EntityTypeDefinition {
@@ -317,10 +299,7 @@ export function parseEntityTypeDefinition(data: YamlMap): EntityTypeDefinition {
     name,
     pluralName: asString(data.plural_name) ?? `${name}s`,
     folder: asString(data.folder) ?? idPrefix.toLowerCase(),
-    grounding:
-      groundingRaw && GROUNDING_KINDS.includes(groundingRaw)
-        ? groundingRaw
-        : "none",
+    grounding: groundingRaw && GROUNDING_KINDS.includes(groundingRaw) ? groundingRaw : "none",
     fields,
     workflow,
   };
@@ -384,11 +363,7 @@ function moduleSearchDirs(projectRoot: string, moduleId: string): string[] {
   return [...new Set(dirs.map((d) => resolve(d)))];
 }
 
-function buildManifest(
-  moduleDir: string,
-  data: YamlMap,
-  fallbackId: string,
-): ModuleManifest {
+function buildManifest(moduleDir: string, data: YamlMap, fallbackId: string): ModuleManifest {
   const id = asString(data.id) ?? fallbackId;
 
   const entityTypes = new Map<string, EntityTypeDefinition>();
@@ -455,10 +430,7 @@ function buildManifest(
  * `catalyst-<id>/` checkout. `undefined` when no module is declared or its
  * `module.yaml` can't be found — callers must handle a module-less project.
  */
-export function loadModule(
-  projectRoot?: string,
-  moduleId?: string,
-): ModuleManifest | undefined {
+export function loadModule(projectRoot?: string, moduleId?: string): ModuleManifest | undefined {
   if (!projectRoot) return undefined;
   const targetId = moduleId ?? resolveModuleId(projectRoot);
   if (!targetId || !MODULE_ID.test(targetId)) return undefined;
@@ -472,9 +444,7 @@ export function loadModule(
   return undefined;
 }
 
-export function getActiveETDs(
-  manifest: ModuleManifest,
-): Map<string, EntityTypeDefinition> {
+export function getActiveETDs(manifest: ModuleManifest): Map<string, EntityTypeDefinition> {
   return manifest.entityTypes;
 }
 
@@ -482,12 +452,7 @@ export function getGroundingType(manifest: ModuleManifest): string {
   return manifest.groundingType;
 }
 
-export function resolveCommand(
-  manifest: ModuleManifest,
-  commandName: string,
-): CommandRegistration | undefined {
-  const cleanName = commandName.startsWith("/")
-    ? commandName.slice(1)
-    : commandName;
+export function resolveCommand(manifest: ModuleManifest, commandName: string): CommandRegistration | undefined {
+  const cleanName = commandName.startsWith("/") ? commandName.slice(1) : commandName;
   return manifest.commands.get(cleanName);
 }

@@ -56,9 +56,7 @@ describe("parseRuns", () => {
     });
 
     const runs = parseRuns(root);
-    expect(runs[0].steps).toEqual([
-      { status: "done", text: "Recognized step" },
-    ]);
+    expect(runs[0].steps).toEqual([{ status: "done", text: "Recognized step" }]);
   });
 
   it("defaults to running for an unrecognized Status value", () => {
@@ -72,10 +70,7 @@ describe("parseRuns", () => {
     root = createFixtureCorpus({
       runs: [{ id: "RUN-000002" }, { id: "RUN-000001" }],
     });
-    expect(parseRuns(root).map((r) => r.id)).toEqual([
-      "RUN-000001",
-      "RUN-000002",
-    ]);
+    expect(parseRuns(root).map((r) => r.id)).toEqual(["RUN-000001", "RUN-000002"]);
   });
 });
 

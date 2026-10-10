@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { hasProjectFile } from "./project-file.js";
 
 /**
  * What a deployment governs, and where deployments are in a workspace
@@ -45,15 +46,9 @@ export function ignoreLines(directory: string): string[] | null {
   return lines;
 }
 
+/** Whether `directory` is a catalyst project: it holds `catalyst.toml` (or a legacy `*.catalyst` pointer). */
 export function hasPointer(directory: string): boolean {
-  try {
-    return readdirSync(directory).some(
-      (name) =>
-        name.endsWith(".catalyst") && statSync(join(directory, name)).isFile(),
-    );
-  } catch {
-    return false;
-  }
+  return hasProjectFile(directory);
 }
 
 const covers = (rest: string, lines: readonly string[]): boolean =>
@@ -96,10 +91,7 @@ export function governs(projectRoot: string, file: string): boolean {
 }
 
 /** Of `projectRoots` (deployments' directories), the one owning `file`, if any. */
-export function owningDeployment(
-  projectRoots: readonly string[],
-  file: string,
-): string | null {
+export function owningDeployment(projectRoots: readonly string[], file: string): string | null {
   let best: string | null = null;
   for (const root of projectRoots) {
     const r = resolve(root);
@@ -111,18 +103,12 @@ export function owningDeployment(
 }
 
 /** `directory` is listed in `catalyst.ignoredFolders`: an absolute path, or one relative to `workspaceFolder`. */
-export function isIgnoredFolder(
-  directory: string,
-  ignored: readonly string[],
-  workspaceFolder: string,
-): boolean {
+export function isIgnoredFolder(directory: string, ignored: readonly string[], workspaceFolder: string): boolean {
   const target = resolve(directory);
   return ignored.some((entry) => {
     const trimmed = entry.trim();
     if (!trimmed) return false;
-    const base = resolve(
-      isAbsolute(trimmed) ? trimmed : join(workspaceFolder, trimmed),
-    );
+    const base = resolve(isAbsolute(trimmed) ? trimmed : join(workspaceFolder, trimmed));
     const rel = relative(base, target);
     return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
   });
@@ -150,7 +136,7 @@ export function findDeployments(
   const ignored = options.ignored ?? [];
   const maxDepth = options.maxDepth ?? 4;
   const found: FoundDeployment[] = [];
-  const queue: Array<[string, number]> = [[root, 0]];
+  const queue: [string, number][] = [[root, 0]];
   while (queue.length > 0) {
     const [dir, depth] = queue.shift()!;
     if (optedOut(dir) || isIgnoredFolder(dir, ignored, root)) continue;
