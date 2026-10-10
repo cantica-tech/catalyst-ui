@@ -1,7 +1,7 @@
 # catalyst project file: names this project's criterion ($HOME/.catalyst/projects/<project_name>/criterion). Never a path.
 project_name = "catalyst-ui"
 format = "1.0-rc"
-kernel_version = "0.52.0"
+kernel_version = "0.53.0"
 journal_since = "c4bda0cc09dce981863b5c43ad124a1691c67142"
 module = "software-engineering"
 agent = "claude-code"
