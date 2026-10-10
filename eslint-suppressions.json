@@ -118,9 +118,6 @@
     }
   },
   "packages/catalyst-host-vscode/src/extension.ts": {
-    "@typescript-eslint/no-empty-function": {
-      "count": 2
-    },
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 2
     },
