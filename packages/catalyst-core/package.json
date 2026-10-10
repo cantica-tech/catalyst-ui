@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "parity": "node dist/parity-cli.js"
   },
   "dependencies": {
     "chokidar": "^3.6.0"
