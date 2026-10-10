@@ -1446,7 +1446,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const advice = unreachableAdvice(name, target, vscode.env.remoteName);
     const labels: Record<string, string> = {
       "copy-mount": "Copy devcontainer mount",
-      share: "Share with /criterion create",
+      share: "Share with /share create",
     };
     void vscode.window
       .showWarningMessage(advice.message, ...advice.actions.map((a) => labels[a]))
@@ -1464,7 +1464,7 @@ export function activate(context: vscode.ExtensionContext): void {
             );
             return;
           }
-          await resolveAndInvoke(agentDef, "/criterion", "create", agentBridgeOutputChannel);
+          await resolveAndInvoke(agentDef, "/share", "create", agentBridgeOutputChannel);
         }
       });
   }
@@ -1730,13 +1730,13 @@ export function activate(context: vscode.ExtensionContext): void {
       const projectRoot = provider.getProjectRoot(corpusRoot);
       if (!projectRoot) return;
 
-      // Gathers <name>/<git-info>, then dispatches the real /criterion
-      // command — this never mutates the pointer or runs git itself; the
-      // agent running /criterion create owns that, including branch
-      // selection and the already-repoed/branching cases (Rules-of-Rules
-      // §13). This UI only ever drives "create" — "get" is the join path
-      // for a folder with no local .criterion/ yet, which doesn't apply
-      // to a deployment already resolved here.
+      // Gathers the repository's URL, then dispatches the real /share
+      // command — this never mutates catalyst.toml or runs git itself; the
+      // agent running /share create owns that, including the preview and the
+      // user's assent before anything is published (Rules-of-Rules §13). This
+      // UI only ever drives "create" — "join" (catalyst open) is the path for
+      // a machine without the criterion, which doesn't apply to a deployment
+      // already resolved here.
       const pointer = readCatalystPointer(projectRoot);
       const statusText = pointer?.repoed
         ? `Currently linked to ${pointer.catalyst_repo_url ?? pointer.catalyst_repo} (pushing to ${pointer.criterion_branch ?? "an unrecorded branch"}).`
@@ -1776,7 +1776,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
 
-      await resolveAndInvoke(agentDef, "/criterion", `create ${name} ${gitInfo}`, agentBridgeOutputChannel);
+      await resolveAndInvoke(agentDef, "/share", `create ${gitInfo}`, agentBridgeOutputChannel);
     }),
   );
 
