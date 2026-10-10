@@ -42,10 +42,14 @@ describe("watchCorpus", () => {
       debounceMs: 30,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Wait for the first report; how many follow is "reports once on startup"'s
+    // concern, and a late filesystem event from creating the fixture can add one.
+    for (let waited = 0; updates.length === 0 && waited < 2000; waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
     await handle.close();
 
-    expect(updates.length).toBe(1);
+    expect(updates.length).toBeGreaterThanOrEqual(1);
     expect(updates[0].users).toEqual([
       {
         name: "alice",
