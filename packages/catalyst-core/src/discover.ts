@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { KERNEL_VERSION_FLOOR } from "./kernel-version.js";
-import { parseFieldTable, sectionLines } from "./parser.js";
+import { parseFieldTable, sectionLines } from "./markdown.js";
 import { homeCriterion, projectName, readProjectFile } from "./project-file.js";
 import type { CatalystPointer } from "./types.js";
 import { satisfiesVersionSpecifier } from "./versioning.js";

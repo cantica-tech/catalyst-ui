@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { bulletItems, parseFieldTable } from "./parser.js";
+import { bulletItems, parseFieldTable } from "./markdown.js";
 import type { Run, RunStatus, RunStep, RunStepStatus } from "./types.js";
 
 const RUN_ID_RE = /^(RUN-\d{6})-/;

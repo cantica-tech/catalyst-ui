@@ -13,8 +13,6 @@ import {
   watchCatalyst,
   watchProject,
 } from "../catalyst-source.js";
-import { buildChainModel } from "../graph.js";
-import { parseCorpus } from "../parser.js";
 import type { WatchUpdate } from "../types.js";
 
 /** Reading the chain model through catalyst (REQ-000019). */
@@ -105,12 +103,13 @@ describe("the adapter", () => {
         warnings: ["journal: 3 warning(s) on pre-CLI entries"],
       },
       "/c",
-      5,
+      modelFromGraph(graph, "/c"),
     );
     expect(r).toMatchObject({ errorCount: 1, warningCount: 1, nodeCount: 5 });
     expect(r.issues[0]).toMatchObject({
       kind: "dangling-reference",
       severity: "error",
+      nodeId: REQ,
       location: { file: "/c/requirements/REQ-000001-sign-in.md", line: 1 },
     });
     expect(r.issues[1]).toMatchObject({ kind: "catalyst", severity: "warning", location: undefined });
@@ -165,15 +164,17 @@ function nextUpdate(updates: WatchUpdate[], count: number, timeoutMs = 20000): P
 }
 
 describe.skipIf(!canServe)("through catalyst serve --local", () => {
-  it("delivers the model the parser would, and follows a change", async () => {
+  it("delivers the chain, its findings and its journal, and follows a change", async () => {
     const root = makeProject();
     const criterion = join(root, ".criterion");
     const updates: WatchUpdate[] = [];
     const handle = await watchCatalyst(root, criterion, (u) => updates.push(u), command);
     try {
       const first = await nextUpdate(updates, 1);
-      const parsed = buildChainModel(parseCorpus(criterion)!);
-      expect([...parsed.nodes.keys()].filter((id) => !first.model.nodes.has(id))).toEqual([]);
+      const kinds = new Set([...first.model.nodes.values()].map((n) => n.kind));
+      expect([...kinds].sort()).toEqual(expect.arrayContaining(["dev-artifact", "domain", "rule"]));
+      expect(Array.isArray(first.journal)).toBe(true);
+      expect(first.report.nodeCount).toBe(first.model.nodes.size);
       const bug = join(criterion, "development", "bugs", "BUG-000001-beta.md");
       const text = readFileSync(bug, "utf8");
       expect(text).toContain("| **Status** | Fixed |");
@@ -188,21 +189,30 @@ describe.skipIf(!canServe)("through catalyst serve --local", () => {
 });
 
 describe("watchProject", () => {
-  it("falls back to the files when catalyst cannot serve", async () => {
+  it("says why catalyst cannot serve, delivers nothing, and tries again on refresh", async () => {
     const root = makeProject();
     const before = process.env.CATALYST_BIN;
     process.env.CATALYST_BIN = "catalyst-that-does-not-exist";
-    const logs: string[] = [];
+    const reasons: string[] = [];
     const updates: WatchUpdate[] = [];
     const handle = watchProject(
       root,
       join(root, ".criterion"),
       (u) => updates.push(u),
-      (m) => logs.push(m),
+      () => undefined,
+      (r) => reasons.push(r),
     );
     try {
-      await nextUpdate(updates, 1);
-      expect(logs.some((l) => l.includes("cannot serve"))).toBe(true);
+      for (let waited = 0; reasons.length === 0 && waited < 10000; waited += 50) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(reasons[0]).toMatch(/cannot serve .* catalyst 0\.54\.0 or later: run `catalyst open`/);
+      handle.refresh();
+      for (let waited = 0; reasons.length < 2 && waited < 10000; waited += 50) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      expect(reasons).toHaveLength(2);
+      expect(updates).toEqual([]);
     } finally {
       await handle.close();
       if (before === undefined) delete process.env.CATALYST_BIN;

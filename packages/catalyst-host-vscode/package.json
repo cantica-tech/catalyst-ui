@@ -27,9 +27,14 @@
     "vscode": "^1.85.0"
   },
   "catalyst": {
-    "kernelVersion": ">=0.46.0"
+    "kernelVersion": ">=0.54.0"
   },
   "main": "dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:catalyst.toml",
+    "workspaceContains:*.catalyst",
+    "workspaceContains:*/catalyst.toml"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [

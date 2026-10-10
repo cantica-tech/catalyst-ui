@@ -29,7 +29,6 @@ export {
   type SlashCommandSpec,
 } from "./commands-discovery.js";
 export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
-export { buildChainModel } from "./graph.js";
 export {
   claudeCodeStoragePath,
   hasCatalystPointer,
@@ -59,12 +58,9 @@ export {
   writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
-export { journalSources, parseJournal, queryJournal } from "./journal.js";
-export { cleanRuleTitle, extractSlugFromRuleId, parseCorpus, parseRuleDocument, parseDomainsIndex } from "./parser.js";
 export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
 export { parseRuns, hasDrift } from "./runs.js";
 export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
-export { validate } from "./validator.js";
 export {
   compareVersions,
   parseVersionSpecifier,
@@ -94,8 +90,6 @@ export {
   type ArtifactSourceLocation,
   type RemoteModuleInfo,
 } from "./remote-module-store.js";
-export { watchCorpus } from "./watcher.js";
-export type { WatcherHandle } from "./watcher.js";
 
 export * from "./workspace.js";
 export {
@@ -108,10 +102,14 @@ export {
   projectName,
   readProjectFile,
 } from "./project-file.js";
+export { coerceJournal, queryJournal } from "./journal.js";
+export { bulletItems, cleanRuleTitle, extractSlugFromRuleId, parseFieldTable, sectionLines } from "./markdown.js";
 export {
+  CATALYST_SERVE_FLOOR,
   type CatalystCheck,
   type CatalystGraph,
   type CatalystServer,
+  type WatcherHandle,
   modelFromGraph,
   readThroughCatalyst,
   reportFromCheck,

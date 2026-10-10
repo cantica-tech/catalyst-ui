@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { collectIdReferences } from "./ids.js";
-import { bulletItems, parseFieldTable, sectionLines } from "./parser.js";
+import { bulletItems, parseFieldTable, sectionLines } from "./markdown.js";
 import type { Proposal, ProposalStatus } from "./types.js";
 
 const PROPOSAL_ID_RE = /^(PROP-\d{6})-/;

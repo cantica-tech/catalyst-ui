@@ -9,6 +9,7 @@ import type {
   KernelVersionInfo,
   IamRole,
   IamUser,
+  JournalEntry,
   Proposal,
   RemoteModuleInfo,
   RoadmapNode,
@@ -35,7 +36,6 @@ import {
   openProposalsByTarget,
   packageUiModule,
   parseChatAgents,
-  parseJournal,
   readCatalystPointer,
   readDeployedKernelVersion,
   findDeployments,
@@ -1203,6 +1203,9 @@ interface DeploymentTarget {
   path: string;
 }
 
+/** Each deployment's journal, oldest first, as catalyst last served it (the journal view reads it). */
+const journalByCorpus = new Map<string, JournalEntry[]>();
+
 interface RegisteredDeployment {
   handle: WatcherHandle;
   disposables: vscode.Disposable[];
@@ -1222,11 +1225,12 @@ function setupDeployment(
   const ownedDiagnosticFiles = new Set<string>();
   let latestReport: ValidationReport | undefined;
 
-  // Through catalyst serve when catalyst can serve the project, else the files directly (REQ-000019).
+  // Through catalyst serve (REQ-000019); when catalyst cannot serve the project, say why (REQ-000020).
   const handle = watchProject(
     target.path,
     corpusRoot,
-    ({ model, report, proposals, runs, users, roles }) => {
+    ({ model, report, journal, proposals, runs, users, roles }) => {
+      journalByCorpus.set(corpusRoot, journal);
       provider.setState(corpusRoot, target.name, target.path, model, proposals, runs, users, roles);
       latestReport = report;
       refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
@@ -1235,6 +1239,9 @@ function setupDeployment(
       onUpdate(corpusRoot);
     },
     log,
+    (reason) => {
+      void vscode.window.showWarningMessage(`Catalyst: ${reason}`);
+    },
   );
 
   const selector: vscode.DocumentSelector = {
@@ -2185,7 +2192,7 @@ export function activate(context: vscode.ExtensionContext): void {
       showDetailPanel(`journal:${corpusRoot}`, corpusRoot, "Journal", () => ({
         type: "journal",
         kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-        entries: parseJournal(corpusRoot),
+        entries: journalByCorpus.get(corpusRoot) ?? [],
       }));
     }),
   );

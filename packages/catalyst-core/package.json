@@ -5,17 +5,11 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "bin": {
-    "catalyst-core": "dist/cli.js"
-  },
   "scripts": {
     "build": "tsc --build",
-    "test": "vitest run",
-    "parity": "node dist/parity-cli.js"
+    "test": "vitest run"
   },
-  "dependencies": {
-    "chokidar": "^3.6.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "vitest": "^1.4.0"
   }

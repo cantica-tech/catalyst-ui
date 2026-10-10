@@ -4,19 +4,9 @@
       "count": 1
     }
   },
-  "packages/catalyst-core/src/cli.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
-    }
-  },
   "packages/catalyst-core/src/commands-discovery.ts": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
-    }
-  },
-  "packages/catalyst-core/src/graph.ts": {
-    "@typescript-eslint/no-non-null-assertion": {
-      "count": 2
     }
   },
   "packages/catalyst-core/src/join-criterion.ts": {
@@ -32,31 +22,12 @@
       "count": 3
     }
   },
-  "packages/catalyst-core/src/parser.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 3
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 13
-    },
-    "@typescript-eslint/prefer-optional-chain": {
-      "count": 2
-    },
-    "no-useless-assignment": {
-      "count": 1
-    }
-  },
   "packages/catalyst-core/src/remote-module-store.ts": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 2
     },
     "no-useless-assignment": {
       "count": 2
-    }
-  },
-  "packages/catalyst-core/src/test/cli.test.ts": {
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
     }
   },
   "packages/catalyst-core/src/test/discover.test.ts": {
@@ -82,11 +53,6 @@
       "count": 1
     },
     "@typescript-eslint/prefer-for-of": {
-      "count": 1
-    }
-  },
-  "packages/catalyst-core/src/validator.ts": {
-    "@typescript-eslint/prefer-optional-chain": {
       "count": 1
     }
   },

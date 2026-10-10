@@ -1,29 +1,21 @@
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
-import { afterEach, describe, expect, it } from "vitest";
-
-import { parseJournal, queryJournal } from "../journal.js";
+import { coerceJournal, queryJournal } from "../journal.js";
 import type { JournalEntry } from "../types.js";
-import { createFixtureCorpus, removeFixtureCorpus } from "./test-support.js";
 
-let root: string | undefined;
-
-afterEach(() => {
-  if (root) removeFixtureCorpus(root);
-  root = undefined;
-});
-
-describe("parseJournal", () => {
-  it("returns an empty list when journal.jsonl doesn't exist", () => {
-    root = createFixtureCorpus({});
-    expect(parseJournal(root)).toEqual([]);
+// Reading the journal's files (legacy and shards, in causal order) is
+// catalyst's (`GET /v1/journal`); this package takes what catalyst serves.
+describe("coerceJournal", () => {
+  it("takes nothing from what is not a list", () => {
+    expect(coerceJournal(undefined)).toEqual([]);
+    expect(coerceJournal({ entries: [] })).toEqual([]);
   });
 
-  it("parses one JSON object per line", () => {
-    root = createFixtureCorpus({
-      journal: [
+  it("keeps each well-formed entry, with defaults for the optional fields", () => {
+    expect(
+      coerceJournal([
         {
+          at: "journal/alice@m1/2026-08.jsonl:1",
           timestamp: "2026-08-23T19:00:00Z",
           actor: "alice",
           command: "/create-req",
@@ -31,11 +23,11 @@ describe("parseJournal", () => {
           artifact: "REQ-000001",
           targets: ["fw-STRUCTURE-003"],
           intent: ["Track the new parser."],
+          writer: "catalyst/0.54.0",
         },
-      ],
-    });
-
-    expect(parseJournal(root)).toEqual([
+        { timestamp: "2026-08-24T00:00:00Z", actor: "bob", artifact: "REQ-000002" },
+      ]),
+    ).toEqual([
       {
         timestamp: "2026-08-23T19:00:00Z",
         actor: "alice",
@@ -46,55 +38,27 @@ describe("parseJournal", () => {
         intent: ["Track the new parser."],
         files: [],
       },
+      {
+        timestamp: "2026-08-24T00:00:00Z",
+        actor: "bob",
+        command: "",
+        action: "update",
+        artifact: "REQ-000002",
+        targets: [],
+        intent: [],
+        files: [],
+      },
     ]);
   });
 
-  it("skips a line that fails to parse rather than failing the whole read", () => {
-    root = createFixtureCorpus({
-      journal: [
-        {
-          timestamp: "2026-08-23T19:00:00Z",
-          actor: "alice",
-          artifact: "REQ-000001",
-        },
-      ],
-    });
-    appendFileSync(join(root, "development", "journal.jsonl"), "{ this is not valid json\n");
-    appendFileSync(
-      join(root, "development", "journal.jsonl"),
-      `${JSON.stringify({ timestamp: "2026-08-24T00:00:00Z", actor: "bob", artifact: "REQ-000002" })}\n`,
-    );
-
-    expect(parseJournal(root).map((e) => e.artifact)).toEqual(["REQ-000001", "REQ-000002"]);
-  });
-
-  it("reads every shard beside the legacy file, in timestamp order", () => {
-    root = createFixtureCorpus({});
-    const legacy = join(root, "development", "journal.jsonl");
-    const ada = join(root, "development", "journal", "ada@k3j9q2");
-    const bob = join(root, "development", "journal", "bob@x7p2m4");
-    mkdirSync(ada, { recursive: true });
-    mkdirSync(bob, { recursive: true });
-    const line = (timestamp: string, actor: string, artifact: string): string =>
-      `${JSON.stringify({ timestamp, actor, artifact })}\n`;
-    writeFileSync(legacy, line("2026-08-01T00:00:00Z", "ada", "OLD"));
-    writeFileSync(join(ada, "2026-10.jsonl"), line("2026-10-02T00:00:00Z", "ada", "A2"));
-    writeFileSync(join(ada, "2026-09.jsonl"), line("2026-09-01T00:00:00Z", "ada", "A1"));
-    writeFileSync(join(bob, "2026-10.jsonl"), line("2026-10-01T00:00:00Z", "bob", "B1"));
-    writeFileSync(join(bob, "notes.txt"), "not a shard\n");
-
-    expect(parseJournal(root).map((e) => e.artifact)).toEqual(["OLD", "A1", "B1", "A2"]);
-  });
-
-  it("skips an entry missing a required field", () => {
-    root = createFixtureCorpus({});
-    mkdirSync(join(root, "development"), { recursive: true });
-    writeFileSync(
-      join(root, "development", "journal.jsonl"),
-      `${JSON.stringify({ timestamp: "2026-08-23T19:00:00Z", actor: "alice" })}\n`,
-    );
-
-    expect(parseJournal(root)).toEqual([]);
+  it("drops an entry missing a required field and sorts the rest oldest first", () => {
+    const entries = coerceJournal([
+      { timestamp: "2026-10-02T00:00:00Z", actor: "ada", artifact: "A2" },
+      { timestamp: "2026-08-23T19:00:00Z", actor: "alice" },
+      "not an entry",
+      { timestamp: "2026-09-01T00:00:00Z", actor: "ada", artifact: "A1" },
+    ]);
+    expect(entries.map((e) => e.artifact)).toEqual(["A1", "A2"]);
   });
 });
 

@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 
 import { parseIamRoles, parseIamUsers } from "./iam.js";
 import { buildShortFormIndex, resolveIdReference } from "./ids.js";
-import { sectionLines } from "./parser.js";
+import { sectionLines } from "./markdown.js";
 import { parseProposals } from "./proposals.js";
 import { parseRuns } from "./runs.js";
 import type {
@@ -21,7 +21,7 @@ import type {
   ValidationReport,
   WatchUpdate,
 } from "./types.js";
-import { type WatcherHandle, watchCorpus } from "./watcher.js";
+import { coerceJournal } from "./journal.js";
 
 /**
  * The chain model and its validation, read through catalyst (REQ-000019)
@@ -31,6 +31,15 @@ import { type WatcherHandle, watchCorpus } from "./watcher.js";
  * `watchProject` falls back to the old watcher when catalyst cannot serve
  * (missing, or a kernel before `graph` and `serve --local`).
  */
+
+/** A running watch: `refresh` reads again at once, `close` stops it. */
+export interface WatcherHandle {
+  close(): Promise<void>;
+  refresh(): void;
+}
+
+/** The catalyst release this package reads through: `graph` and `serve --local` arrived in 0.54.0. */
+export const CATALYST_SERVE_FLOOR = "0.54.0";
 
 /** What `catalyst graph --json` prints (kernel `views.graph`). */
 export interface CatalystGraph {
@@ -273,22 +282,33 @@ const KINDS: Record<string, IssueKind> = {
   "duplicate-id": "id-reuse",
 };
 
-/** `catalyst check` as the hosts' `ValidationReport`: every error and warning, located at the file it names. */
-export function reportFromCheck(check: CatalystCheck, criterionRoot: string, nodeCount: number): ValidationReport {
+/**
+ * `catalyst check` as the hosts' `ValidationReport`: every error and
+ * warning, located at the file it names and, when one node is defined in
+ * that file, naming it (so "Propose fix" can target it).
+ */
+export function reportFromCheck(check: CatalystCheck, criterionRoot: string, model: ChainModel): ValidationReport {
+  const byFile = new Map<string, string | null>();
+  for (const node of model.nodes.values()) {
+    const file = node.location.file;
+    byFile.set(file, byFile.has(file) ? null : node.id); // a file of many nodes names none
+  }
   const issue = (message: string, severity: "error" | "warning"): ValidationIssue => {
     const code = /^\S+\s+([a-z][a-z-]*):/.exec(message)?.[1] ?? "";
     const path = /(?:^|\s)\.criterion\/([^\s:]+\.(?:md|json|ya?ml|txt|jsonl))(?::(\d+))?/.exec(message);
+    const file = path ? join(criterionRoot, path[1]) : undefined;
     return {
       kind: KINDS[code] ?? "catalyst",
       severity,
+      nodeId: file ? (byFile.get(file) ?? undefined) : undefined,
       message,
-      location: path ? { file: join(criterionRoot, path[1]), line: path[2] ? Number(path[2]) : 1 } : undefined,
+      location: file && path ? { file, line: path[2] ? Number(path[2]) : 1 } : undefined,
     };
   };
   const issues = [...check.errors.map((m) => issue(m, "error")), ...check.warnings.map((m) => issue(m, "warning"))];
   return {
     issues,
-    nodeCount,
+    nodeCount: model.nodes.size,
     errorCount: check.errors.length,
     warningCount: check.warnings.length,
     durationMs: 0,
@@ -369,11 +389,16 @@ export async function readThroughCatalyst(
   criterionRoot: string,
   signal?: AbortSignal,
 ): Promise<WatchUpdate> {
-  const [graph, check] = await Promise.all([getJson(server, "/graph", signal), getJson(server, "/check", signal)]);
+  const [graph, check, journal] = await Promise.all([
+    getJson(server, "/graph", signal),
+    getJson(server, "/check", signal),
+    getJson(server, "/journal", signal),
+  ]);
   const model = modelFromGraph(graph as CatalystGraph, criterionRoot);
   return {
     model,
-    report: reportFromCheck(check as CatalystCheck, criterionRoot, model.nodes.size),
+    report: reportFromCheck(check as CatalystCheck, criterionRoot, model),
+    journal: coerceJournal(journal),
     proposals: parseProposals(criterionRoot),
     runs: parseRuns(criterionRoot),
     users: parseIamUsers(criterionRoot),
@@ -449,44 +474,56 @@ export async function watchCatalyst(
 }
 
 /**
- * The hosts' watcher: catalyst when it can serve the project, else the old
- * parser and file watcher. Returns at once; `log` says which one runs.
+ * The hosts' watcher: the project through catalyst. When catalyst cannot
+ * serve it (not installed, or older than `CATALYST_SERVE_FLOOR`),
+ * `onUnavailable` says why and how to fix it, and `refresh` tries again.
+ * Returns at once; `log` says what runs.
  */
 export function watchProject(
   project: string,
   criterionRoot: string,
   onUpdate: (update: WatchUpdate) => void,
   log: (message: string) => void = () => undefined,
+  onUnavailable: (reason: string) => void = () => undefined,
 ): WatcherHandle {
   let inner: WatcherHandle | undefined;
+  let starting = false;
   let closed = false;
-  const canServe = existsSync(project);
-  const start = canServe
-    ? watchCatalyst(project, criterionRoot, onUpdate)
-    : Promise.reject(new Error(`${project} does not exist`));
-  start.then(
-    (handle) => {
-      if (closed) void handle.close();
-      else {
-        inner = handle;
-        log(`reading ${criterionRoot} through catalyst serve`);
-      }
-    },
-    (err: unknown) => {
-      if (closed) return;
-      log(
-        `catalyst cannot serve ${project} (${err instanceof Error ? err.message : String(err)}); reading the files directly`,
-      );
-      inner = watchCorpus(criterionRoot, onUpdate);
-    },
-  );
+  const start = () => {
+    if (starting || closed) return;
+    starting = true;
+    const begun = existsSync(project)
+      ? watchCatalyst(project, criterionRoot, onUpdate)
+      : Promise.reject(new Error(`${project} does not exist`));
+    begun.then(
+      (handle) => {
+        starting = false;
+        if (closed) void handle.close();
+        else {
+          inner = handle;
+          log(`reading ${criterionRoot} through catalyst serve`);
+        }
+      },
+      (err: unknown) => {
+        starting = false;
+        if (closed) return;
+        const reason =
+          `catalyst cannot serve ${project}: ${err instanceof Error ? err.message : String(err)}. ` +
+          `It needs catalyst ${CATALYST_SERVE_FLOOR} or later: run \`catalyst open\` in the project, then refresh.`;
+        log(reason);
+        onUnavailable(reason);
+      },
+    );
+  };
+  start();
   return {
     async close() {
       closed = true;
       await inner?.close();
     },
     refresh() {
-      inner?.refresh();
+      if (inner) inner.refresh();
+      else start();
     },
   };
 }

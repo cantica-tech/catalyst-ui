@@ -225,12 +225,12 @@ describe("meetsRequiredKernelVersion", () => {
   });
 
   it("returns true for a deployment at or above the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.46.0")).toBe(true);
-    expect(meetsRequiredKernelVersion("0.47.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.54.0")).toBe(true);
+    expect(meetsRequiredKernelVersion("0.55.0")).toBe(true);
   });
 
   it("returns false for a deployment below the required floor", () => {
-    expect(meetsRequiredKernelVersion("0.45.9")).toBe(false);
+    expect(meetsRequiredKernelVersion("0.53.9")).toBe(false);
     expect(meetsRequiredKernelVersion("0.31.0")).toBe(false);
   });
 

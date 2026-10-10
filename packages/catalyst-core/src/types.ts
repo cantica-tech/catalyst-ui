@@ -171,28 +171,6 @@ export interface ValidationReport {
   durationMs: number;
 }
 
-export interface ParsedFile {
-  file: string;
-  mtimeMs: number;
-  nodes: ChainNode[];
-}
-
-export interface ParseResult {
-  root: string;
-  files: ParsedFile[];
-  durationMs: number;
-}
-
-export interface ParseOptions {
-  /** Checked between files during a parse; returning false aborts early (a newer change landed mid-parse). */
-  shouldContinue?: () => boolean;
-}
-
-export interface WatcherOptions {
-  /** Trailing debounce/coalesce window in ms. Default 180 (within the 150-200ms contract). */
-  debounceMs?: number;
-}
-
 export type ProposalStatus = "proposed" | "applying" | "applied" | "partial" | "stale";
 
 /**
@@ -286,6 +264,8 @@ export interface JournalFilters {
 export interface WatchUpdate {
   model: ChainModel;
   report: ValidationReport;
+  /** The journal, oldest first, as catalyst serves it. */
+  journal: JournalEntry[];
   proposals: Proposal[];
   runs: Run[];
   users: IamUser[];
