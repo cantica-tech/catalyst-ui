@@ -34,9 +34,11 @@ command line: `task release:vsix:publish PUBLISH_DIR=... --
 
 ## Packages
 
-- `packages/catalyst-core` — TypeScript, no DOM. Parses the corpus,
-  builds the typed chain model, runs global validation, watches files,
-  and parses proposals and live agent runs.
+- `packages/catalyst-core` — TypeScript, no DOM. Reads a project through
+  catalyst (`catalyst serve --local`, or a served criterion): the typed
+  chain model, its validation and the journal come from catalyst's
+  `graph`, `check` and `journal`, refreshed on its events; it needs
+  catalyst 0.54.0 or later. It also parses proposals and live agent runs.
 - `packages/catalyst-ui` — React. All UI surfaces (chain inspector,
   health board, proposal/authoring composer, run monitor), mounted
   unchanged by both hosts.
