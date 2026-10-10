@@ -2183,8 +2183,30 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
+  /**
+   * The deployment a command acts on: the one the tree passed, else (run
+   * from the Command Palette, with no argument) the only deployment, or the
+   * one the user picks among several.
+   */
+  async function chooseDeployment(arg: unknown): Promise<string | undefined> {
+    if (typeof arg === "string" && arg) return arg;
+    const roots = [...deploymentTargets.keys()];
+    if (roots.length === 0) {
+      void vscode.window.showWarningMessage("Catalyst: no catalyst project is open in this workspace.");
+      return undefined;
+    }
+    if (roots.length === 1) return roots[0];
+    const pick = await vscode.window.showQuickPick(
+      roots.map((root) => ({ label: deploymentTargets.get(root)?.name ?? root, description: root, root })),
+      { placeHolder: "Which catalyst project?" },
+    );
+    return pick?.root;
+  }
+
   context.subscriptions.push(
-    vscode.commands.registerCommand(OPEN_JOURNAL_COMMAND, (corpusRoot: string) => {
+    vscode.commands.registerCommand(OPEN_JOURNAL_COMMAND, async (arg: unknown) => {
+      const corpusRoot = await chooseDeployment(arg);
+      if (!corpusRoot) return;
       // The full, unfiltered list — filtering happens reactively inside the
       // webview itself, not via a host round-trip; journal size is bounded
       // by project lifetime, not unbounded, so shipping it all up front is
@@ -2198,7 +2220,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(OPEN_BACKLOG_COMMAND, (corpusRoot: string) => {
+    vscode.commands.registerCommand(OPEN_BACKLOG_COMMAND, async (arg: unknown) => {
+      const corpusRoot = await chooseDeployment(arg);
+      if (!corpusRoot) return;
       const backlogPath = join(corpusRoot, "development", "BACKLOG.md");
       if (!existsSync(backlogPath)) {
         void vscode.window.showWarningMessage("No BACKLOG.md found — run /show-backlog first.");
