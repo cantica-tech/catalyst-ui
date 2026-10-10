@@ -4,9 +4,7 @@ import type { RoadmapNode } from "catalyst-core";
 
 import { buildRoadmapSection } from "../roadmaps.js";
 
-function roadmapNode(
-  overrides: Partial<RoadmapNode> & { id: string; roadmapName: string },
-): RoadmapNode {
+function roadmapNode(overrides: Partial<RoadmapNode> & { id: string; roadmapName: string }): RoadmapNode {
   return {
     kind: "roadmap",
     title: overrides.id,
@@ -18,7 +16,7 @@ function roadmapNode(
     signedOffBy: "fixture-user",
     notes: "",
     ...overrides,
-  } as RoadmapNode;
+  };
 }
 
 describe("buildRoadmapSection", () => {

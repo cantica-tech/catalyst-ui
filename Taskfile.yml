@@ -1,17 +1,21 @@
 # catalyst-ui's own operations. Mirrors .github/workflows/ci.yml exactly, so
 # `task ci` is what CI runs, runnable locally.
 #
-# Catalyst-operation dispatch tasks (create-bug, check-rules, sync-framework,
-# ...) come from Taskfile.common.yml, deployed inside .criterion/ (agent-owned
-# space, INV-6 — not this repo's own tree) from catalyst's framework/kernel/
-# templates/Taskfile.common.template.yml plus the active module's
-# Taskfile.module.yml, refreshed by /sync-framework, not hand-edited here. See
-# catalyst's framework/kernel/migrations/0.19.0/taskfile-into-criterion.md and
-# 0.37.0/computed-working-copy-location.md.
+# catalyst never adds to or edits this Taskfile: its commands run from the
+# criterion's own Taskfile.common.yml, with `catalyst task <command> -- <args>`.
 
 version: "3"
 
 dotenv: [".env"]
+
+includes:
+  # cantica-tech code standards: `task lint`, `task format`, `task typecheck`, `task standards:sync`,
+  # `task standards:check` — from a checkout of the standards repository next to this one (STANDARDS_DIR).
+  standards:
+    taskfile: '{{.STANDARDS_DIR | default "../standards"}}/Taskfile.standards.yml'
+    optional: true
+    flatten: true
+    excludes: [lint, format, typecheck] # this repository's own lint and typecheck call standards:lint, standards:typecheck
 
 vars:
   # Falls back to the macOS app bundle when the `code` shim hasn't been
@@ -19,34 +23,6 @@ vars:
   # in PATH is the permanent fix — this just unblocks tasks in the meantime).
   CODE_BIN:
     sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
-  # Resolves the deployed agent's CLI binary from the pointer's "agent"
-  # field. "claude-code" is the one known id whose CLI binary name differs
-  # from the id itself (mirrors catalyst-ui's own agent-launch.ts); any
-  # other agent id is assumed to already be its own binary name. Falls
-  # back to "claude" — today's only known agent — when no pointer/field is
-  # found. Safe to compute dynamically — this only feeds ordinary task
-  # commands, not an include path.
-  AGENT_ID:
-    sh: |
-      f=$(ls *.catalyst 2>/dev/null | head -1)
-      [ -n "$f" ] && grep -oE '"agent"[[:space:]]*:[[:space:]]*"[^"]*"' "$f" | head -1 | sed -E 's/.*"([^"]*)"$/\1/'
-  AGENT_BIN: '{{if eq .AGENT_ID "claude-code"}}claude{{else if .AGENT_ID}}{{.AGENT_ID}}{{else}}claude{{end}}'
-  # Full override escape hatch for an agent needing different flags than
-  # `<bin> -p "<prompt>"` entirely (e.g. a non-Claude CLI).
-  AGENT_CMD: '{{.AGENT_CMD_OVERRIDE | default (printf "%s -p" .AGENT_BIN)}}'
-
-includes:
-  common:
-    # The .criterion submodule at the project root (the shared working copy,
-    # catalyst-ui-criterion) — the same relative path on every machine, so
-    # no machine-specific path lands in this tracked file. Optional, so a
-    # clone without the submodule checked out (CI, a new contributor) still
-    # runs this project's own tasks.
-    taskfile: .criterion/Taskfile.common.yml
-    optional: true
-    flatten: true
-    vars:
-      AGENT_CMD: "{{.AGENT_CMD}}"
 
 tasks:
   install:
@@ -55,9 +31,10 @@ tasks:
       - npm ci
 
   lint:
-    desc: "Lint all workspaces"
+    desc: "Lint all workspaces (ESLint), then the cantica-tech standard's other linters (Markdown, YAML, workflows)"
     cmds:
       - npm run lint
+      - task: standards:lint
 
   format:check:
     desc: "Check formatting across all workspaces"

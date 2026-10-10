@@ -1,6 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
+import { readProjectFile } from "./project-file.js";
 import type { AgentBinding, DetectedAgent, ResolvedBinding } from "./types.js";
 
 export interface AgentPreset {
@@ -29,20 +27,8 @@ export const AGENT_PRESETS: Record<string, AgentPreset> = {
 };
 
 function readPointer(workspaceRoot: string): Record<string, unknown> | null {
-  if (!existsSync(workspaceRoot)) return null;
-
-  const pointerFile = readdirSync(workspaceRoot).find((name) =>
-    name.endsWith(".catalyst"),
-  );
-  if (!pointerFile) return null;
-
   try {
-    const pointer: unknown = JSON.parse(
-      readFileSync(join(workspaceRoot, pointerFile), "utf8"),
-    );
-    return typeof pointer === "object" && pointer !== null
-      ? (pointer as Record<string, unknown>)
-      : null;
+    return readProjectFile(workspaceRoot);
   } catch {
     return null;
   }
@@ -55,17 +41,14 @@ function coerceBinding(value: unknown): AgentBinding | null {
     return null;
   }
   const binding =
-    record.binding === "chat-participant" ||
-    record.binding === "command" ||
-    record.binding === "lm-model"
+    record.binding === "chat-participant" || record.binding === "command" || record.binding === "lm-model"
       ? record.binding
       : "chat-participant";
 
   return {
     name: record.name,
     binding,
-    participant:
-      typeof record.participant === "string" ? record.participant : undefined,
+    participant: typeof record.participant === "string" ? record.participant : undefined,
     command: typeof record.command === "string" ? record.command : undefined,
   };
 }
@@ -86,9 +69,7 @@ export function parseChatAgents(workspaceRoot: string): AgentBinding[] {
   const chatAgents = pointer.chatAgents;
   if (!Array.isArray(chatAgents)) return [];
 
-  return chatAgents
-    .map(coerceBinding)
-    .filter((binding): binding is AgentBinding => binding !== null);
+  return chatAgents.map(coerceBinding).filter((binding): binding is AgentBinding => binding !== null);
 }
 
 /**
@@ -133,17 +114,11 @@ export function resolveBinding(agentDef: AgentBinding): ResolvedBinding {
 }
 
 /** Whether a detected agent's own manifest declares this slash command (leading `/` optional on input). */
-export function declaresCommand(
-  agent: DetectedAgent,
-  slashCommand: string,
-): boolean {
+export function declaresCommand(agent: DetectedAgent, slashCommand: string): boolean {
   return agent.commands.includes(slashCommand.replace(/^\//, ""));
 }
 
 /** The detected agent whose participant name matches exactly, if any. */
-export function findExactMatch(
-  detected: DetectedAgent[],
-  participant: string,
-): DetectedAgent | undefined {
+export function findExactMatch(detected: DetectedAgent[], participant: string): DetectedAgent | undefined {
   return detected.find((agent) => agent.participant === participant);
 }

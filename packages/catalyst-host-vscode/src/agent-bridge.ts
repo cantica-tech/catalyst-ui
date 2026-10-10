@@ -1,5 +1,11 @@
 import type { AgentBinding, DetectedAgent } from "catalyst-core";
-import { declaresCommand, findExactMatch, resolveBinding } from "catalyst-core";
+import {
+  composeCommandRequest,
+  composeSlashCommand,
+  declaresCommand,
+  findExactMatch,
+  resolveBinding,
+} from "catalyst-core";
 import * as vscode from "vscode";
 
 /**
@@ -15,14 +21,12 @@ export function scanAvailableAgents(): DetectedAgent[] {
   return vscode.extensions.all
     .filter((ext) => ext.packageJSON?.contributes?.chatParticipants)
     .flatMap((ext): DetectedAgent[] =>
-      ext.packageJSON.contributes.chatParticipants.map(
-        (p: { name: string; commands?: { name: string }[] }) => ({
-          extensionId: ext.id,
-          participant: `@${p.name}`,
-          commands: (p.commands ?? []).map((c) => c.name),
-          active: ext.isActive,
-        }),
-      ),
+      ext.packageJSON.contributes.chatParticipants.map((p: { name: string; commands?: { name: string }[] }) => ({
+        extensionId: ext.id,
+        participant: `@${p.name}`,
+        commands: (p.commands ?? []).map((c) => c.name),
+        active: ext.isActive,
+      })),
     );
 }
 
@@ -31,12 +35,8 @@ export function scanAvailableCommands(): Thenable<string[]> {
 }
 
 /** Drives the Chat view; auth is entirely the target extension's problem. Fire-and-forget — there's no structured return value. */
-export async function invokeChatParticipant(
-  participant: string,
-  slashCommand: string,
-  args: string,
-): Promise<void> {
-  const query = `${participant} ${slashCommand} ${args}`.trim();
+export async function invokeChatParticipant(participant: string, slashCommand: string, args: string): Promise<void> {
+  const query = [participant, slashCommand, args.trim()].filter((part) => part.length > 0).join(" ");
   await vscode.commands.executeCommand("workbench.action.chat.open", {
     query,
     isPartialQuery: false,
@@ -44,10 +44,7 @@ export async function invokeChatParticipant(
 }
 
 /** Purely in-process VS Code command dispatch. No auth involved at all. */
-export async function invokeCommand(
-  commandId: string,
-  args: string,
-): Promise<void> {
+export async function invokeCommand(commandId: string, args: string): Promise<void> {
   await vscode.commands.executeCommand(commandId, args);
 }
 
@@ -60,10 +57,7 @@ export async function invokeCommand(
  * `engines.vscode`'s current floor) — treated the same as "no models
  * available" rather than throwing a raw `TypeError`.
  */
-export async function invokeLmModel(
-  vendor: string | undefined,
-  prompt: string,
-): Promise<string> {
+export async function invokeLmModel(vendor: string | undefined, prompt: string): Promise<string> {
   if (typeof vscode.lm === "undefined") {
     throw new Error("No language model available");
   }
@@ -91,16 +85,12 @@ export async function offerModelFallback(
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
   if (typeof vscode.lm === "undefined") {
-    void vscode.window.showErrorMessage(
-      "No AI agent or language model is available in this VS Code instance.",
-    );
+    void vscode.window.showErrorMessage("No AI agent or language model is available in this VS Code instance.");
     return;
   }
   const models = await vscode.lm.selectChatModels();
   if (models.length === 0) {
-    void vscode.window.showErrorMessage(
-      "No AI agent or language model is available in this VS Code instance.",
-    );
+    void vscode.window.showErrorMessage("No AI agent or language model is available in this VS Code instance.");
     return;
   }
   const pick = await vscode.window.showQuickPick(
@@ -113,17 +103,16 @@ export async function offerModelFallback(
   );
   if (!pick) return;
 
-  const result = await invokeLmModel(
-    pick.model.vendor,
-    `${slashCommand} ${args}`.trim(),
-  );
+  const result = await invokeLmModel(pick.model.vendor, composeCommandRequest(slashCommand, args));
   outputChannel.appendLine(result);
   outputChannel.show(true);
 }
 
 /**
  * Resolves one `AgentBinding` to something invocable and dispatches on
- * its kind. Exclusively uses the agent the `*.catalyst` file points to —
+ * its kind. What reaches a chat participant or a model is the plain
+ * request `composeCommandRequest` builds (run `/name` through catalyst's
+ * MCP server), unless the participant itself declares the command. Exclusively uses the agent the `*.catalyst` file points to —
  * no substituting a different chat participant when the intended one
  * isn't found, and nothing remembered/persisted about a substitution
  * (there isn't one). `command`/`lm-model` bindings are invoked directly
@@ -166,17 +155,12 @@ export async function resolveAndInvoke(
 
   if (resolved.kind === "lm-model") {
     try {
-      const result = await invokeLmModel(
-        resolved.vendor,
-        `${slashCommand} ${args}`.trim(),
-      );
+      const result = await invokeLmModel(resolved.vendor, composeCommandRequest(slashCommand, args));
       outputChannel.appendLine(result);
       outputChannel.show(true);
     } catch (err) {
       void vscode.window.showErrorMessage(
-        `"${agentDef.name}" has no language model available: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        `"${agentDef.name}" has no language model available: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
     return;
@@ -187,12 +171,14 @@ export async function resolveAndInvoke(
   const exact = findExactMatch(detected, resolved.participant);
 
   if (exact) {
-    if (!declaresCommand(exact, slashCommand)) {
-      void vscode.window.showInformationMessage(
-        `${resolved.participant} doesn't declare ${slashCommand} — sending as plain text.`,
-      );
+    // A participant that declares the command itself gets its own slash
+    // form; any other gets the plain request naming catalyst's MCP server
+    // (catalyst writes no command files, so a bare `/name` resolves nowhere).
+    if (declaresCommand(exact, slashCommand)) {
+      await invokeChatParticipant(resolved.participant, composeSlashCommand(slashCommand, ""), args);
+    } else {
+      await invokeChatParticipant(resolved.participant, "", composeCommandRequest(slashCommand, args));
     }
-    await invokeChatParticipant(resolved.participant, slashCommand, args);
     return;
   }
 

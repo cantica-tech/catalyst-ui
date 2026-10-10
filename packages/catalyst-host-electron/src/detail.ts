@@ -1,14 +1,6 @@
-import type {
-  ChainModel,
-  ChainNode,
-  NodeDetailPayload,
-  Proposal,
-} from "catalyst-core";
+import type { ChainModel, ChainNode, NodeDetailPayload, Proposal } from "catalyst-core";
 
-function resolveAll(
-  model: ChainModel,
-  ids: Set<string> | undefined,
-): ChainNode[] {
+function resolveAll(model: ChainModel, ids: Set<string> | undefined): ChainNode[] {
   if (!ids) return [];
   const nodes: ChainNode[] = [];
   for (const id of ids) {

@@ -5,14 +5,7 @@
  * "Architecture" decision (one protocol, three packages).
  */
 
-export type NodeKind =
-  | "work-item"
-  | "dev-artifact"
-  | "rule"
-  | "domain"
-  | "feature"
-  | "roadmap"
-  | "step";
+export type NodeKind = "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap" | "step";
 
 export type DevArtifactType = "bug" | "requirement" | "house-keeping" | "test";
 
@@ -145,14 +138,7 @@ export interface RoadmapNode extends ChainNodeBase {
   notes: string;
 }
 
-export type ChainNode =
-  | WorkItemNode
-  | DevArtifactNode
-  | RuleNode
-  | DomainNode
-  | FeatureNode
-  | RoadmapNode
-  | StepNode;
+export type ChainNode = WorkItemNode | DevArtifactNode | RuleNode | DomainNode | FeatureNode | RoadmapNode | StepNode;
 
 export interface ChainModel {
   nodes: Map<string, ChainNode>;
@@ -166,8 +152,8 @@ export interface ChainModel {
 
 export type IssueSeverity = "error" | "warning";
 
-export type IssueKind =
-  "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference";
+/** `catalyst`: a finding of `catalyst check` with no older kind of its own (its message says which check). */
+export type IssueKind = "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference" | "catalyst";
 
 export interface ValidationIssue {
   kind: IssueKind;
@@ -185,30 +171,7 @@ export interface ValidationReport {
   durationMs: number;
 }
 
-export interface ParsedFile {
-  file: string;
-  mtimeMs: number;
-  nodes: ChainNode[];
-}
-
-export interface ParseResult {
-  root: string;
-  files: ParsedFile[];
-  durationMs: number;
-}
-
-export interface ParseOptions {
-  /** Checked between files during a parse; returning false aborts early (a newer change landed mid-parse). */
-  shouldContinue?: () => boolean;
-}
-
-export interface WatcherOptions {
-  /** Trailing debounce/coalesce window in ms. Default 180 (within the 150-200ms contract). */
-  debounceMs?: number;
-}
-
-export type ProposalStatus =
-  "proposed" | "applying" | "applied" | "partial" | "stale";
+export type ProposalStatus = "proposed" | "applying" | "applied" | "partial" | "stale";
 
 /**
  * A reviewable, agent-mediated write request — the only path from a
@@ -270,8 +233,7 @@ export interface IamRole {
   actions: string[];
 }
 
-export type JournalAction =
-  "create" | "update" | "close" | "retire" | "status-change" | "sync";
+export type JournalAction = "create" | "update" | "close" | "retire" | "status-change" | "sync";
 
 export interface JournalFileChange {
   path: string;
@@ -279,7 +241,7 @@ export interface JournalFileChange {
   after: string;
 }
 
-/** One append-only line of `development/journal.jsonl` (`rr-META-012`) — transaction-log-grade, not prose. */
+/** One append-only line of the journal (`development/journal/` shards, legacy `development/journal.jsonl`; `rr-META-012`) — transaction-log-grade, not prose. */
 export interface JournalEntry {
   timestamp: string;
   actor: string;
@@ -302,6 +264,8 @@ export interface JournalFilters {
 export interface WatchUpdate {
   model: ChainModel;
   report: ValidationReport;
+  /** The journal, oldest first, as catalyst serves it. */
+  journal: JournalEntry[];
   proposals: Proposal[];
   runs: Run[];
   users: IamUser[];

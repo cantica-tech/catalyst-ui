@@ -38,9 +38,7 @@ export function AgentWindow({ projectId }: AgentWindowProps) {
 
   async function handleRun() {
     if (!selectedName) return;
-    setError(
-      await window.catalyst.runSlashCommand(projectId, selectedName, args),
-    );
+    setError(await window.catalyst.runSlashCommand(projectId, selectedName, args));
   }
 
   async function handleSend() {
@@ -54,7 +52,9 @@ export function AgentWindow({ projectId }: AgentWindowProps) {
       <div style={{ display: "flex", gap: 8, padding: 8 }}>
         <select
           value={selectedName}
-          onChange={(e) => setSelectedName(e.target.value)}
+          onChange={(e) => {
+            setSelectedName(e.target.value);
+          }}
         >
           <option value="">Select a command…</option>
           {commands.map((cmd) => (
@@ -67,7 +67,9 @@ export function AgentWindow({ projectId }: AgentWindowProps) {
         {selected?.argumentHint ? (
           <input
             value={args}
-            onChange={(e) => setArgs(e.target.value)}
+            onChange={(e) => {
+              setArgs(e.target.value);
+            }}
             placeholder={selected.argumentHint}
           />
         ) : null}
@@ -75,9 +77,7 @@ export function AgentWindow({ projectId }: AgentWindowProps) {
           Run
         </button>
       </div>
-      {error ? (
-        <p style={{ color: "crimson", margin: "0 8px" }}>{error}</p>
-      ) : null}
+      {error ? <p style={{ color: "crimson", margin: "0 8px" }}>{error}</p> : null}
       <pre
         style={{
           flex: 1,
@@ -92,7 +92,9 @@ export function AgentWindow({ projectId }: AgentWindowProps) {
         <input
           style={{ flex: 1 }}
           value={followUp}
-          onChange={(e) => setFollowUp(e.target.value)}
+          onChange={(e) => {
+            setFollowUp(e.target.value);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") void handleSend();
           }}

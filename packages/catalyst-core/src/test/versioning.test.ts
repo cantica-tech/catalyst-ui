@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  compareVersions,
-  parseVersionSpecifier,
-  satisfiesVersionSpecifier,
-} from "../versioning.js";
+import { compareVersions, parseVersionSpecifier, satisfiesVersionSpecifier } from "../versioning.js";
 
 describe("compareVersions", () => {
   it("returns 0 for equal versions", () => {
@@ -75,15 +71,11 @@ describe("parseVersionSpecifier", () => {
   });
 
   it("throws on a specifier with no recognized operator", () => {
-    expect(() => parseVersionSpecifier("0.31.0")).toThrow(
-      /Invalid version specifier/,
-    );
+    expect(() => parseVersionSpecifier("0.31.0")).toThrow(/Invalid version specifier/);
   });
 
   it("throws on an operator with no version", () => {
-    expect(() => parseVersionSpecifier(">=")).toThrow(
-      /Invalid version specifier/,
-    );
+    expect(() => parseVersionSpecifier(">=")).toThrow(/Invalid version specifier/);
   });
 });
 

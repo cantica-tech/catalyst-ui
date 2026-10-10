@@ -17,9 +17,7 @@ function statusOf(node: ChainNode): string | undefined {
 }
 
 function descriptionOf(node: ChainNode): string | undefined {
-  return "description" in node && node.description
-    ? node.description
-    : undefined;
+  return "description" in node && node.description ? node.description : undefined;
 }
 
 /**
@@ -58,9 +56,7 @@ function NodeList({
                   href="#"
                   className={REFERENCE_CLASS}
                   data-ref={n.id}
-                  title={
-                    references?.[n.id] ? hoverText(references[n.id]) : n.title
-                  }
+                  title={references?.[n.id] ? hoverText(references[n.id]) : n.title}
                 >
                   {n.id}
                 </a>
@@ -90,9 +86,7 @@ function SignedOffByDetails({ node }: { node: ChainNode }) {
 
 function RoadmapDetails({ node }: { node: ChainNode }) {
   if (node.kind !== "roadmap") return null;
-  const clean = node.signedOffBy
-    ? node.signedOffBy.replace(/^_+|_+$/g, "")
-    : "";
+  const clean = node.signedOffBy ? node.signedOffBy.replace(/^_+|_+$/g, "") : "";
   return (
     <section>
       <h2>Roadmap</h2>
@@ -120,13 +114,7 @@ function RoadmapDetails({ node }: { node: ChainNode }) {
  * through `renderMarkdown` (raw HTML escaped, unsafe URLs dropped), with
  * the host's CSP as a second layer.
  */
-function DetailsSection({
-  node,
-  references,
-}: {
-  node: ChainNode;
-  references?: Record<string, ReferenceInfo>;
-}) {
+function DetailsSection({ node, references }: { node: ChainNode; references?: Record<string, ReferenceInfo> }) {
   const content = fullContentOf(node);
   if (!content) return null;
   const html = linkifyReferences(renderMarkdown(content), references);
@@ -160,13 +148,7 @@ function ProposalList({ proposals }: { proposals: Proposal[] }) {
  * either host's webview (the roadmap's "one protocol, three packages"
  * decision).
  */
-export function NodeDetail({
-  node,
-  upstream,
-  downstream,
-  openProposals,
-  references,
-}: NodeDetailProps) {
+export function NodeDetail({ node, upstream, downstream, openProposals, references }: NodeDetailProps) {
   const status = statusOf(node);
   return (
     <div>
@@ -181,16 +163,8 @@ export function NodeDetail({
       <RoadmapDetails node={node} />
       <DetailsSection node={node} references={references} />
       <ProposalList proposals={openProposals} />
-      <NodeList
-        title="Justified by (upstream)"
-        nodes={upstream}
-        references={references}
-      />
-      <NodeList
-        title="Produces (downstream)"
-        nodes={downstream}
-        references={references}
-      />
+      <NodeList title="Justified by (upstream)" nodes={upstream} references={references} />
+      <NodeList title="Produces (downstream)" nodes={downstream} references={references} />
     </div>
   );
 }

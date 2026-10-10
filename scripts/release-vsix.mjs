@@ -37,14 +37,10 @@ const opt = (name) => {
 const push = args.includes("--push");
 const publishArg = opt("--publish-dir");
 if (!publishArg) {
-  console.error(
-    "usage: release-vsix.mjs --publish-dir <dir> [--push [--tag <tag>]] [--kernel-version <range>]",
-  );
+  console.error("usage: release-vsix.mjs --publish-dir <dir> [--push [--tag <tag>]] [--kernel-version <range>]");
   process.exit(2);
 }
-const publishDir = resolve(
-  publishArg.replace(/^~(?=\/|$)/, process.env.HOME ?? "~"),
-);
+const publishDir = resolve(publishArg.replace(/^~(?=\/|$)/, process.env.HOME ?? "~"));
 if (!existsSync(publishDir)) {
   console.error(`publish directory not found: ${publishDir}`);
   process.exit(1);
@@ -54,20 +50,16 @@ const git = (cwd, ...a) =>
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-const readPkg = (base) =>
-  JSON.parse(readFileSync(join(extDir(base), "package.json"), "utf8"));
+const readPkg = (base) => JSON.parse(readFileSync(join(extDir(base), "package.json"), "utf8"));
 
 let source = root; // the tree the .vsix comes from
 let worktree;
 if (push) {
   const version = readPkg(root).version;
   const tags = git(root, "tag", "--list").split("\n");
-  const tag =
-    opt("--tag") ?? [`v${version}`, version].find((t) => tags.includes(t));
+  const tag = opt("--tag") ?? [`v${version}`, version].find((t) => tags.includes(t));
   if (!tag || !tags.includes(tag)) {
-    console.error(
-      `No release tag for ${opt("--tag") ?? version} — cut the release first (or pass --tag <tag>).`,
-    );
+    console.error(`No release tag for ${opt("--tag") ?? version} — cut the release first (or pass --tag <tag>).`);
     process.exit(1);
   }
   worktree = mkdtempSync(join(tmpdir(), "release-vsix-"));
@@ -75,8 +67,7 @@ if (push) {
   git(root, "worktree", "add", "--detach", worktree, tag);
   source = worktree;
   try {
-    const run = (cmd, a, cwd) =>
-      execFileSync(cmd, a, { cwd, stdio: ["ignore", "inherit", "inherit"] });
+    const run = (cmd, a, cwd) => execFileSync(cmd, a, { cwd, stdio: ["ignore", "inherit", "inherit"] });
     run("npm", ["ci", "--no-audit", "--no-fund"], worktree);
     run("npm", ["run", "typecheck"], worktree); // builds every workspace (project references)
     run("npm", ["run", "package"], extDir(worktree));
@@ -132,34 +123,24 @@ const manifest = {
   vscode: pkg.engines?.vscode,
   file: fileName,
 };
-writeFileSync(
-  join(dest, "manifest.json"),
-  JSON.stringify(manifest, null, 2) + "\n",
-);
-console.log(
-  `Copied ${pkg.name} v${pkg.version} (kernel ${kernelVersion}) -> ${dest}`,
-);
+writeFileSync(join(dest, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+console.log(`Copied ${pkg.name} v${pkg.version} (kernel ${kernelVersion}) -> ${dest}`);
 
 // README: one row per release, newest first.
 const cmp = (a, b) => {
   const pa = a.slice(1).split(".").map(Number),
     pb = b.slice(1).split(".").map(Number);
-  for (let i = 0; i < 3; i++)
-    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pb[i] ?? 0) - (pa[i] ?? 0);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pb[i] ?? 0) - (pa[i] ?? 0);
   return 0;
 };
 const rows = readdirSync(vsixRoot)
   .filter(
     (d) =>
-      /^v\d/.test(d) &&
-      statSync(join(vsixRoot, d)).isDirectory() &&
-      existsSync(join(vsixRoot, d, "manifest.json")),
+      /^v\d/.test(d) && statSync(join(vsixRoot, d)).isDirectory() && existsSync(join(vsixRoot, d, "manifest.json")),
   )
   .sort(cmp)
   .map((d) => {
-    const m = JSON.parse(
-      readFileSync(join(vsixRoot, d, "manifest.json"), "utf8"),
-    );
+    const m = JSON.parse(readFileSync(join(vsixRoot, d, "manifest.json"), "utf8"));
     const file = m.file ?? `${m.id}-${d}.vsix`;
     return `| \`${d}\` | \`${m.kernelVersion ?? "*"}\` | [\`${d}/manifest.json\`](${d}/manifest.json) | [\`${d}/${file}\`](${d}/${file}) | ${m.name} |`;
   });
@@ -184,12 +165,7 @@ writeFileSync(
 if (push) {
   git(publishDir, "add", "catalyst/vsix");
   if (git(publishDir, "status", "--porcelain", "catalyst/vsix")) {
-    git(
-      publishDir,
-      "commit",
-      "-m",
-      `Deploy release: ${pkg.name} v${pkg.version}`,
-    );
+    git(publishDir, "commit", "-m", `Deploy release: ${pkg.name} v${pkg.version}`);
     git(publishDir, "push", "origin", "main");
     console.log(`Committed and pushed from ${publishDir}`);
   } else {

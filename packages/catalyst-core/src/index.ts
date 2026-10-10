@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.38.0";
+export const VERSION = "0.39.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -20,18 +20,15 @@ export {
   resolveParticipant,
   type AgentPreset,
 } from "./agent-bridge.js";
-export {
-  isAllowedAgentId,
-  resolveAgentCommand,
-  resolveAgentLaunch,
-} from "./agent-launch.js";
+export { isAllowedAgentId, resolveAgentCommand, resolveAgentLaunch } from "./agent-launch.js";
 export type { AgentLaunch } from "./agent-launch.js";
 export {
+  commandNames,
   discoverSlashCommands,
+  parseSection4Commands,
   type SlashCommandSpec,
 } from "./commands-discovery.js";
 export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
-export { buildChainModel } from "./graph.js";
 export {
   claudeCodeStoragePath,
   hasCatalystPointer,
@@ -58,24 +55,12 @@ export {
   joinCriterionRepo,
   repoNameFromUrl,
   writeCatalystPointer,
+  writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
-export { parseJournal, queryJournal } from "./journal.js";
-export {
-  cleanRuleTitle,
-  extractSlugFromRuleId,
-  parseCorpus,
-  parseRuleDocument,
-  parseDomainsIndex,
-} from "./parser.js";
-export {
-  parseProposals,
-  nextProposalId,
-  openProposalsByTarget,
-} from "./proposals.js";
+export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
 export { parseRuns, hasDrift } from "./runs.js";
-export { composeSlashCommand } from "./slash-command.js";
-export { validate } from "./validator.js";
+export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export {
   compareVersions,
   parseVersionSpecifier,
@@ -105,7 +90,30 @@ export {
   type ArtifactSourceLocation,
   type RemoteModuleInfo,
 } from "./remote-module-store.js";
-export { watchCorpus } from "./watcher.js";
-export type { WatcherHandle } from "./watcher.js";
 
 export * from "./workspace.js";
+export {
+  PROJECT_FILE,
+  catalystHome,
+  findProjectFile,
+  hasProjectFile,
+  homeCriterion,
+  parseProjectToml,
+  projectName,
+  readProjectFile,
+} from "./project-file.js";
+export { coerceJournal, queryJournal } from "./journal.js";
+export { bulletItems, cleanRuleTitle, extractSlugFromRuleId, parseFieldTable, sectionLines } from "./markdown.js";
+export {
+  CATALYST_SERVE_FLOOR,
+  type CatalystCheck,
+  type CatalystGraph,
+  type CatalystServer,
+  type WatcherHandle,
+  modelFromGraph,
+  readThroughCatalyst,
+  reportFromCheck,
+  startLocalServe,
+  watchCatalyst,
+  watchProject,
+} from "./catalyst-source.js";

@@ -2,12 +2,7 @@ import { cleanRuleTitle, type ChainModel, type ChainNode } from "catalyst-core";
 
 export function getNodeUser(node: ChainNode): string | undefined {
   let user: string | undefined;
-  if (
-    node.kind === "dev-artifact" ||
-    node.kind === "feature" ||
-    node.kind === "rule" ||
-    node.kind === "step"
-  ) {
+  if (node.kind === "dev-artifact" || node.kind === "feature" || node.kind === "rule" || node.kind === "step") {
     user = node.signedOffBy || undefined;
   } else if (node.kind === "roadmap") {
     user = node.signedOffBy || undefined;
@@ -17,16 +12,10 @@ export function getNodeUser(node: ChainNode): string | undefined {
 }
 
 export function getNodeStatusGlyph(node: ChainNode): string {
-  const isBug =
-    (node.kind === "dev-artifact" && node.artifactType === "bug") ||
-    node.id.startsWith("BUG-");
+  const isBug = (node.kind === "dev-artifact" && node.artifactType === "bug") || node.id.startsWith("BUG-");
 
   if (isBug) {
-    const s = (
-      "status" in node && typeof node.status === "string" ? node.status : ""
-    )
-      .toLowerCase()
-      .trim();
+    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
     const isClosed =
       s.includes("fixed") ||
       s.includes("closed") ||
@@ -43,15 +32,9 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     }
   }
 
-  const isTest =
-    (node.kind === "dev-artifact" && node.artifactType === "test") ||
-    node.id.startsWith("TEST-");
+  const isTest = (node.kind === "dev-artifact" && node.artifactType === "test") || node.id.startsWith("TEST-");
   if (isTest) {
-    const s = (
-      "status" in node && typeof node.status === "string" ? node.status : ""
-    )
-      .toLowerCase()
-      .trim();
+    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
     if (s.includes("passing")) return "✅ ";
     if (s.includes("failing")) return "❌ ";
     if (s.includes("blocked")) return "⚠️ ";
@@ -60,11 +43,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
 
   const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
   if (isRoadmap) {
-    const s = (
-      "status" in node && typeof node.status === "string" ? node.status : ""
-    )
-      .toLowerCase()
-      .trim();
+    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
 
     const isDone =
       s.includes("done") ||
@@ -96,24 +75,16 @@ export function getNodeStatusGlyph(node: ChainNode): string {
   // yet, or abandoned — from the statuses their entity definitions allow
   // (and the legacy values older artifacts still carry).
   const isRequirement =
-    (node.kind === "dev-artifact" && node.artifactType === "requirement") ||
-    node.id.startsWith("REQ-");
+    (node.kind === "dev-artifact" && node.artifactType === "requirement") || node.id.startsWith("REQ-");
   const isFeature = node.kind === "feature" || node.id.startsWith("FEAT-");
   if (isRequirement || isFeature) {
-    const s = (
-      "status" in node && typeof node.status === "string" ? node.status : ""
-    )
+    const s = ("status" in node && typeof node.status === "string" ? node.status : "")
       .toLowerCase()
       .replace(/[`*_]/g, "")
       .trim();
-    if (/\b(completed|done|shipped|implemented)\b/.test(s) || s.includes("✅"))
-      return "✅ ";
+    if (/\b(completed|done|shipped|implemented)\b/.test(s) || s.includes("✅")) return "✅ ";
     if (/\b(abandoned|wontfix)\b/.test(s) || s.includes("🗑")) return "🗑 ";
-    if (
-      /\b(active|in[- _]?progress|in[- _]?development)\b/.test(s) ||
-      s.includes("⏳")
-    )
-      return "⏳ ";
+    if (/\b(active|in[- _]?progress|in[- _]?development)\b/.test(s) || s.includes("⏳")) return "⏳ ";
     return "… "; // draft, proposed, vetted, triaged, or none yet
   }
 
@@ -148,21 +119,12 @@ export function getNodeStatusGlyph(node: ChainNode): string {
     ) {
       return "❌ ";
     }
-    if (
-      s.includes("working") ||
-      s.includes("implemented") ||
-      s.includes("fixed") ||
-      node.status.includes("✅")
-    ) {
+    if (s.includes("working") || s.includes("implemented") || s.includes("fixed") || node.status.includes("✅")) {
       return "✅ ";
     }
   }
 
-  const titleLower = (
-    (node.name ?? "") +
-    " " +
-    (node.title ?? "")
-  ).toLowerCase();
+  const titleLower = ((node.name ?? "") + " " + (node.title ?? "")).toLowerCase();
   if (
     titleLower.includes("not implemented") ||
     titleLower.includes("unimplemented") ||
@@ -183,7 +145,7 @@ export function getNodeStatusGlyph(node: ChainNode): string {
 export function formatNodeLabel(node: ChainNode): string {
   const idRegex =
     /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?|[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
-  const match = node.id.match(idRegex);
+  const match = idRegex.exec(node.id);
 
   let idWithoutUserid = node.id;
   let slugFromId: string | undefined;
@@ -192,10 +154,7 @@ export function formatNodeLabel(node: ChainNode): string {
     idWithoutUserid = match[1];
     slugFromId = match[2];
   } else {
-    idWithoutUserid = node.id.replace(
-      /-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/,
-      "",
-    );
+    idWithoutUserid = node.id.replace(/-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/, "");
   }
 
   let rawName = node.name ?? node.title;
@@ -208,12 +167,8 @@ export function formatNodeLabel(node: ChainNode): string {
     rawName.startsWith(node.id) ||
     cleanedName === node.id ||
     cleanedName.startsWith(node.id) ||
-    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(
-      rawName.trim(),
-    ) ||
-    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(
-      cleanedName.trim(),
-    )
+    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(rawName.trim()) ||
+    /^(?:working|not implemented|not-implemented|unimplemented|implemented|fixed)$/i.test(cleanedName.trim())
   ) {
     rawName = slugFromId ? slugFromId.replace(/-/g, " ") : idWithoutUserid;
   } else {
@@ -261,8 +216,7 @@ export function formatNodeLabel(node: ChainNode): string {
  * excludes it) — one place to look for every step, never a duplicate
  * listing.
  */
-export type DevArtifactSectionKind =
-  "requirement" | "bug" | "house-keeping" | "step" | "test";
+export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping" | "step" | "test";
 export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
 
 export interface TreeSection {
@@ -305,13 +259,7 @@ const SECTION_LABELS: Record<TreeSectionKind, string> = {
   feature: "Features",
 };
 
-const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = [
-  "requirement",
-  "bug",
-  "house-keeping",
-  "step",
-  "test",
-];
+const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = ["requirement", "bug", "house-keeping", "step", "test"];
 
 const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature"];
 

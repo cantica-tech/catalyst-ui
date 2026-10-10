@@ -17,8 +17,7 @@ declare global {
 /** VS Code's webview API — callable once; absent outside a VS Code webview. */
 declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
 
-const host =
-  typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
+const host = typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 
 /**
  * A click on an entity reference (`REQ-000014-UVqkd7cL`) asks the host to
@@ -56,12 +55,7 @@ if (container) {
         case "journal":
           return <Journal entries={payload.entries} />;
         case "backlog":
-          return (
-            <Backlog
-              markdown={payload.markdown}
-              references={payload.references}
-            />
-          );
+          return <Backlog markdown={payload.markdown} references={payload.references} />;
       }
     })();
 

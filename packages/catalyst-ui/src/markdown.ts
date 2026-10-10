@@ -18,12 +18,7 @@ import { Marked, type Tokens } from "marked";
  */
 
 const escapeHtml = (s: string): string =>
-  s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const ALLOWED_SCHEMES = new Set(["http", "https", "mailto"]);
 
@@ -68,5 +63,5 @@ const md = new Marked({
 
 /** Markdown to HTML with raw HTML escaped and unsafe URLs dropped. */
 export function renderMarkdown(markdown: string): string {
-  return md.parse(markdown, { async: false }) as string;
+  return md.parse(markdown, { async: false });
 }

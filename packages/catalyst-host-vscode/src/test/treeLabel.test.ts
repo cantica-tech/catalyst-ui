@@ -23,10 +23,7 @@ describe("formatNodeLabel", () => {
       name: "Password Reset Flow",
       signedOffBy: "Olivier Steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "… Password Reset Flow [REQ-000001 - Olivier Steck]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "… Password Reset Flow [REQ-000001 - Olivier Steck]");
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
 
@@ -36,10 +33,7 @@ describe("formatNodeLabel", () => {
       kind: "dev-artifact",
       name: "Password Reset Flow",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "… Password Reset Flow [REQ-000001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "… Password Reset Flow [REQ-000001]");
     assert.strictEqual(getNodeUser(n), undefined);
   });
 
@@ -50,10 +44,7 @@ describe("formatNodeLabel", () => {
       title: "Password Reset Flow Title",
       signedOffBy: "Olivier Steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "… Password Reset Flow Title [REQ-000001 - Olivier Steck]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "… Password Reset Flow Title [REQ-000001 - Olivier Steck]");
     assert.strictEqual(getNodeUser(n), "Olivier Steck");
   });
 
@@ -74,10 +65,7 @@ describe("formatNodeLabel", () => {
       name: "Splash-first boot-flow",
       status: "✅",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ Splash first boot flow [ui-BOOT-001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ Splash first boot flow [ui-BOOT-001]");
   });
 
   it("formats working rule with embedded userid and slug suffix correctly", () => {
@@ -87,10 +75,7 @@ describe("formatNodeLabel", () => {
       status: "✅",
       signedOffBy: "olivier steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ github actions on push [env-CI-000001 - olivier steck]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ github actions on push [env-CI-000001 - olivier steck]");
   });
 
   it("formats not implemented rule with embedded userid and slug suffix correctly", () => {
@@ -100,10 +85,7 @@ describe("formatNodeLabel", () => {
       status: "❌",
       signedOffBy: "olivier steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "❌ telemetry log correlation [cor-CORE-000001 - olivier steck]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "❌ telemetry log correlation [cor-CORE-000001 - olivier steck]");
   });
 
   it("cleans dirty status strings like '✅ working' from node name and falls back to slug", () => {
@@ -115,10 +97,7 @@ describe("formatNodeLabel", () => {
       status: "✅ working",
       signedOffBy: "olivier steck",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ github actions on push [env-CI-000001 - olivier steck]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ github actions on push [env-CI-000001 - olivier steck]");
   });
 
   it("strips status prefix from name when name contains both status and descriptive title", () => {
@@ -129,10 +108,7 @@ describe("formatNodeLabel", () => {
       title: "✅ working github actions on push",
       status: "✅ working",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ github actions on push [env-CI-000001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ github actions on push [env-CI-000001]");
   });
 
   it("formats an open bug with 🐛 preceding its name and id", () => {
@@ -143,10 +119,7 @@ describe("formatNodeLabel", () => {
       name: "Fluent Bit TCP output format raw unrecognized",
       status: "open",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "🐛 Fluent Bit TCP output format raw unrecognized [BUG-000001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "🐛 Fluent Bit TCP output format raw unrecognized [BUG-000001]");
   });
 
   it("formats an in-progress bug with 🐛 preceding its name and id", () => {
@@ -157,10 +130,7 @@ describe("formatNodeLabel", () => {
       name: "Catalog missing column migration",
       status: "in-progress",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "🐛 Catalog missing column migration [BUG-000002]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "🐛 Catalog missing column migration [BUG-000002]");
   });
 
   it("formats a fixed bug with ✅ status glyph rather than 🐛", () => {
@@ -171,10 +141,7 @@ describe("formatNodeLabel", () => {
       name: "Childless root sump not correlatable",
       status: "fixed",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ Childless root sump not correlatable [BUG-000003]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ Childless root sump not correlatable [BUG-000003]");
   });
 
   it("formats a finished roadmap item with ✅ status glyph", () => {
@@ -215,10 +182,7 @@ describe("formatNodeLabel", () => {
       name: "Parser round trip",
       status: "passing",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "✅ Parser round trip [TEST-000001]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "✅ Parser round trip [TEST-000001]");
   });
 
   it("formats a failing test with ❌ status glyph", () => {
@@ -229,10 +193,7 @@ describe("formatNodeLabel", () => {
       name: "Auth token expiry",
       status: "failing",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "❌ Auth token expiry [TEST-000002]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "❌ Auth token expiry [TEST-000002]");
   });
 
   it("formats a blocked test with ⚠️ status glyph", () => {
@@ -243,10 +204,7 @@ describe("formatNodeLabel", () => {
       name: "Migration rollback",
       status: "blocked",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "⚠️ Migration rollback [TEST-000003]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "⚠️ Migration rollback [TEST-000003]");
   });
 
   it("formats a proposed test with … status glyph", () => {
@@ -257,10 +215,7 @@ describe("formatNodeLabel", () => {
       name: "Exploratory smoke test",
       status: "proposed",
     });
-    assert.strictEqual(
-      formatNodeLabel(n),
-      "… Exploratory smoke test [TEST-000004]",
-    );
+    assert.strictEqual(formatNodeLabel(n), "… Exploratory smoke test [TEST-000004]");
   });
 
   describe("requirement and feature status (implemented / in progress / not yet / abandoned)", () => {
@@ -270,15 +225,13 @@ describe("formatNodeLabel", () => {
         id: "REQ-000001-Ab3xR9pQ",
         title: "Login",
         status,
-      } as Partial<ChainNode> & { id: string });
+      });
     const feat = (status: string) =>
       node({
         id: "FEAT-000001-Ab3xR9pQ",
         kind: "feature",
         title: "Login",
         status,
-      } as Partial<ChainNode> & {
-        id: string;
       });
 
     it("marks an implemented requirement or feature ✅", () => {

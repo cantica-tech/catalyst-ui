@@ -1,4 +1,5 @@
 {
+  "extends": "./.standards/tsconfig.strict.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "NodeNext",
@@ -9,6 +10,8 @@
     "composite": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // Ratchet (2026-10-09, standards v0.1.0): 126 unchecked index accesses predate the standard; true once fixed.
+    "noUncheckedIndexedAccess": false
   }
 }

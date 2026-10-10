@@ -1,4 +1,0 @@
-[submodule ".criterion"]
-	path = .criterion
-	url = git@github.com:cantica-tech/catalyst-ui-criterion.git
-	branch = criterion

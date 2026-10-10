@@ -187,6 +187,7 @@ cantica-tech/catalyst/
 | Date       | Release            | What it published                                                                                                                                                               |
 | ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-10-08 | catalyst UI 0.38.0 | Hardened Electron host, sanitised Markdown, validator aligned with the kernel; works with kernel >=0.46.0                                                                       |
+| 2026-10-11 | catalyst UI 0.39.0 | Reads every project through catalyst serve (graph, check, journal, events); the old parser removed; starts in a catalyst project; works with kernel >=0.54.0                    |
 | 2026-10-02 | catalyst UI 0.37.2 | One "not yet" marker in the chain tree: … for requirements, features, steps, tests and roadmap items                                                                            |
 | 2026-10-02 | catalyst UI 0.37.1 | Requirement and feature status markers: ✅ implemented, ⏳ in progress, ⃠ not implemented yet, 🗑 abandoned                                                                      |
 | 2026-10-02 | catalyst UI 0.37.0 | One chain inspector panel per deployment; the entity a panel shows is tracked in the tree; Journal/Backlog entries; no duplicate artifacts                                      |

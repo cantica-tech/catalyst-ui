@@ -6,12 +6,17 @@ on:
     branches:
       - development
 
+permissions:
+  contents: read
+
 jobs:
   lint-typecheck-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
       - run: npm ci
@@ -21,26 +26,32 @@ jobs:
       - run: npm test
 
   catalyst-trace:
-    # Every new commit cites an artifact or rule ID of the catalyst deployment
-    # (the .criterion submodule), or is marked `chore:`.
+    # Every new commit cites an artifact or rule ID of the catalyst deployment,
+    # or is marked `chore:`. The criterion is its own (private) repository,
+    # named in catalyst.toml: cloned into this job's own catalyst home.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           fetch-depth: 0
-      - name: Check out the .criterion submodule (private, read-only deploy key)
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Clone the criterion (private, read-only deploy key)
         env:
           CRITERION_DEPLOY_KEY: ${{ secrets.CRITERION_DEPLOY_KEY }}
         run: |
+          export CATALYST_HOME="$RUNNER_TEMP/catalyst"
+          echo "CATALYST_HOME=$CATALYST_HOME" >> "$GITHUB_ENV"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$CRITERION_DEPLOY_KEY" > ~/.ssh/criterion
           chmod 600 ~/.ssh/criterion
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          read -r name url branch < <(python3 -c 'import tomllib; d = tomllib.load(open("catalyst.toml", "rb")); print(d["project_name"], d["catalyst_repo_url"], d.get("criterion_branch") or "criterion")')
           GIT_SSH_COMMAND="ssh -i ~/.ssh/criterion -o IdentitiesOnly=yes" \
-            git submodule update --init .criterion
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+            git clone -q -b "$branch" "$url" "$CATALYST_HOME/projects/$name/criterion"
+          echo "CATALYST_CLI=$CATALYST_HOME/projects/$name/criterion/bin/catalyst.pyz" >> "$GITHUB_ENV"
       - name: catalyst trace
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -50,4 +61,4 @@ jobs:
           else
             range="${{ github.sha }}~1..${{ github.sha }}"
           fi
-          python3 .criterion/bin/catalyst.pyz trace "$range"
+          python3 "$CATALYST_CLI" trace "$range"

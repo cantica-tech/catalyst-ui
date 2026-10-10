@@ -66,10 +66,7 @@ describe("id patterns", () => {
 describe("extractIds", () => {
   it("returns every match of a global regex in order", () => {
     const text = "targets `env-RUNTIME-001` and `core-CONTRACT-001`";
-    expect(extractIds(text, BACKTICK_RULE_ID_RE)).toEqual([
-      "env-RUNTIME-001",
-      "core-CONTRACT-001",
-    ]);
+    expect(extractIds(text, BACKTICK_RULE_ID_RE)).toEqual(["env-RUNTIME-001", "core-CONTRACT-001"]);
   });
 
   it("returns an empty array when nothing matches", () => {
@@ -79,11 +76,8 @@ describe("extractIds", () => {
 
 describe("collectIdReferences", () => {
   it("collects rule, dev-artifact, and feature ids from free text", () => {
-    const text =
-      "Targeted by `REQ-000001`, backed by `env-RUNTIME-001`, part of `FEAT-000001`.";
-    expect(collectIdReferences(text).sort()).toEqual(
-      ["FEAT-000001", "REQ-000001", "env-RUNTIME-001"].sort(),
-    );
+    const text = "Targeted by `REQ-000001`, backed by `env-RUNTIME-001`, part of `FEAT-000001`.";
+    expect(collectIdReferences(text).sort()).toEqual(["FEAT-000001", "REQ-000001", "env-RUNTIME-001"].sort());
   });
 
   it("collects a roadmap id, e.g. a feature's own `Roadmap` field citation", () => {

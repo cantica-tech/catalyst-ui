@@ -1,37 +1,16 @@
-import {
-  existsSync,
-  lstatSync,
-  readFileSync,
-  readdirSync,
-  readlinkSync,
-  statSync,
-} from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { KERNEL_VERSION_FLOOR } from "./kernel-version.js";
-import { parseFieldTable, sectionLines } from "./parser.js";
+import { parseFieldTable, sectionLines } from "./markdown.js";
+import { homeCriterion, projectName, readProjectFile } from "./project-file.js";
 import type { CatalystPointer } from "./types.js";
 import { satisfiesVersionSpecifier } from "./versioning.js";
 
-/** Parses the `*.catalyst` pointer file at a project's root, if any. `null` if there's no such file or it isn't well-formed JSON. */
+/** The project file at a project's root (`catalyst.toml`, else a legacy `*.catalyst` pointer), if any. `null` if there's no such file or it can't be parsed. */
 function readPointerFile(projectRoot: string): CatalystPointer | null {
-  if (!existsSync(projectRoot)) return null;
-
-  const pointerFile = readdirSync(projectRoot).find((name) =>
-    name.endsWith(".catalyst"),
-  );
-  if (!pointerFile) return null;
-
-  try {
-    const pointer: unknown = JSON.parse(
-      readFileSync(join(projectRoot, pointerFile), "utf8"),
-    );
-    if (typeof pointer !== "object" || pointer === null) return null;
-    return pointer as CatalystPointer;
-  } catch {
-    return null;
-  }
+  return readProjectFile(projectRoot) as CatalystPointer | null;
 }
 
 function expandPath(pathStr: string, projectRoot: string): string {
@@ -87,7 +66,11 @@ function isDirectory(path: string): boolean {
  * project's working copy.
  */
 export function resolveCorpusRoot(projectRoot: string): string | null {
-  // 1. <projectRoot>/.criterion (symlink followed, or real dir)
+  // 0. The home store (kernel ADR-010): <catalyst home>/projects/<name>/criterion
+  const name = projectName(readProjectFile(projectRoot));
+  if (name && isDirectory(homeCriterion(name))) return homeCriterion(name);
+
+  // 1. Legacy <projectRoot>/.criterion (symlink followed, or real dir)
   const inProject = join(projectRoot, ".criterion");
   if (isDirectory(inProject)) return inProject;
 
@@ -111,9 +94,7 @@ export function resolveCorpusRoot(projectRoot: string): string | null {
  * (`repoed`, `catalyst_repo`, `catalyst_repo_url`, `criterion_branch`,
  * `created_by`). `null` under the same conditions as `resolveCorpusRoot`.
  */
-export function readCatalystPointer(
-  projectRoot: string,
-): CatalystPointer | null {
+export function readCatalystPointer(projectRoot: string): CatalystPointer | null {
   return readPointerFile(projectRoot);
 }
 
@@ -165,9 +146,7 @@ export const REQUIRED_KERNEL_VERSION = `>=${KERNEL_VERSION_FLOOR}`;
  * e.g. a missing/unreadable `version.txt`) is treated as satisfying it —
  * "can't safely compare" must never itself become a false failure.
  */
-export function meetsRequiredKernelVersion(
-  deployedVersion: string | null,
-): boolean {
+export function meetsRequiredKernelVersion(deployedVersion: string | null): boolean {
   if (!deployedVersion) return true;
   return satisfiesVersionSpecifier(deployedVersion, REQUIRED_KERNEL_VERSION);
 }
@@ -207,9 +186,7 @@ export function readEntityDefinition(
  * `.criterion` at all, and no fallback).
  */
 export type WorkingCopyState =
-  | { state: "reachable"; path: string }
-  | { state: "dangling"; target: string }
-  | { state: "missing" };
+  { state: "reachable"; path: string } | { state: "dangling"; target: string } | { state: "missing" };
 
 export function workingCopyState(projectRoot: string): WorkingCopyState {
   const resolved = resolveCorpusRoot(projectRoot);

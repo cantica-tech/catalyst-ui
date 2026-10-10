@@ -52,9 +52,7 @@ describe("GraphView", () => {
   });
 
   it("renders an empty layout without throwing", () => {
-    const html = renderToStaticMarkup(
-      GraphView({ layout: { nodes: [], edges: [] } }),
-    );
+    const html = renderToStaticMarkup(GraphView({ layout: { nodes: [], edges: [] } }));
     expect(html).toContain("<svg");
   });
 });

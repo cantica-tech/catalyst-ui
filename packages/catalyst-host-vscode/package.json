@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -27,9 +27,14 @@
     "vscode": "^1.85.0"
   },
   "catalyst": {
-    "kernelVersion": ">=0.46.0"
+    "kernelVersion": ">=0.54.0"
   },
   "main": "dist/extension.js",
+  "activationEvents": [
+    "workspaceContains:catalyst.toml",
+    "workspaceContains:*.catalyst",
+    "workspaceContains:*/catalyst.toml"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [

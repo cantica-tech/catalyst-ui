@@ -1,10 +1,4 @@
-import type {
-  ChainNode,
-  DevArtifactNode,
-  RoadmapNode,
-  RuleNode,
-  StepNode,
-} from "catalyst-core";
+import type { ChainNode, DevArtifactNode, RoadmapNode, RuleNode, StepNode } from "catalyst-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -22,7 +16,7 @@ function rule(overrides: Partial<RuleNode> & { id: string }): ChainNode {
     description: "",
     references: [],
     ...overrides,
-  } as ChainNode;
+  };
 }
 
 function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
@@ -39,7 +33,7 @@ function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
     content: "",
     references: [],
     ...overrides,
-  } as ChainNode;
+  };
 }
 
 function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
@@ -55,7 +49,7 @@ function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
     content: "",
     references: [],
     ...overrides,
-  } as ChainNode;
+  };
 }
 
 function roadmap(overrides: Partial<RoadmapNode> & { id: string }): ChainNode {
@@ -71,7 +65,7 @@ function roadmap(overrides: Partial<RoadmapNode> & { id: string }): ChainNode {
     notes: "",
     references: [],
     ...overrides,
-  } as ChainNode;
+  };
 }
 
 describe("NodeDetail", () => {
@@ -119,9 +113,7 @@ describe("NodeDetail", () => {
           title: "Core parser",
         }),
         upstream: [],
-        downstream: [
-          step({ id: "STEP-000001", title: "Wire up the tokenizer" }),
-        ],
+        downstream: [step({ id: "STEP-000001", title: "Wire up the tokenizer" })],
         openProposals: [],
       }),
     );
@@ -236,9 +228,7 @@ describe("NodeDetail", () => {
       }),
     );
 
-    const paragraphDelta =
-      withDescription.split("<p>").length -
-      withoutDescription.split("<p>").length;
+    const paragraphDelta = withDescription.split("<p>").length - withoutDescription.split("<p>").length;
     expect(paragraphDelta).toBe(1);
     expect(withoutDescription).not.toContain("Some text.");
   });
@@ -288,8 +278,7 @@ describe("NodeDetail", () => {
         node: bug({
           id: "BUG-000001",
           description: "Short summary.",
-          content:
-            "## Description\n\nShort summary.\n\n## Fix plan\n\nRevert the change.",
+          content: "## Description\n\nShort summary.\n\n## Fix plan\n\nRevert the change.",
         }),
         upstream: [],
         downstream: [],
@@ -325,8 +314,7 @@ describe("NodeDetail entity references (REQ-000014)", () => {
       NodeDetail({
         node: bug({
           id: "BUG-000001-Ab3xR9pQ",
-          content:
-            "Breaks `env-RUNTIME-000001-Ab3xR9pQ`.\n\n```\nenv-RUNTIME-000001-Ab3xR9pQ\n```",
+          content: "Breaks `env-RUNTIME-000001-Ab3xR9pQ`.\n\n```\nenv-RUNTIME-000001-Ab3xR9pQ\n```",
         }),
         upstream: [target],
         downstream: [],

@@ -17,12 +17,8 @@ declare global {
 
 function App() {
   const [projects, setProjects] = useState<TrackedProject[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
-  const [layoutsByProject, setLayoutsByProject] = useState<
-    Record<string, GraphLayout>
-  >({});
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [layoutsByProject, setLayoutsByProject] = useState<Record<string, GraphLayout>>({});
   const [detail, setDetail] = useState<NodeDetailPayload | null>(null);
 
   useEffect(() => {
@@ -45,9 +41,7 @@ function App() {
     setDetail(await window.catalyst.getNodeDetail(selectedProjectId, nodeId));
   }
 
-  const layout = selectedProjectId
-    ? layoutsByProject[selectedProjectId]
-    : undefined;
+  const layout = selectedProjectId ? layoutsByProject[selectedProjectId] : undefined;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
@@ -57,7 +51,11 @@ function App() {
           <ul>
             {projects.map((project) => (
               <li key={project.id}>
-                <button onClick={() => setSelectedProjectId(project.id)}>
+                <button
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                  }}
+                >
                   {project.projectRoot}
                 </button>
               </li>
@@ -66,10 +64,7 @@ function App() {
         </nav>
         <main style={{ flex: 1, overflow: "auto" }}>
           {layout ? (
-            <GraphView
-              layout={layout}
-              onSelectNode={(id) => void handleSelectNode(id)}
-            />
+            <GraphView layout={layout} onSelectNode={(id) => void handleSelectNode(id)} />
           ) : (
             <p>Select a project.</p>
           )}
@@ -91,9 +86,7 @@ function App() {
         {selectedProjectId ? (
           <AgentWindow projectId={selectedProjectId} />
         ) : (
-          <p style={{ margin: 8 }}>
-            Select a project to run catalyst commands.
-          </p>
+          <p style={{ margin: 8 }}>Select a project to run catalyst commands.</p>
         )}
       </div>
     </div>

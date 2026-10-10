@@ -52,18 +52,13 @@ export function parseVersionSpecifier(specifier: string): VersionSpecifier {
   }
   const version = trimmed.slice(operator.length).trim();
   if (!version) {
-    throw new Error(
-      `Invalid version specifier "${specifier}" — no version after "${operator}".`,
-    );
+    throw new Error(`Invalid version specifier "${specifier}" — no version after "${operator}".`);
   }
   return { operator, version };
 }
 
 /** Whether `version` satisfies one specifier clause (see `parseVersionSpecifier`). */
-export function satisfiesVersionSpecifier(
-  version: string,
-  specifier: string,
-): boolean {
+export function satisfiesVersionSpecifier(version: string, specifier: string): boolean {
   const { operator, version: bound } = parseVersionSpecifier(specifier);
   const cmp = compareVersions(version, bound);
   switch (operator) {
@@ -87,10 +82,7 @@ export function satisfiesVersionSpecifier(
  * such as `">=0.33.0"`, `">=0.1.0, <1.0.0"`, `"==0.33.0"`, or `"~=0.33.0"`.
  * Supports multi-clause comma-separated specifiers.
  */
-export function satisfiesUvVersionSpecifier(
-  kernelVersion: string,
-  specifierString: string,
-): boolean {
+export function satisfiesUvVersionSpecifier(kernelVersion: string, specifierString: string): boolean {
   const trimmed = specifierString.trim();
   if (!trimmed || trimmed === "*") return true;
 
@@ -102,17 +94,12 @@ export function satisfiesUvVersionSpecifier(
   return clauses.every((clause) => {
     if (clause.startsWith("~=")) {
       const baseVersion = clause.slice(2).trim();
-      const parts = baseVersion
-        .split(".")
-        .map((p) => Number.parseInt(p, 10) || 0);
+      const parts = baseVersion.split(".").map((p) => Number.parseInt(p, 10) || 0);
       if (parts.length >= 2) {
         const nextParts = [...parts];
         nextParts[nextParts.length - 2] += 1;
         const upperLimit = nextParts.slice(0, -1).join(".");
-        return (
-          compareVersions(kernelVersion, baseVersion) >= 0 &&
-          compareVersions(kernelVersion, upperLimit) < 0
-        );
+        return compareVersions(kernelVersion, baseVersion) >= 0 && compareVersions(kernelVersion, upperLimit) < 0;
       }
       return compareVersions(kernelVersion, baseVersion) >= 0;
     }

@@ -11,13 +11,13 @@ import { compareVersions } from "./versioning.js";
  */
 
 /** Oldest kernel this build parses correctly. */
-export const KERNEL_VERSION_FLOOR = "0.46.0";
+export const KERNEL_VERSION_FLOOR = "0.54.0";
 
 /**
  * Newest kernel this build has been verified against — the only version a
  * deployment is ever offered a sync to. Never below the floor.
  */
-export const VERIFIED_KERNEL_VERSION = "0.46.0";
+export const VERIFIED_KERNEL_VERSION = "0.54.0";
 
 /**
  * The version to offer a deployment on `deployed` a sync to, or `null`
@@ -27,9 +27,7 @@ export const VERIFIED_KERNEL_VERSION = "0.46.0";
  */
 export function kernelSyncTarget(deployed: string | null): string | null {
   if (!deployed) return null;
-  return compareVersions(deployed, VERIFIED_KERNEL_VERSION) < 0
-    ? VERIFIED_KERNEL_VERSION
-    : null;
+  return compareVersions(deployed, VERIFIED_KERNEL_VERSION) < 0 ? VERIFIED_KERNEL_VERSION : null;
 }
 
 /**
@@ -37,9 +35,7 @@ export function kernelSyncTarget(deployed: string | null): string | null {
  * the first resolved deployment's own `version.txt`, else the floor —
  * always a plain version, never a range string.
  */
-export function restoreKernelVersion(
-  deployedVersions: Iterable<string | null>,
-): string {
+export function restoreKernelVersion(deployedVersions: Iterable<string | null>): string {
   for (const v of deployedVersions) if (v) return v;
   return KERNEL_VERSION_FLOOR;
 }

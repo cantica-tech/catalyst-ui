@@ -18,13 +18,7 @@ export interface GraphLayout {
   edges: GraphEdge[];
 }
 
-const COLUMN_ORDER: NodeKind[] = [
-  "work-item",
-  "dev-artifact",
-  "rule",
-  "domain",
-  "feature",
-];
+const COLUMN_ORDER: NodeKind[] = ["work-item", "dev-artifact", "rule", "domain", "feature"];
 const COLUMN_WIDTH = 220;
 const ROW_HEIGHT = 60;
 
@@ -58,9 +52,7 @@ export function computeGraphLayout(model: ChainModel): GraphLayout {
   for (const [from, tos] of model.edges) {
     for (const to of tos) edges.push({ from, to });
   }
-  edges.sort(
-    (a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to),
-  );
+  edges.sort((a, b) => a.from.localeCompare(b.from) || a.to.localeCompare(b.to));
 
   return { nodes, edges };
 }

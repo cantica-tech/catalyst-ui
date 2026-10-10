@@ -4,12 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import {
-  addTrackedProject,
-  loadTrackedProjects,
-  removeTrackedProject,
-  saveTrackedProjects,
-} from "./state.js";
+import { addTrackedProject, loadTrackedProjects, removeTrackedProject, saveTrackedProjects } from "./state.js";
 
 let dir: string;
 
@@ -61,11 +56,7 @@ describe("addTrackedProject", () => {
 
 describe("removeTrackedProject", () => {
   it("removes only the matching id", () => {
-    const projects = addTrackedProject(
-      addTrackedProject([], "/a", "/a-corpus"),
-      "/b",
-      "/b-corpus",
-    );
+    const projects = addTrackedProject(addTrackedProject([], "/a", "/a-corpus"), "/b", "/b-corpus");
     const remaining = removeTrackedProject(projects, projects[0].id);
     expect(remaining).toHaveLength(1);
     expect(remaining[0].projectRoot).toBe("/b");

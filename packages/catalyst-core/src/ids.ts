@@ -21,8 +21,7 @@ import type { DevArtifactType } from "./types.js";
  * un-migrated deployment's bare ids still match), and a rule's sequence
  * number accepts either the old 3-digit or the new 6-digit width.
  */
-export const USERID_SUFFIX_PATTERN =
-  "(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?![a-zA-Z0-9]))?";
+export const USERID_SUFFIX_PATTERN = "(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?![a-zA-Z0-9]))?";
 export const RULE_ID_PATTERN = "[a-z]+-[A-Z0-9_]+-\\d{3,6}(?:-[a-zA-Z0-9]+)*";
 export const DEV_ARTIFACT_ID_PATTERN = `(?:BUG|REQ|HK|TEST)-\\d{6}${USERID_SUFFIX_PATTERN}`;
 export const FEATURE_ID_PATTERN = `FEAT-\\d{6}${USERID_SUFFIX_PATTERN}`;
@@ -36,18 +35,9 @@ export const ROADMAP_ID_RE = new RegExp(`^${ROADMAP_ID_PATTERN}$`);
 export const STEP_ID_RE = new RegExp(`^${STEP_ID_PATTERN}$`);
 
 export const BACKTICK_RULE_ID_RE = new RegExp(`\`(${RULE_ID_PATTERN})\``, "g");
-export const BACKTICK_DEV_ARTIFACT_ID_RE = new RegExp(
-  `\`(${DEV_ARTIFACT_ID_PATTERN})\``,
-  "g",
-);
-export const BACKTICK_FEATURE_ID_RE = new RegExp(
-  `\`(${FEATURE_ID_PATTERN})\``,
-  "g",
-);
-export const BACKTICK_ROADMAP_ID_RE = new RegExp(
-  `\`(${ROADMAP_ID_PATTERN})\``,
-  "g",
-);
+export const BACKTICK_DEV_ARTIFACT_ID_RE = new RegExp(`\`(${DEV_ARTIFACT_ID_PATTERN})\``, "g");
+export const BACKTICK_FEATURE_ID_RE = new RegExp(`\`(${FEATURE_ID_PATTERN})\``, "g");
+export const BACKTICK_ROADMAP_ID_RE = new RegExp(`\`(${ROADMAP_ID_PATTERN})\``, "g");
 export const BACKTICK_STEP_ID_RE = new RegExp(`\`(${STEP_ID_PATTERN})\``, "g");
 
 /** Every backtick-quoted rule/dev-artifact/feature/roadmap/step id token found in `text`, deduped. */
@@ -95,9 +85,7 @@ const SUFFIXED_RE = /^([A-Z]+-\d{6})-[A-Za-z0-9]+$/;
  * (`REQ-000014-UVqkd7cL`), or `null` when two ids share it. Built once per
  * model so resolution stays O(1) per citation.
  */
-export function buildShortFormIndex(
-  ids: Iterable<string>,
-): Map<string, string | null> {
+export function buildShortFormIndex(ids: Iterable<string>): Map<string, string | null> {
   const index = new Map<string, string | null>();
   for (const id of ids) {
     const short = SUFFIXED_RE.exec(id)?.[1];

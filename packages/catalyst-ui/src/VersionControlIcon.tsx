@@ -3,10 +3,7 @@ export interface VersionControlIconProps {
   fill?: string;
 }
 
-export function VersionControlIcon({
-  size = 16,
-  fill = "currentColor",
-}: VersionControlIconProps) {
+export function VersionControlIcon({ size = 16, fill = "currentColor" }: VersionControlIconProps) {
   return (
     <svg
       width={size}
