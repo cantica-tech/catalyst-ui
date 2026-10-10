@@ -8,6 +8,7 @@ const DEFAULT_EXPECTATIONS: Record<IssueKind, string> = {
   "unbacked-rule": "The rule is listed in the global rules index and its domain is registered with a doc file.",
   "id-reuse": "The id is defined at exactly one location.",
   "dangling-reference": "The cited id resolves to a real, existing node.",
+  catalyst: "`catalyst check` no longer reports this finding.",
 };
 
 export function defaultExpectationFor(kind: IssueKind): string {

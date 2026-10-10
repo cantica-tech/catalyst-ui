@@ -152,7 +152,8 @@ export interface ChainModel {
 
 export type IssueSeverity = "error" | "warning";
 
-export type IssueKind = "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference";
+/** `catalyst`: a finding of `catalyst check` with no older kind of its own (its message says which check). */
+export type IssueKind = "orphaned-artifact" | "unbacked-rule" | "id-reuse" | "dangling-reference" | "catalyst";
 
 export interface ValidationIssue {
   kind: IssueKind;

@@ -108,3 +108,14 @@ export {
   projectName,
   readProjectFile,
 } from "./project-file.js";
+export {
+  type CatalystCheck,
+  type CatalystGraph,
+  type CatalystServer,
+  modelFromGraph,
+  readThroughCatalyst,
+  reportFromCheck,
+  startLocalServe,
+  watchCatalyst,
+  watchProject,
+} from "./catalyst-source.js";

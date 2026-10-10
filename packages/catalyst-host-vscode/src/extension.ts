@@ -51,7 +51,7 @@ import {
   saveModuleLocally,
   suggestCriterionBranch,
   UiModuleManager,
-  watchCorpus,
+  watchProject,
 } from "catalyst-core";
 import * as vscode from "vscode";
 
@@ -1216,19 +1216,26 @@ function setupDeployment(
   provider: ChainInspectorProvider,
   diagnostics: vscode.DiagnosticCollection,
   codeLensChangeEmitter: vscode.EventEmitter<void>,
-  onUpdate: (corpusRoot: string) => void = () => {},
+  onUpdate: (corpusRoot: string) => void = () => undefined,
+  log: (message: string) => void = () => undefined,
 ): RegisteredDeployment {
   const ownedDiagnosticFiles = new Set<string>();
   let latestReport: ValidationReport | undefined;
 
-  const handle = watchCorpus(corpusRoot, ({ model, report, proposals, runs, users, roles }) => {
-    provider.setState(corpusRoot, target.name, target.path, model, proposals, runs, users, roles);
-    latestReport = report;
-    refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
-    codeLensChangeEmitter.fire();
-    // Open detail panels of this deployment show the new state (B-10).
-    onUpdate(corpusRoot);
-  });
+  // Through catalyst serve when catalyst can serve the project, else the files directly (REQ-000019).
+  const handle = watchProject(
+    target.path,
+    corpusRoot,
+    ({ model, report, proposals, runs, users, roles }) => {
+      provider.setState(corpusRoot, target.name, target.path, model, proposals, runs, users, roles);
+      latestReport = report;
+      refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
+      codeLensChangeEmitter.fire();
+      // Open detail panels of this deployment show the new state (B-10).
+      onUpdate(corpusRoot);
+    },
+    log,
+  );
 
   const selector: vscode.DocumentSelector = {
     pattern: new vscode.RelativePattern(corpusRoot, "**/*.md"),
@@ -1500,9 +1507,19 @@ export function activate(context: vscode.ExtensionContext): void {
       deploymentTargets.set(corpusRoot, target);
       registeredDeployments.set(
         corpusRoot,
-        setupDeployment(target, corpusRoot, provider, diagnostics, codeLensChangeEmitter, (root) => {
-          refreshDetailPanelsFor(root);
-        }),
+        setupDeployment(
+          target,
+          corpusRoot,
+          provider,
+          diagnostics,
+          codeLensChangeEmitter,
+          (root) => {
+            refreshDetailPanelsFor(root);
+          },
+          (message) => {
+            agentBridgeOutputChannel.appendLine(message);
+          },
+        ),
       );
       if (vscode.workspace.isTrusted) {
         void offerToSyncKernel(context, target, corpusRoot, agentBridgeOutputChannel);
@@ -2203,4 +2220,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 }
 
-export function deactivate(): void {}
+export function deactivate(): void {
+  // nothing to release: every disposable is registered in context.subscriptions
+}

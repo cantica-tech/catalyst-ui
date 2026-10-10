@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { buildChainModel } from "../graph.js";
-import { type CatalystGraph, catalystEdges, compareModel } from "../parity.js";
+import type { CatalystGraph } from "../catalyst-source.js";
+import { catalystEdges, compareModel } from "../parity.js";
 import { parseCorpus } from "../parser.js";
 import type { ChainModel, ChainNode } from "../types.js";
 
@@ -38,10 +39,20 @@ const RULE = "br-AUTH-000001-Abcd1234";
 const REQ = "REQ-000001-Abcd1234";
 
 const graph: CatalystGraph = {
-  rules: [{ id: RULE, file: "rules/r.md", line: 3, retired: false, domain: "AUTH" }],
-  domains: ["AUTH"],
+  rules: [
+    { id: RULE, title: "r", status: "✅", file: "rules/r.md", line: 3, retired: false, domain: "AUTH", mentions: [] },
+  ],
+  domains: [{ code: "AUTH", file: null, title: "" }],
   artifacts: [
-    { id: REQ, type: "REQ", title: "r", file: "requirements/r.md", Status: "Active", links: { Targets: [RULE] } },
+    {
+      id: REQ,
+      type: "REQ",
+      title: "r",
+      file: "requirements/r.md",
+      Status: "Active",
+      links: { Targets: [RULE] },
+      mentions: [],
+    },
     {
       id: "BUG-000001-Abcd1234",
       type: "BUG",
@@ -49,6 +60,7 @@ const graph: CatalystGraph = {
       file: "development/bugs/b.md",
       Status: "Open",
       links: { Targets: ["REQ-000001"] },
+      mentions: [],
     },
   ],
   types: {},
@@ -118,6 +130,7 @@ describe.skipIf(!hasGraph)("parity with kernel `catalyst graph --json` on the pa
     const r = compareModel(buildChainModel(parsed!), g);
     expect(r.nodes.onlyCatalyst).toEqual([]);
     expect(r.statuses).toEqual([]);
-    expect(r.edges.missingInModel.filter(([, to]) => !g.domains.includes(to))).toEqual([]);
+    const domains = new Set(g.domains.map((d) => d.code));
+    expect(r.edges.missingInModel.filter(([, to]) => !domains.has(to))).toEqual([]);
   });
 });

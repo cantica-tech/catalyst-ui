@@ -11,7 +11,7 @@ import {
   openProposalsByTarget,
   resolveAgentLaunch,
   resolveCorpusRoot,
-  watchCorpus,
+  watchProject,
 } from "catalyst-core";
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 
@@ -39,21 +39,32 @@ function stateFilePath(): string {
   return join(app.getPath("userData"), "projects.json");
 }
 
-/** One persistent `watchCorpus` per tracked project — not torn down on project switch. */
+/**
+ * One persistent watcher per tracked project — not torn down on project
+ * switch. Through catalyst serve when catalyst can serve the project, else
+ * the files directly (REQ-000019).
+ */
 function startWatching(project: TrackedProject, win: BrowserWindow): void {
-  const handle = watchCorpus(project.corpusRoot, ({ model, report, proposals }) => {
-    const runtime = runtimeByProjectId.get(project.id);
-    if (runtime) {
-      runtime.model = model;
-      runtime.proposals = proposals;
-    }
-    win.webContents.send("catalyst:project-update", {
-      projectId: project.id,
-      nodeCount: model.nodes.size,
-      errorCount: report.errorCount,
-      layout: computeGraphLayout(model),
-    });
-  });
+  const handle = watchProject(
+    project.projectRoot,
+    project.corpusRoot,
+    ({ model, report, proposals }) => {
+      const runtime = runtimeByProjectId.get(project.id);
+      if (runtime) {
+        runtime.model = model;
+        runtime.proposals = proposals;
+      }
+      win.webContents.send("catalyst:project-update", {
+        projectId: project.id,
+        nodeCount: model.nodes.size,
+        errorCount: report.errorCount,
+        layout: computeGraphLayout(model),
+      });
+    },
+    (message) => {
+      console.log(`catalyst: ${message}`);
+    },
+  );
 
   runtimeByProjectId.set(project.id, { handle, model: null, proposals: [] });
 }

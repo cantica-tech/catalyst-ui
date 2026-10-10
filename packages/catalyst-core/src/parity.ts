@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { buildChainModel } from "./graph.js";
 import { buildShortFormIndex, resolveIdReference } from "./ids.js";
 import { parseCorpus } from "./parser.js";
+import { type CatalystCheck, type CatalystGraph, catalystCommand } from "./catalyst-source.js";
 import type { ChainModel, ChainNode, IssueKind } from "./types.js";
 import { validate } from "./validator.js";
 
@@ -13,24 +14,6 @@ import { validate } from "./validator.js";
  * is pure; `runParity` gets catalyst's answers from its CLI
  * (`catalyst graph --json`, `catalyst check --json`) and changes nothing.
  */
-
-/** What `catalyst graph --json` prints (kernel `views.graph`). */
-export interface CatalystGraph {
-  rules: { id: string; file: string; line: number; retired: boolean; domain: string | null }[];
-  domains: string[];
-  artifacts: ({ id: string; type: string; title: string; file: string; links: Record<string, string[]> } & Record<
-    string,
-    unknown
-  >)[];
-  types: Record<string, { name: string; closed_states: string[] }>;
-}
-
-/** What `catalyst check --json` prints. */
-export interface CatalystCheck {
-  ok: boolean;
-  errors: string[];
-  warnings: string[];
-}
 
 export interface StatusDifference {
   id: string;
@@ -49,13 +32,17 @@ function statusOf(node: ChainNode): string | undefined {
   return "status" in node && typeof node.status === "string" ? node.status : undefined;
 }
 
-/** The edges catalyst's graph implies: each field link resolved to a node, and each rule's domain. */
+/** The edges catalyst's graph implies: each field link and mention resolved to a node, and each rule's domain. */
 export function catalystEdges(graph: CatalystGraph): Set<string> {
-  const ids = new Set<string>([...graph.rules.map((r) => r.id), ...graph.artifacts.map((a) => a.id), ...graph.domains]);
+  const ids = new Set<string>([
+    ...graph.rules.map((r) => r.id),
+    ...graph.artifacts.map((a) => a.id),
+    ...graph.domains.map((d) => d.code),
+  ]);
   const short = buildShortFormIndex(ids);
   const out = new Set<string>();
   for (const art of graph.artifacts) {
-    for (const cited of Object.values(art.links)) {
+    for (const cited of [...Object.values(art.links), art.mentions]) {
       for (const ref of cited) {
         const to = resolveIdReference(ids, ref, short);
         if (to && to !== art.id) out.add(`${art.id}\u0000${to}`);
@@ -64,6 +51,10 @@ export function catalystEdges(graph: CatalystGraph): Set<string> {
   }
   for (const rule of graph.rules) {
     if (rule.domain && ids.has(rule.domain)) out.add(`${rule.id}\u0000${rule.domain}`);
+    for (const ref of rule.mentions) {
+      const to = resolveIdReference(ids, ref, short);
+      if (to && to !== rule.id) out.add(`${rule.id}\u0000${to}`);
+    }
   }
   return out;
 }
@@ -72,7 +63,7 @@ export function compareModel(model: ChainModel, graph: CatalystGraph, check?: Ca
   const catalystIds = new Set<string>([
     ...graph.rules.map((r) => r.id),
     ...graph.artifacts.map((a) => a.id),
-    ...graph.domains,
+    ...graph.domains.map((d) => d.code),
   ]);
   const modelIds = new Set(model.nodes.keys());
   const onlyModel = [...modelIds].filter((id) => !catalystIds.has(id)).sort();
@@ -123,12 +114,6 @@ export function compareModel(model: ChainModel, graph: CatalystGraph, check?: Ca
     edges: { both: [...ours].filter((e) => theirs.has(e)).length, missingInModel, onlyModel: onlyModelEdges },
     validation: { model: modelCounts, catalystChain: chain },
   };
-}
-
-/** The `catalyst` command: `$CATALYST_BIN`, else the launcher on PATH. */
-export function catalystCommand(): string[] {
-  const bin = process.env.CATALYST_BIN;
-  return bin ? bin.split(" ") : ["catalyst"];
 }
 
 function catalystJson(project: string, args: string[]): unknown {
