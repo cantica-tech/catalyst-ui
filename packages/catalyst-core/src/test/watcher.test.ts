@@ -135,7 +135,16 @@ describe("isIgnoredWatchPath (B-12)", () => {
     const handle = watchCorpus(root, (update) => updates.push(update), {
       debounceMs: 30,
     });
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // The watcher emits its initial update(s) — one at start, more for fixture
+    // writes still settling — at a time that varies with load: wait until it
+    // has been quiet for 300ms before counting, not for a fixed time.
+    let seen = -1;
+    for (let quiet = 0, waited = 0; quiet < 300 && waited < 5000; waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      quiet = updates.length === seen ? quiet + 20 : 0;
+      seen = updates.length;
+    }
+    expect(updates.length).toBeGreaterThan(0);
     const before = updates.length;
     mkdirSync(join(root, ".git"), { recursive: true });
     writeFileSync(join(root, ".git", "index"), "x");
