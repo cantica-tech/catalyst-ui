@@ -57,3 +57,4 @@ export {
   type MapNode,
   type PlacedMap,
 } from "./TypeMap.js";
+export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTable } from "./Roadmap.js";

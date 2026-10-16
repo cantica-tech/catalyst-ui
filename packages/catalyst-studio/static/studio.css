@@ -511,3 +511,36 @@ article input[type="text"] {
 .map-arrowhead {
   fill: var(--border);
 }
+
+.timeline {
+  list-style: none;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--border);
+}
+
+.timeline > li {
+  position: relative;
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-3);
+}
+
+.timeline > li::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--space-4) - 7px);
+  top: 0.45em;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--warn);
+}
+
+.timeline > li.timeline-closed::before {
+  background: var(--ok);
+  border-color: var(--ok);
+}
+
+progress {
+  accent-color: var(--ok);
+}

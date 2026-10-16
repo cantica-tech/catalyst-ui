@@ -7,6 +7,7 @@ import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
 import { Inbox } from "./Inbox.js";
 import { Journal } from "./Journal.js";
 import { Overview } from "./Overview.js";
+import { Roadmap } from "./Roadmap.js";
 import { Rules } from "./Rules.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
@@ -61,6 +62,11 @@ function mount(): void {
                 id: "map",
                 label: "Map",
                 render: () => <TypeMap client={client} />,
+              },
+              {
+                id: "roadmap",
+                label: "Roadmap",
+                render: () => <Roadmap client={client} />,
               },
               {
                 id: "rules",
