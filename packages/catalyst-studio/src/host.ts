@@ -26,6 +26,13 @@ export interface ActionResult {
   declined?: boolean;
 }
 
+/** What a batch returned: each action's result in order, or why nothing was done. */
+export interface BatchResult {
+  results: ActionResult[];
+  error: string;
+  declined?: boolean;
+}
+
 /** An action the Studio may ask for: a verb of the host's allow-list and its named fields. */
 export type StudioAction = { verb: string } & Record<string, string | undefined>;
 
@@ -34,6 +41,8 @@ export interface HostRuns {
   run: (command: string, args: string, onEvent: (event: RunEvent) => void, onDeclined: () => void) => RunHandle;
   /** Asks the host to run one catalyst verb (W1); undefined when this host offers no action. */
   act?: (action: StudioAction) => Promise<ActionResult>;
+  /** Asks for several in one confirmation (R6.17), each its own journaled change; with `act`. */
+  actBatch?: (actions: StudioAction[]) => Promise<BatchResult>;
 }
 
 interface Incoming {
@@ -47,6 +56,7 @@ interface Incoming {
   output?: string;
   error?: string;
   declined?: boolean;
+  results?: ActionResult[];
 }
 
 function newId(): string {
@@ -62,6 +72,7 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
   const parent = win.parent;
   const listeners = new Map<string, { onEvent: (e: RunEvent) => void; onDeclined: () => void }>();
   const pending = new Map<string, (result: ActionResult) => void>();
+  const batches = new Map<string, (result: BatchResult) => void>();
   return new Promise((resolve) => {
     let answered = false;
     const timer = setTimeout(() => {
@@ -74,7 +85,7 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       if (data.type === "hello" && !answered) {
         answered = true;
         clearTimeout(timer);
-        resolve(data.runs ? { run, ...(data.actions ? { act } : {}) } : null);
+        resolve(data.runs ? { run, ...(data.actions ? { act, actBatch } : {}) } : null);
       } else if (data.type === "run-event" && data.id && data.event) {
         listeners.get(data.id)?.onEvent(data.event);
         if (data.event.event === "end") listeners.delete(data.id);
@@ -86,6 +97,13 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
           ...(data.declined ? { declined: true } : {}),
         });
         pending.delete(data.id);
+      } else if (data.type === "batch-result" && data.id) {
+        batches.get(data.id)?.({
+          results: data.results ?? [],
+          error: data.error ?? "",
+          ...(data.declined ? { declined: true } : {}),
+        });
+        batches.delete(data.id);
       } else if (data.type === "run-declined" && data.id) {
         listeners.get(data.id)?.onDeclined();
         listeners.delete(data.id);
@@ -99,6 +117,14 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       return new Promise((done) => {
         pending.set(id, done);
         parent.postMessage({ catalyst: "studio", type: "action", id, action }, "*");
+      });
+    }
+
+    function actBatch(actions: StudioAction[]): Promise<BatchResult> {
+      const id = newId();
+      return new Promise((done) => {
+        batches.set(id, done);
+        parent.postMessage({ catalyst: "studio", type: "batch", id, actions }, "*");
       });
     }
 

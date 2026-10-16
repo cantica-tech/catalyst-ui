@@ -68,7 +68,7 @@ function mount(): void {
                 {
                   id: "inbox",
                   label: "Inbox",
-                  render: () => <Inbox client={client} />,
+                  render: (target?: string) => <Inbox client={client} target={target} />,
                 },
                 {
                   id: "artifacts",

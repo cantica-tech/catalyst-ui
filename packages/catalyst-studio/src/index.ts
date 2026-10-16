@@ -45,7 +45,7 @@ export {
 export { diffStat, hunks, lineDiff, type DiffLine, type Hunk } from "./diff.js";
 export { changeKind, DiffView, EntityHistory } from "./History.js";
 export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Journal.js";
-export { Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
+export { BatchMove, Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
 export { clipboardCopy, CopyButton } from "./Copy.js";
 export { citers, groupRules, ruleDocument, RuleBrowser, Rules, ruleStatus, searchRules } from "./Rules.js";
 export {
@@ -67,6 +67,7 @@ export {
   HostContext,
   useHost,
   type ActionResult,
+  type BatchResult,
   type HostRuns,
   type RunEvent,
   type RunHandle,

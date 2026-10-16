@@ -278,12 +278,15 @@ type Load = { state: "loading" } | { state: "ready"; report: InboxReport } | { s
 export function Inbox({
   client,
   copy = clipboardCopy,
+  target,
 }: {
   client: StudioClient;
   copy?: (text: string) => Promise<void>;
+  /** An item to open (`<kind>:<id>`), from the dashboard's Settle… */
+  target?: string;
 }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(target ?? null);
   const [artifact, setArtifact] = useState<EntityView | undefined>(undefined);
   const [batch, setBatch] = useState(0);
 

@@ -9,6 +9,8 @@ import type { EntityType, Graph, HistoryEntry, InboxItem } from "../client.js";
 import { EntityHistory } from "../History.js";
 import { connectHost, HostContext, type ActionResult, type HostRuns, type StudioAction } from "../host.js";
 import { InboxItemPage } from "../Inbox.js";
+import { OverviewView } from "../Overview.js";
+import { Shell } from "../Shell.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -283,5 +285,104 @@ describe("rollback from the history (studio-SHELL-000016, R6.33)", () => {
       root.render(<EntityHistory id="REQ-000001" entries={[change(1), change(2)]} />);
     });
     expect(el.querySelector("form")).toBeNull(); // no host: nothing to restore with
+  });
+});
+
+describe("batch moves and quick actions (R6.17, R6.34)", () => {
+  it("moves the selected cards with one reason, in one batch, and says what was refused", async () => {
+    const batches: StudioAction[][] = [];
+    const h: HostRuns = {
+      run: () => ({ cancel: () => undefined }),
+      act: () => Promise.resolve({ ok: true, output: "", error: "" }),
+      actBatch: (actions) => {
+        batches.push(actions);
+        return Promise.resolve({
+          results: [
+            { ok: true, output: "{}", error: "" },
+            { ok: false, output: "", error: "catalyst: guard fails" },
+          ],
+          error: "",
+        });
+      },
+    };
+    const graph: Graph = {
+      types: { WORK: workType() },
+      artifacts: [
+        { id: "WORK-000001", type: "WORK", title: "First", file: "a", links: {}, Status: "Open" },
+        { id: "WORK-000002", type: "WORK", title: "Second", file: "b", links: {}, Status: "Open" },
+        { id: "WORK-000003", type: "WORK", title: "Third", file: "c", links: {}, Status: "Open" },
+      ],
+    };
+    act(() => {
+      root.render(
+        <HostContext.Provider value={h}>
+          <BoardView graph={graph} />
+        </HostContext.Provider>,
+      );
+    });
+    for (const id of ["WORK-000001", "WORK-000003"])
+      act(() => {
+        el.querySelector<HTMLInputElement>(`[aria-label="Select ${id}"]`)?.click();
+      });
+    const form = el.querySelector<HTMLFormElement>('form[aria-label="Move the selected cards"]');
+    expect(form?.textContent).toContain("2 selected");
+    const select = form?.querySelector("select");
+    act(() => {
+      if (select) {
+        select.value = "Done";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    act(() => {
+      type(inputOf(form), "Released");
+    });
+    await submit(form);
+    expect(batches).toEqual([
+      [
+        { verb: "status-set", id: "WORK-000001", state: "Done", intent: "Released" },
+        { verb: "status-set", id: "WORK-000003", state: "Done", intent: "Released" },
+      ],
+    ]);
+    expect(el.textContent).toContain("1 moved, 1 refused: catalyst: guard fails");
+    expect(el.querySelector('form[aria-label="Move the selected cards"]')).toBeNull(); // the selection is cleared
+    const result = await axe.run(el, { resultTypes: ["violations"], rules: { "color-contrast": { enabled: false } } });
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  it("opens a waiting item in the inbox from the dashboard", () => {
+    const targets: (string | undefined)[] = [];
+    act(() => {
+      root.render(
+        <Shell
+          project="p"
+          onTheme={() => undefined}
+          views={[
+            {
+              id: "overview",
+              label: "Overview",
+              render: () => (
+                <OverviewView
+                  data={{ check: { ok: true, errors: [], warnings: [] }, inbox: { items: [commit], counts: {} } }}
+                />
+              ),
+            },
+            {
+              id: "inbox",
+              label: "Inbox",
+              render: (t) => {
+                targets.push(t);
+                return <p>inbox</p>;
+              },
+            },
+          ]}
+        />,
+      );
+    });
+    const settle = [...el.querySelectorAll("button")].find((b) => b.textContent === "Settle…");
+    act(() => {
+      settle?.click();
+    });
+    expect(targets.length).toBeGreaterThan(0);
+    expect(targets.every((t) => t === "unrecorded-commit:abc1234")).toBe(true); // rendered again as the focus moves
   });
 });

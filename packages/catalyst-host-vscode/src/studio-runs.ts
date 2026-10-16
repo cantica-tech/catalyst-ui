@@ -13,7 +13,8 @@ export type StudioMessage =
   | { catalyst: "studio"; type: "hello" }
   | { catalyst: "studio"; type: "run"; id: string; command: string; arguments: string }
   | { catalyst: "studio"; type: "cancel"; id: string }
-  | { catalyst: "studio"; type: "action"; id: string; action: unknown };
+  | { catalyst: "studio"; type: "action"; id: string; action: unknown }
+  | { catalyst: "studio"; type: "batch"; id: string; actions: unknown };
 
 /** What the host tells the Studio. */
 export type HostMessage =
@@ -28,7 +29,18 @@ export type HostMessage =
       output: string;
       error: string;
       declined?: boolean;
+    }
+  | {
+      catalyst: "host";
+      type: "batch-result";
+      id: string;
+      results: ActionResult[];
+      error: string;
+      declined?: boolean;
     };
+
+/** The most actions one batch may hold: one dialog has to stay readable. */
+export const BATCH_LIMIT = 50;
 
 export interface RunDeps {
   /** Asks the person, in the host's own dialog; true only on an explicit yes. */
@@ -65,6 +77,10 @@ export class StudioRuns {
     }
     if (m.type === "cancel" && typeof m.id === "string") {
       this.runs.get(m.id)?.cancel();
+      return;
+    }
+    if (m.type === "batch" && typeof m.id === "string") {
+      await this.batch(m.id, m.actions);
       return;
     }
     if (m.type === "action" && typeof m.id === "string") {
@@ -118,6 +134,42 @@ export class StudioRuns {
     }
     const result = await this.deps.act(args);
     reply(result.ok, result.output, result.error);
+  }
+
+  /**
+   * A batch (R6.17): every action checked first — one that fails refuses the
+   * whole batch, naming it — then one dialog listing each command, then each
+   * run in order, its own journaled change; a failure does not stop the rest.
+   */
+  private async batch(id: string, actions: unknown): Promise<void> {
+    const act = this.deps.act;
+    if (!act) return;
+    const reply = (results: ActionResult[], error: string, declined = false) => {
+      this.deps.post({ catalyst: "host", type: "batch-result", id, results, error, ...(declined ? { declined } : {}) });
+    };
+    if (!Array.isArray(actions) || actions.length === 0 || actions.length > BATCH_LIMIT) {
+      reply([], `Not done: a batch holds 1 to ${String(BATCH_LIMIT)} actions`);
+      return;
+    }
+    const all: string[][] = [];
+    for (const [i, action] of actions.entries()) {
+      try {
+        all.push(actionArgs(action));
+      } catch (err) {
+        reply([], `Not done: action ${String(i + 1)}: ${err instanceof ActionError ? err.message : String(err)}`);
+        return;
+      }
+    }
+    const listed = all.map((args) => describeAction(args)).join("\n");
+    if (
+      !(await this.deps.confirm(`Run these ${String(all.length)} commands in the project, one by one?\n\n${listed}`))
+    ) {
+      reply([], "", true);
+      return;
+    }
+    const results: ActionResult[] = [];
+    for (const args of all) results.push(await act(args));
+    reply(results, "");
   }
 
   /** Stops every run still going (the panel closed). */

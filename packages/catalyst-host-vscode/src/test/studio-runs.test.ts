@@ -163,3 +163,81 @@ describe("StudioRuns actions (studio-SHELL-000016)", () => {
     ]);
   });
 });
+
+describe("StudioRuns batches (R6.17)", () => {
+  function batchHarness(answer: boolean, fail: string[] = []) {
+    const posted: HostMessage[] = [];
+    const asked: string[] = [];
+    const ran: string[][] = [];
+    const runs = new StudioRuns({
+      confirm: (q) => {
+        asked.push(q);
+        return Promise.resolve(answer);
+      },
+      start: () => ({ cancel: () => undefined, done: new Promise<RunEvent>(() => undefined) }),
+      post: (m) => posted.push(m),
+      act: (args) => {
+        ran.push(args);
+        const bad = fail.includes(args[2]);
+        return Promise.resolve({ ok: !bad, output: bad ? "" : "{}", error: bad ? "refused" : "" });
+      },
+    });
+    return { runs, posted, asked, ran };
+  }
+  const move = (id: string) => ({ verb: "status-set", id, state: "Done", intent: "Shipped" });
+
+  it("checks all, asks once listing each command, then runs each, a failure not stopping the rest", async () => {
+    const h = batchHarness(true, ["REQ-000002"]);
+    await h.runs.handle({
+      catalyst: "studio",
+      type: "batch",
+      id: "b1",
+      actions: [move("REQ-000001"), move("REQ-000002"), move("REQ-000003")],
+    });
+    assert.strictEqual(h.asked.length, 1);
+    assert.ok(h.asked[0].startsWith("Run these 3 commands in the project, one by one?"));
+    assert.ok(h.asked[0].includes("catalyst status set REQ-000003 Done --intent=Shipped --json"));
+    assert.deepStrictEqual(
+      h.ran.map((a) => a[2]),
+      ["REQ-000001", "REQ-000002", "REQ-000003"],
+    );
+    const reply = h.posted[0];
+    assert.ok(reply.type === "batch-result");
+    assert.deepStrictEqual(
+      reply.results.map((r) => r.ok),
+      [true, false, true],
+    );
+  });
+
+  it("refuses the whole batch when one action fails its checks, before any dialog", async () => {
+    const h = batchHarness(true);
+    await h.runs.handle({ catalyst: "studio", type: "batch", id: "b2", actions: [move("REQ-000001"), { verb: "rm" }] });
+    assert.deepStrictEqual(h.asked, []);
+    assert.deepStrictEqual(h.ran, []);
+    assert.deepStrictEqual(h.posted, [
+      {
+        catalyst: "host",
+        type: "batch-result",
+        id: "b2",
+        results: [],
+        error: "Not done: action 2: not an action the Studio may ask for",
+      },
+    ]);
+    await h.runs.handle({
+      catalyst: "studio",
+      type: "batch",
+      id: "b3",
+      actions: Array.from({ length: 51 }, () => move("REQ-000001")),
+    });
+    assert.ok(h.posted[1].type === "batch-result" && h.posted[1].error.includes("1 to 50"));
+  });
+
+  it("runs nothing the person declines", async () => {
+    const h = batchHarness(false);
+    await h.runs.handle({ catalyst: "studio", type: "batch", id: "b4", actions: [move("REQ-000001")] });
+    assert.deepStrictEqual(h.ran, []);
+    assert.deepStrictEqual(h.posted, [
+      { catalyst: "host", type: "batch-result", id: "b4", results: [], error: "", declined: true },
+    ]);
+  });
+});
