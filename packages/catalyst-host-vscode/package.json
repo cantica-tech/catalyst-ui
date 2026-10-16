@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -112,6 +112,10 @@
       {
         "command": "catalyst.openBacklog",
         "title": "Catalyst: Open Backlog"
+      },
+      {
+        "command": "catalyst.openStudio",
+        "title": "Catalyst: Open Studio"
       },
       {
         "command": "catalyst.sendToAgentChat",
@@ -242,7 +246,7 @@
   },
   "scripts": {
     "build": "tsc --build --force",
-    "prebuild": "npm run build:webview --workspace=catalyst-ui && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js",
+    "prebuild": "npm run build:webview --workspace=catalyst-ui && npm run build --workspace=catalyst-studio && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js && rm -rf dist/studio && cp -R ../catalyst-studio/dist/web dist/studio",
     "test": "mocha \"dist/test/**/*.test.js\"",
     "pretest": "npm run build",
     "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:fsevents --outfile=dist/extension.js",
