@@ -1,7 +1,7 @@
 {
   "name": "catalyst-host-vscode",
-  "displayName": "Catalyst framework",
-  "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
+  "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
+  "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
   "version": "0.46.0",
   "private": true,
   "license": "UNLICENSED",
