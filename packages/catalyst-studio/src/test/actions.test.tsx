@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ActionForm } from "../ActionForm.js";
 import { BoardView } from "../Board.js";
-import type { EntityType, Graph, InboxItem } from "../client.js";
+import type { EntityType, Graph, HistoryEntry, InboxItem } from "../client.js";
+import { EntityHistory } from "../History.js";
 import { connectHost, HostContext, type ActionResult, type HostRuns, type StudioAction } from "../host.js";
 import { InboxItemPage } from "../Inbox.js";
 
@@ -236,5 +237,51 @@ describe("the views act only with a host that acts (studio-SHELL-000016)", () =>
     });
     await submit(form ?? null);
     expect(asked).toEqual([{ verb: "status-set", id: "WORK-000001", state: "Done", intent: "Shipped" }]);
+  });
+});
+
+describe("rollback from the history (studio-SHELL-000016, R6.33)", () => {
+  function change(n: number, more: Partial<HistoryEntry> = {}): HistoryEntry {
+    return {
+      timestamp: `2026-10-16T0${String(n)}:00:00Z`,
+      actor: "ada",
+      command: "/status",
+      action: "update",
+      artifact: "REQ-000001",
+      tier: "feature",
+      intent: [`change ${String(n)}`],
+      before: n === 1 ? null : `b${String(n - 1)}`,
+      after: `b${String(n)}`,
+      content_before: n === 1 ? null : `v${String(n - 1)}\n`,
+      content_after: `v${String(n)}\n`,
+      redacted: false,
+      ...more,
+    };
+  }
+
+  it("offers each earlier version, by its position, and never the current or a redacted one", async () => {
+    const { h, asked } = host();
+    act(() => {
+      root.render(
+        <HostContext.Provider value={h}>
+          <EntityHistory
+            id="REQ-000001"
+            entries={[change(1), change(2, { redacted: true, content_after: null }), change(3)]}
+          />
+        </HostContext.Provider>,
+      );
+    });
+    const items = [...el.querySelectorAll("ol.history > li")];
+    expect(items.map((li) => li.querySelector("form") !== null)).toEqual([false, false, true]); // #3 current, #2 redacted, #1
+    const form = items[2].querySelector("form");
+    act(() => {
+      type(inputOf(form), "Back to the first version");
+    });
+    await submit(form);
+    expect(asked).toEqual([{ verb: "restore", id: "REQ-000001", to: "#1", intent: "Back to the first version" }]);
+    act(() => {
+      root.render(<EntityHistory id="REQ-000001" entries={[change(1), change(2)]} />);
+    });
+    expect(el.querySelector("form")).toBeNull(); // no host: nothing to restore with
   });
 });

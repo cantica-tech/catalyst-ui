@@ -1,5 +1,7 @@
+import { ActionForm } from "./ActionForm.js";
 import type { HistoryEntry } from "./client.js";
 import { diffStat, hunks, lineDiff, type DiffLine } from "./diff.js";
+import { useHost } from "./host.js";
 
 function plural(n: number, word: string): string {
   return `${String(n)} ${word}${n === 1 ? "" : "s"}`;
@@ -74,21 +76,34 @@ function ChangeBody({ entry }: { entry: HistoryEntry }) {
  * newest first, each opening to what it changed. Reverting is a new change
  * made through catalyst, never here.
  */
-export function EntityHistory({ entries }: { entries: HistoryEntry[] }) {
+export function EntityHistory({ entries, id }: { entries: HistoryEntry[]; id?: string }) {
+  const host = useHost();
   if (entries.length === 0) return <p className="muted">No entry changed its file.</p>;
+  const last = entries.length;
   return (
     <ol className="history">
-      {[...entries].reverse().map((e, i) => (
-        <li key={`${e.timestamp ?? ""}-${String(i)}`}>
-          <details>
-            <summary>
-              <time>{e.timestamp}</time> {e.actor} · {e.action ?? e.command} · {changeKind(e)}
-              {e.tier && <span className="muted"> ({e.tier})</span>}: {intentOf(e)}
-            </summary>
-            <ChangeBody entry={e} />
-          </details>
-        </li>
-      ))}
+      {[...entries].reverse().map((e, i) => {
+        const n = last - i; // its position in the history, from the first change: `#n`
+        const restorable = id && host?.act && n < last && !e.redacted && e.after !== null && e.content_after !== null;
+        return (
+          <li key={`${e.timestamp ?? ""}-${String(i)}`}>
+            <details>
+              <summary>
+                <time>{e.timestamp}</time> {e.actor} · {e.action ?? e.command} · {changeKind(e)}
+                {e.tier && <span className="muted"> ({e.tier})</span>}: {intentOf(e)}
+              </summary>
+              <ChangeBody entry={e} />
+              {restorable && (
+                <ActionForm
+                  host={host}
+                  label="Restore this version"
+                  action={{ verb: "restore", id, to: `#${String(n)}` }}
+                />
+              )}
+            </details>
+          </li>
+        );
+      })}
     </ol>
   );
 }

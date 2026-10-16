@@ -36,6 +36,21 @@ describe("actionArgs (studio-SHELL-000016)", () => {
     ).toEqual(["reconcile", "RECON-000001", "propose", "--intent=x", "--text=Use B"]);
   });
 
+  it("restores an entity to one change of its history, or to a time", () => {
+    expect(actionArgs({ verb: "restore", id: "REQ-000001-Ab3xR9pQ", to: "#2", intent: "Undo" })).toEqual([
+      "restore",
+      "REQ-000001-Ab3xR9pQ",
+      "--to=#2",
+      "--intent=Undo",
+      "--json",
+    ]);
+    expect(actionArgs({ verb: "restore", id: "REQ-000001", to: "2026-10-16T08:00:00Z", intent: "x" })).toContain(
+      "--to=2026-10-16T08:00:00Z",
+    );
+    for (const to of ["#0", "2", "yesterday", "#2; rm", "--force"])
+      expect(() => actionArgs({ verb: "restore", id: "REQ-000001", to, intent: "x" })).toThrow("to:");
+  });
+
   it("keeps a reason that looks like an option a value", () => {
     expect(actionArgs({ verb: "status-set", id: "REQ-000001", state: "Done", intent: "--force" })).toContain(
       "--intent=--force",

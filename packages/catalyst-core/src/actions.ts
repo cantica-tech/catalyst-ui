@@ -12,7 +12,8 @@ export type StudioAction =
   | { verb: "status-set"; id: string; state: string; intent: string; tier?: string }
   | { verb: "journal-adopt"; commit: string; intent: string; tier: string; target?: string }
   | { verb: "journal-append"; path: string; intent: string; tier: string; target?: string; artifact?: string }
-  | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string };
+  | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string }
+  | { verb: "restore"; id: string; to: string; intent: string; tier?: string };
 
 export class ActionError extends Error {}
 
@@ -21,6 +22,8 @@ const STATE = /^[A-Za-z][A-Za-z0-9 _-]{0,40}$/;
 const COMMIT = /^[0-9a-f]{7,40}$/;
 const TIER = /^[a-z][a-z-]{0,20}$/;
 const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
+/** A version of an entity: its Nth change (`#3`) or an ISO time (`2026-10-16T08:00:00Z`). */
+const VERSION = /^(#[1-9][0-9]{0,5}|\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?Z?)?)$/;
 
 function field(value: unknown, name: string, check: (v: string) => boolean, why: string): string {
   if (typeof value !== "string" || !check(value.trim())) throw new ActionError(`${name}: ${why}`);
@@ -119,6 +122,15 @@ export function actionArgs(action: unknown): string[] {
         ...optional(a.text, (v) => words(v, "text", 2000), "--text"),
       ];
     }
+    case "restore":
+      return [
+        "restore",
+        entity(a.id, "id"),
+        `--to=${field(a.to, "to", (v) => VERSION.test(v), "a change (#N) or a time")}`,
+        intent(),
+        ...optional(a.tier, tier, "--tier"),
+        "--json",
+      ];
     default:
       throw new ActionError("not an action the Studio may ask for");
   }
