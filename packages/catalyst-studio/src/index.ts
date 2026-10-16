@@ -16,6 +16,8 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type GraphDomain,
+  type GraphRule,
   type History,
   type HistoryEntry,
   type JournalEntry,
@@ -44,3 +46,4 @@ export { changeKind, DiffView, EntityHistory } from "./History.js";
 export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Journal.js";
 export { Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
 export { clipboardCopy, CopyButton } from "./Copy.js";
+export { citers, groupRules, ruleDocument, RuleBrowser, Rules, ruleStatus, searchRules } from "./Rules.js";

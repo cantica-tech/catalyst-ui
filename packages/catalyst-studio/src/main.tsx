@@ -7,6 +7,7 @@ import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
 import { Inbox } from "./Inbox.js";
 import { Journal } from "./Journal.js";
 import { Overview } from "./Overview.js";
+import { Rules } from "./Rules.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -54,6 +55,11 @@ function mount(): void {
                 id: "board",
                 label: "Board",
                 render: () => <Board client={client} />,
+              },
+              {
+                id: "rules",
+                label: "Rules",
+                render: () => <Rules client={client} />,
               },
               {
                 id: "journal",

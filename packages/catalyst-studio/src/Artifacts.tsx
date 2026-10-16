@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { EntityType, EntityView, Graph, GraphArtifact, History, Impact, StudioClient } from "./client.js";
 import { EntityHistory } from "./History.js";
+import { ruleStatus } from "./Rules.js";
 import { Status, type StatusTone } from "./Status.js";
 import { Trace } from "./Trace.js";
 
@@ -109,7 +110,18 @@ export function EntityPage({
         <code>{entity.id}</code> {entity.title}
       </h2>
       <p>
-        {type?.name ?? entity.type}
+        {type?.name ?? (entity.type === "rule" ? "Rule" : entity.type)}
+        {text(entity.domain) && <> · domain {text(entity.domain)}</>}
+        {entity.type === "rule" && (
+          <>
+            {" "}
+            ·{" "}
+            <Status
+              tone={ruleStatus({ status: text(entity.status), retired: entity.retired === true }).tone}
+              label={ruleStatus({ status: text(entity.status), retired: entity.retired === true }).label}
+            />
+          </>
+        )}
         {status && (
           <>
             {" "}
@@ -118,29 +130,38 @@ export function EntityPage({
         )}
       </p>
 
-      <section aria-labelledby="entity-fields">
-        <h3 id="entity-fields">Fields</h3>
-        <dl className="fields">
-          {fields.map((f) => {
-            const cited = entity.links[f.name] as string[] | undefined;
-            return (
-              <div key={f.name}>
-                <dt>{f.name}</dt>
-                <dd>
-                  {cited && cited.length > 0
-                    ? cited.map((id, i) => (
-                        <span key={id}>
-                          {i > 0 && ", "}
-                          {idButton(id)}
-                        </span>
-                      ))
-                    : text(entity[f.name]) || <span className="muted">—</span>}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
-      </section>
+      {text(entity.text) && (
+        <section aria-labelledby="entity-text">
+          <h3 id="entity-text">The rule</h3>
+          <div className="section-text">{text(entity.text)}</div>
+        </section>
+      )}
+
+      {fields.length > 0 && (
+        <section aria-labelledby="entity-fields">
+          <h3 id="entity-fields">Fields</h3>
+          <dl className="fields">
+            {fields.map((f) => {
+              const cited = entity.links[f.name] as string[] | undefined;
+              return (
+                <div key={f.name}>
+                  <dt>{f.name}</dt>
+                  <dd>
+                    {cited && cited.length > 0
+                      ? cited.map((id, i) => (
+                          <span key={id}>
+                            {i > 0 && ", "}
+                            {idButton(id)}
+                          </span>
+                        ))
+                      : text(entity[f.name]) || <span className="muted">—</span>}
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      )}
 
       {(entity.next ?? []).length > 0 && (
         <section aria-labelledby="entity-next">

@@ -134,10 +134,31 @@ export interface GraphArtifact {
   [field: string]: unknown;
 }
 
+/** One rule in `graph`: its title, its status line, its domain and the entities its text names. */
+export interface GraphRule {
+  id: string;
+  title: string;
+  status: string;
+  file: string;
+  line: number;
+  retired: boolean;
+  domain: string | null;
+  mentions: string[];
+}
+
+/** One registered domain: its code, its file and that file's title. */
+export interface GraphDomain {
+  code: string;
+  file: string | null;
+  title: string | null;
+}
+
 /** `GET /v1/graph`: the chain, and the module's types. */
 export interface Graph {
   types: Record<string, EntityType>;
   artifacts: GraphArtifact[];
+  rules?: GraphRule[];
+  domains?: GraphDomain[];
 }
 
 /** `GET /v1/view/<id>`: one artifact, with what an entity page shows (catalyst >= 0.73.0). */
