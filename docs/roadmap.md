@@ -2,12 +2,12 @@
 
 The plan for Catalyst Studio, the UI of this repository. It is phase R6 of catalyst's roadmap, which keeps the
 engine's side (what catalyst serves and runs for a UI): `docs/roadmap.md` in the catalyst repository. Decisions:
-[decisions.md](decisions.md). `23` and `24` are in [`design/`](design/); `09`, `05` and the `ui-potential-roadmap/`
-folder are still in the owner's working notes.
+[decisions.md](decisions.md). `09`, `23`, `24` and the `ui-potential-roadmap/` folder are in [`design/`](design/);
+`05` is still in the owner's working notes.
 
 ## R6 — Catalyst Studio (catalyst's roadmap phase R6)
 
-Sources: `09-ui-brand-portability.md` (decisions D1–D8, portability stages, brand) and the `ui-potential-roadmap/`
+Sources: [`09`](design/09-ui-brand-portability.md) (decisions D1–D8, portability stages, brand) and the [`ui-potential-roadmap/`](design/ui-potential-roadmap/INDEX.md)
 folder (2026-10-08: five design laws, 16 functionalities with mockups, seven visualisation patterns, reference
 products, a three-phase plan). That folder is integrated here; where it disagrees with `09` or with what was built
 since, this section wins, and the differences are listed under the tables.
