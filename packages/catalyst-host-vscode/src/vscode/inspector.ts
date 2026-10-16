@@ -7,11 +7,11 @@ import {
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
 } from "../constants.js";
-import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "../iam.js";
+import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
 import { buildProposalSection, type ProposalSection } from "../proposals.js";
-import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "../roadmaps.js";
+import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "catalyst-app-model";
 import { buildRunSection, formatRunLabel, formatStepLabel, type RunSection } from "../runmonitor.js";
-import { breadthFirst, childId, itemKey } from "../tree-ids.js";
+import { breadthFirst, childId, itemKey } from "catalyst-app-model";
 import {
   buildTreeSections,
   formatNodeLabel,
@@ -20,7 +20,7 @@ import {
   type RuleTypeSection,
   type TreeSection,
   type TreeSectionKind,
-} from "../tree.js";
+} from "catalyst-app-model";
 
 export interface DeploymentView {
   corpusRoot: string;

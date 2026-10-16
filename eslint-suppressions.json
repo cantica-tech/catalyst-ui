@@ -1,4 +1,33 @@
 {
+  "packages/catalyst-app-model/src/detail.ts": {
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-app-model/src/test/detail.test.ts": {
+    "@typescript-eslint/no-unsafe-argument": {
+      "count": 3
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-app-model/src/tree-ids.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-app-model/src/tree.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/prefer-nullish-coalescing": {
+      "count": 1
+    },
+    "no-useless-assignment": {
+      "count": 1
+    }
+  },
   "packages/catalyst-core/src/agent-bridge.ts": {
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 1
@@ -64,11 +93,6 @@
       "count": 1
     }
   },
-  "packages/catalyst-host-vscode/src/detail.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "packages/catalyst-host-vscode/src/extension.ts": {
     "@typescript-eslint/no-unnecessary-condition": {
       "count": 2
@@ -80,30 +104,6 @@
       "count": 4
     },
     "@typescript-eslint/prefer-optional-chain": {
-      "count": 1
-    }
-  },
-  "packages/catalyst-host-vscode/src/test/detail.test.ts": {
-    "@typescript-eslint/no-unsafe-argument": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 1
-    }
-  },
-  "packages/catalyst-host-vscode/src/tree-ids.ts": {
-    "@typescript-eslint/no-non-null-assertion": {
-      "count": 1
-    }
-  },
-  "packages/catalyst-host-vscode/src/tree.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    },
-    "no-useless-assignment": {
       "count": 1
     }
   },

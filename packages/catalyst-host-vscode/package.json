@@ -258,6 +258,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
+    "catalyst-app-model": "*",
     "catalyst-core": "*"
   },
   "devDependencies": {

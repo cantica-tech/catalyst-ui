@@ -65,7 +65,7 @@ import {
   buildNodeDetail,
   buildReferenceTable,
   referencesForNode,
-} from "./detail.js";
+} from "catalyst-app-model";
 import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
 import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
