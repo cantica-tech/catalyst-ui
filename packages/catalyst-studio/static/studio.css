@@ -486,3 +486,28 @@ article input[type="text"] {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+.map-node text {
+  font-family: var(--font-sans);
+}
+
+.map-node .map-count {
+  fill: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.map-node-static {
+  cursor: default;
+}
+
+.map-label {
+  fill: var(--text-muted);
+  font-size: 0.75rem;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+}
+
+.map-arrowhead {
+  fill: var(--border);
+}

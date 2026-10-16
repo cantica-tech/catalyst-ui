@@ -10,6 +10,7 @@ import { Overview } from "./Overview.js";
 import { Rules } from "./Rules.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
+import { TypeMap } from "./TypeMap.js";
 
 /** The browser entry: connects to catalyst, then mounts the shell into `#studio`. */
 function mount(): void {
@@ -54,7 +55,12 @@ function mount(): void {
               {
                 id: "board",
                 label: "Board",
-                render: () => <Board client={client} />,
+                render: (target?: string) => <Board client={client} target={target} />,
+              },
+              {
+                id: "map",
+                label: "Map",
+                render: () => <TypeMap client={client} />,
               },
               {
                 id: "rules",

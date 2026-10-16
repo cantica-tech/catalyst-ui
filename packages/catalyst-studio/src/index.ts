@@ -47,3 +47,13 @@ export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Jour
 export { Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
 export { clipboardCopy, CopyButton } from "./Copy.js";
 export { citers, groupRules, ruleDocument, RuleBrowser, Rules, ruleStatus, searchRules } from "./Rules.js";
+export {
+  layoutMap,
+  TypeMap,
+  typeMap,
+  TypeMapDrawing,
+  TypeMapTable,
+  type MapEdge,
+  type MapNode,
+  type PlacedMap,
+} from "./TypeMap.js";

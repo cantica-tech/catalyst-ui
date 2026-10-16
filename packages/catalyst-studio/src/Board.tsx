@@ -185,7 +185,7 @@ export function BoardView({
 type Load = { state: "loading" } | { state: "ready"; graph: Graph } | { state: "failed"; message: string };
 
 /** The Board view, reloaded after each change catalyst announces. */
-export function Board({ client }: { client: StudioClient }) {
+export function Board({ client, target }: { client: StudioClient; target?: string }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [batch, setBatch] = useState(0);
 
@@ -230,5 +230,5 @@ export function Board({ client }: { client: StudioClient }) {
       </>
     );
   }
-  return <BoardView graph={load.graph} />;
+  return <BoardView graph={load.graph} initialType={target} />;
 }
