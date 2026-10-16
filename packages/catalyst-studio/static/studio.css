@@ -379,3 +379,74 @@ article input[type="text"] {
   background: var(--surface);
   border-radius: var(--radius);
 }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filters select,
+.filters input {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+}
+
+.history {
+  padding-left: var(--space-6);
+}
+
+.diff {
+  margin: var(--space-2) 0;
+}
+
+.diff-hunk {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) 0;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.diff-line {
+  display: block;
+  padding: 0 var(--space-2);
+}
+
+.diff-num {
+  display: inline-block;
+  min-width: 3ch;
+  margin-right: var(--space-2);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.diff-del {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+.diff-add {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, transparent);
+}

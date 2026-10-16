@@ -1,5 +1,5 @@
 /** The Studio (catalyst roadmap R6.2): one bundle every host shows, reading catalyst only over its HTTP API. */
-export { applyTheme, Shell, type Theme, type View } from "./Shell.js";
+export { applyTheme, Shell, useNavigate, type Navigate, type Theme, type View } from "./Shell.js";
 export { Status, type StatusTone } from "./Status.js";
 export {
   ApiError,
@@ -16,6 +16,9 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type History,
+  type HistoryEntry,
+  type JournalEntry,
   type Command,
   type CommandPart,
   type CommandSpec,
@@ -36,3 +39,6 @@ export {
   searchPalette,
   type PaletteEntry,
 } from "./Commands.js";
+export { diffStat, hunks, lineDiff, type DiffLine, type Hunk } from "./diff.js";
+export { changeKind, DiffView, EntityHistory } from "./History.js";
+export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Journal.js";

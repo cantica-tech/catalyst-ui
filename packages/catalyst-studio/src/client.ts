@@ -80,6 +80,34 @@ export interface JournalEntry {
   action?: string | null;
   artifact?: string | null;
   intent?: string | string[] | null;
+  tier?: string | null;
+  targets?: string[] | null;
+  /** The files it touched, each with its blob before and after (null: absent). */
+  files?: { path: string; before?: string | null; after?: string | null }[];
+}
+
+/** One entry that changed an entity's file, with the file before and after. */
+export interface HistoryEntry {
+  timestamp: string | null;
+  actor: string | null;
+  command: string | null;
+  action: string | null;
+  artifact: string | null;
+  tier: string | null;
+  intent: string[];
+  before: string | null;
+  after: string | null;
+  content_before: string | null;
+  content_after: string | null;
+  redacted: boolean;
+}
+
+/** `GET /v1/history/<id>`: every change to an entity's file, in the journal's order (catalyst >= 0.62.0). */
+export interface History {
+  id: string;
+  type: string;
+  file: string;
+  entries: HistoryEntry[];
 }
 
 /** One entity type as the module declares it (`graph.types[prefix]`). */
@@ -250,6 +278,10 @@ export class StudioClient {
 
   view(id: string): Promise<EntityView> {
     return this.get<EntityView>(`view/${encodeURIComponent(id)}`);
+  }
+
+  history(id: string): Promise<History> {
+    return this.get<History>(`history/${encodeURIComponent(id)}`);
   }
 
   /** The deployment's commands (catalyst >= 0.75.0). */

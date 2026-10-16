@@ -4,6 +4,7 @@ import { Artifacts } from "./Artifacts.js";
 import { connectionFromPage, StudioClient } from "./client.js";
 import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
 import { Inbox } from "./Inbox.js";
+import { Journal } from "./Journal.js";
 import { Overview } from "./Overview.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
@@ -46,7 +47,12 @@ function mount(): void {
               {
                 id: "artifacts",
                 label: "Artifacts",
-                render: () => <Artifacts client={client} />,
+                render: (target?: string) => <Artifacts client={client} target={target} />,
+              },
+              {
+                id: "journal",
+                label: "Journal",
+                render: () => <Journal client={client} />,
               },
               {
                 id: "commands",

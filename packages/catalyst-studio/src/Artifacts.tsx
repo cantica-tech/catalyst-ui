@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
-import type { EntityType, EntityView, Graph, GraphArtifact, Impact, StudioClient } from "./client.js";
+import type { EntityType, EntityView, Graph, GraphArtifact, History, Impact, StudioClient } from "./client.js";
+import { EntityHistory } from "./History.js";
 import { Status, type StatusTone } from "./Status.js";
 import { Trace } from "./Trace.js";
 
@@ -70,6 +71,7 @@ export function EntityPage({
   entity,
   type,
   impact,
+  history,
   onOpen,
   onBack,
 }: {
@@ -77,6 +79,8 @@ export function EntityPage({
   type: EntityType | undefined;
   /** The trace, when catalyst serves `impact`; without it, the direct citers. */
   impact?: Impact;
+  /** Every change to its file, when catalyst serves `history`; without it, the journal entries naming it. */
+  history?: History;
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
@@ -192,8 +196,10 @@ export function EntityPage({
       )}
 
       <section aria-labelledby="entity-journal">
-        <h3 id="entity-journal">Journal</h3>
-        {entity.journal.length === 0 ? (
+        <h3 id="entity-journal">{history ? "History" : "Journal"}</h3>
+        {history ? (
+          <EntityHistory entries={history.entries} />
+        ) : entity.journal.length === 0 ? (
           <p className="muted">No entry names it.</p>
         ) : (
           <ol className="journal">
@@ -213,11 +219,12 @@ export function EntityPage({
 type Load<T> = { state: "loading" } | { state: "ready"; value: T } | { state: "failed"; message: string };
 
 /** The Artifacts view: the list, or one artifact's page; reloaded after each change catalyst announces. */
-export function Artifacts({ client }: { client: StudioClient }) {
+export function Artifacts({ client, target }: { client: StudioClient; target?: string }) {
   const [graph, setGraph] = useState<Load<Graph>>({ state: "loading" });
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(target ?? null);
   const [entity, setEntity] = useState<Load<EntityView> | null>(null);
   const [impact, setImpact] = useState<Impact | undefined>(undefined);
+  const [history, setHistory] = useState<History | undefined>(undefined);
   const [batch, setBatch] = useState(0);
 
   useEffect(() => {
@@ -252,6 +259,13 @@ export function Artifacts({ client }: { client: StudioClient }) {
     let live = true;
     setEntity({ state: "loading" });
     setImpact(undefined);
+    setHistory(undefined);
+    client.history(open).then(
+      (value) => {
+        if (live) setHistory(value);
+      },
+      () => undefined, // an older catalyst serves no history: the page lists the journal entries naming it
+    );
     client.impact(open).then(
       (value) => {
         if (live) setImpact(value);
@@ -291,6 +305,7 @@ export function Artifacts({ client }: { client: StudioClient }) {
         entity={entity.value}
         type={typeOf(graph.value, entity.value.type)}
         impact={impact}
+        history={history}
         onOpen={setOpen}
         onBack={() => {
           setOpen(null);
