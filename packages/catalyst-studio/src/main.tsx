@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { Approvals } from "./Approvals.js";
@@ -5,6 +6,7 @@ import { Artifacts } from "./Artifacts.js";
 import { Board } from "./Board.js";
 import { connectionFromPage, StudioClient } from "./client.js";
 import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
+import { connectHost, type HostRuns } from "./host.js";
 import { Inbox } from "./Inbox.js";
 import { Journal } from "./Journal.js";
 import { Overview } from "./Overview.js";
@@ -16,12 +18,28 @@ import { Status } from "./Status.js";
 import { Team } from "./Team.js";
 import { TypeMap } from "./TypeMap.js";
 
+/** The Commands view, with the host's runs once the host answers (inside VS Code only). */
+function HostedCommands({ client, hostReady }: { client: StudioClient; hostReady: Promise<HostRuns | null> }) {
+  const [runs, setRuns] = useState<HostRuns | null>(null);
+  useEffect(() => {
+    let live = true;
+    void hostReady.then((h) => {
+      if (live) setRuns(h);
+    });
+    return () => {
+      live = false;
+    };
+  }, [hostReady]);
+  return <Commands client={client} host={runs} />;
+}
+
 /** The browser entry: connects to catalyst, then mounts the shell into `#studio`. */
 function mount(): void {
   const host = document.getElementById("studio");
   if (!host) return;
   const connection = connectionFromPage();
   const client = connection ? new StudioClient(connection) : null;
+  const hostReady = connectHost(); // the page renders now; the run appears when a host answers
   createRoot(host).render(
     <Shell
       project="catalyst Studio"
@@ -100,7 +118,7 @@ function mount(): void {
               {
                 id: "commands",
                 label: "Commands",
-                render: () => <Commands client={client} />,
+                render: () => <HostedCommands client={client} hostReady={hostReady} />,
                 shortcut: { key: "k", focus: COMMAND_SEARCH_ID },
               },
             ]

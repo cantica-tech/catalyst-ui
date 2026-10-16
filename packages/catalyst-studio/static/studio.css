@@ -557,3 +557,23 @@ progress {
 .person h3 {
   margin-top: 0;
 }
+
+.run-console {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.run-log {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.run-log li {
+  padding: var(--space-1) 0;
+}

@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 
-import { catalystCommand, startLocalServe, type CatalystServer } from "catalyst-core";
+import { catalystCommand, startAgentRun, startLocalServe, type CatalystServer } from "catalyst-core";
 import * as vscode from "vscode";
 
 import { studioPanelHtml } from "../studio-html.js";
+import { StudioRuns } from "../studio-runs.js";
 
 /**
  * Opens the Studio for one project (catalyst roadmap R6.2): a server of its
@@ -41,9 +42,24 @@ export async function openStudio(
     enableScripts: true,
     retainContextWhenHidden: true,
   });
+  // the agent console (studio-SHELL-000015, owner decision C2): a run is the
+  // host's, asked for by the Studio, confirmed by the person here
+  const runs = new StudioRuns({
+    confirm: async (question) => (await vscode.window.showWarningMessage(question, { modal: true }, "Run")) === "Run",
+    start: (command, args, onEvent) => startAgentRun(projectRoot, command, args, onEvent),
+    post: (message) => {
+      void panel.webview.postMessage(message);
+    },
+  });
+  panel.webview.onDidReceiveMessage((message: unknown) => {
+    runs.handle(message).catch((err: unknown) => {
+      log(`Studio run: ${String(err)}`);
+    });
+  });
   panel.webview.html = studioPanelHtml(page, randomBytes(16).toString("base64"));
   log(`Studio for ${title}: ${server.url}`);
   panel.onDidDispose(() => {
+    runs.dispose();
     server.child.kill();
   });
 }
