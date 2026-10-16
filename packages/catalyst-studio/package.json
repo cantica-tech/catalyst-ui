@@ -1,6 +1,6 @@
 {
   "name": "catalyst-studio",
-  "version": "0.43.0",
+  "version": "0.44.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
@@ -12,6 +12,7 @@
   "dependencies": {
     "catalyst-app-model": "*",
     "catalyst-core": "*",
+    "elkjs": "^0.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 
-import type { EntityType, EntityView, Graph, GraphArtifact, StudioClient } from "./client.js";
+import type { EntityType, EntityView, Graph, GraphArtifact, Impact, StudioClient } from "./client.js";
 import { Status, type StatusTone } from "./Status.js";
+import { Trace } from "./Trace.js";
 
 function text(value: unknown): string {
   return typeof value === "string" ? value : "";
@@ -68,11 +69,14 @@ export function ArtifactList({ graph, onOpen }: { graph: Graph; onOpen: (id: str
 export function EntityPage({
   entity,
   type,
+  impact,
   onOpen,
   onBack,
 }: {
   entity: EntityView;
   type: EntityType | undefined;
+  /** The trace, when catalyst serves `impact`; without it, the direct citers. */
+  impact?: Impact;
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
@@ -168,20 +172,24 @@ export function EntityPage({
         </section>
       ))}
 
-      <section aria-labelledby="entity-cited-by">
-        <h3 id="entity-cited-by">Cited by</h3>
-        {entity.linked_from.length === 0 ? (
-          <p className="muted">Nothing cites it.</p>
-        ) : (
-          <ul>
-            {entity.linked_from.map((l) => (
-              <li key={`${l.id}-${l.field}`}>
-                {idButton(l.id)} <span className="muted">in {l.field}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {impact ? (
+        <Trace impact={impact} onOpen={onOpen} />
+      ) : (
+        <section aria-labelledby="entity-cited-by">
+          <h3 id="entity-cited-by">Cited by</h3>
+          {entity.linked_from.length === 0 ? (
+            <p className="muted">Nothing cites it.</p>
+          ) : (
+            <ul>
+              {entity.linked_from.map((l) => (
+                <li key={`${l.id}-${l.field}`}>
+                  {idButton(l.id)} <span className="muted">in {l.field}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section aria-labelledby="entity-journal">
         <h3 id="entity-journal">Journal</h3>
@@ -209,6 +217,7 @@ export function Artifacts({ client }: { client: StudioClient }) {
   const [graph, setGraph] = useState<Load<Graph>>({ state: "loading" });
   const [open, setOpen] = useState<string | null>(null);
   const [entity, setEntity] = useState<Load<EntityView> | null>(null);
+  const [impact, setImpact] = useState<Impact | undefined>(undefined);
   const [batch, setBatch] = useState(0);
 
   useEffect(() => {
@@ -242,6 +251,13 @@ export function Artifacts({ client }: { client: StudioClient }) {
     if (!open) return;
     let live = true;
     setEntity({ state: "loading" });
+    setImpact(undefined);
+    client.impact(open).then(
+      (value) => {
+        if (live) setImpact(value);
+      },
+      () => undefined, // an older catalyst serves no impact: the page shows the direct citers
+    );
     client.view(open).then(
       (value) => {
         if (live) setEntity({ state: "ready", value });
@@ -274,6 +290,7 @@ export function Artifacts({ client }: { client: StudioClient }) {
       <EntityPage
         entity={entity.value}
         type={typeOf(graph.value, entity.value.type)}
+        impact={impact}
         onOpen={setOpen}
         onBack={() => {
           setOpen(null);

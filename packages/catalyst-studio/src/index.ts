@@ -16,3 +16,5 @@ export {
 } from "./client.js";
 export { Overview, OverviewView, type OverviewData } from "./Overview.js";
 export { ArtifactList, Artifacts, EntityPage, statusTone } from "./Artifacts.js";
+export { Trace, traceTree, type TraceNode } from "./Trace.js";
+export { layoutTrace, TraceGraph, TraceGraphView, type TraceLayout } from "./TraceGraph.js";
