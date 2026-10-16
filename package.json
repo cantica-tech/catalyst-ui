@@ -1,5 +1,6 @@
 {
   "name": "catalyst-ui-monorepo",
+  "license": "Apache-2.0",
   "private": true,
   "workspaces": [
     "packages/*"

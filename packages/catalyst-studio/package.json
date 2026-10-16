@@ -1,6 +1,7 @@
 {
   "name": "catalyst-studio",
   "version": "0.46.0",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
