@@ -17,12 +17,35 @@ export interface CheckReport {
   warnings: string[];
 }
 
+/** One file an unrecorded commit changed: its content hash before and after (null when absent). */
+export interface ChangedFile {
+  path: string;
+  before: string | null;
+  after: string | null;
+}
+
+/**
+ * What catalyst shows for an item, by kind: a commit's sha, author and files
+ * (`unrecorded-commit`), a path (`unrecorded-change`), a case's status and
+ * entity (`reconciliation`), an analysis's status and scope (`analysis`).
+ */
+export interface Evidence {
+  commit?: string;
+  author?: string;
+  files?: ChangedFile[];
+  path?: string;
+  status?: string;
+  entity?: string | null;
+  scope?: string | null;
+  [key: string]: unknown;
+}
+
 /** One thing waiting for a person: its evidence, and the commands that settle it (a person chooses). */
 export interface InboxItem {
   kind: string;
   id: string;
   title: string;
-  evidence: string;
+  evidence: Evidence;
   settle: string[];
 }
 
@@ -131,6 +154,30 @@ export interface Impact {
   mentioned_by: string[];
 }
 
+/** One part of a command with parts (`/create bug`): read on its own. */
+export interface CommandPart {
+  part: string;
+  usage: string;
+  summary: string;
+  aliases: string[];
+}
+
+/** One command of the deployment, as `GET /v1/commands` gives it (catalyst >= 0.75.0). */
+export interface Command {
+  name: string;
+  usage: string;
+  summary: string;
+  aliases: string[];
+  parts: CommandPart[];
+}
+
+/** `GET /v1/spec/<command>[/<part>]`: the text `catalyst spec` prints for it. */
+export interface CommandSpec {
+  command: string;
+  part: string | null;
+  text: string;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -203,6 +250,17 @@ export class StudioClient {
 
   view(id: string): Promise<EntityView> {
     return this.get<EntityView>(`view/${encodeURIComponent(id)}`);
+  }
+
+  /** The deployment's commands (catalyst >= 0.75.0). */
+  async commands(): Promise<Command[]> {
+    return (await this.get<{ commands: Command[] }>("commands")).commands;
+  }
+
+  /** One command's procedure, or one part's (catalyst >= 0.75.0). */
+  spec(command: string, part?: string): Promise<CommandSpec> {
+    const route = `spec/${encodeURIComponent(command)}` + (part ? `/${encodeURIComponent(part)}` : "");
+    return this.get<CommandSpec>(route);
   }
 
   /**

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { Backlog, CheckReport, Head, InboxReport, JournalEntry, StudioClient } from "./client.js";
+import { describeEvidence } from "./evidence.js";
 import { Status } from "./Status.js";
 
 /** What the dashboard shows, as catalyst reports it (catalyst roadmap R6.5, R6.6). */
@@ -80,7 +81,7 @@ function Drift({ inbox }: { inbox: InboxReport }) {
             {inbox.items.map((item) => (
               <li key={`${item.kind}:${item.id}`}>
                 <strong>{item.title}</strong> <span className="muted">({item.kind})</span>
-                {item.evidence && <div className="muted">{item.evidence}</div>}
+                {describeEvidence(item) && <div className="muted">{describeEvidence(item)}</div>}
                 {item.settle.length > 0 && (
                   <div>
                     Settle with:{" "}
