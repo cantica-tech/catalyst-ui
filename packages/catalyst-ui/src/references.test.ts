@@ -5,7 +5,7 @@ import { hoverText, linkifyReferences, referenceTarget } from "./references.js";
 
 const info = (id: string, name = "login-flow", summary = "Users log in."): ReferenceInfo => ({
   id,
-  kind: "dev-artifact",
+  kind: "artifact",
   name,
   summary,
 });

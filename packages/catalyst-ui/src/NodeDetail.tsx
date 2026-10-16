@@ -24,7 +24,7 @@ function descriptionOf(node: ChainNode): string | undefined {
  * complete raw content (every field and section, not just the one
  * heading `description` extracts) for a kind with a file on disk;
  * falls back to `description` for a kind with no separate file of its
- * own (a rule's body *is* its full text; a roadmap row has no backing
+ * own (a rule's body *is* its full text; a table row has no backing
  * file at all) or an index-only artifact with nothing to read.
  */
 function fullContentOf(node: ChainNode): string | undefined {
@@ -70,7 +70,7 @@ function NodeList({
 }
 
 function SignedOffByDetails({ node }: { node: ChainNode }) {
-  if (node.kind === "roadmap") return null;
+  if (node.kind === "row") return null;
   if ("signedOffBy" in node && node.signedOffBy) {
     const clean = node.signedOffBy.replace(/^_+|_+$/g, "");
     if (!clean) return null;
@@ -83,22 +83,30 @@ function SignedOffByDetails({ node }: { node: ChainNode }) {
   return null;
 }
 
-function RoadmapDetails({ node }: { node: ChainNode }) {
-  if (node.kind !== "roadmap") return null;
+/** A row of a table file (a roadmap's item, say): its table and its cells, as written. */
+function RowDetails({ node }: { node: ChainNode }) {
+  if (node.kind !== "row") return null;
   const clean = node.signedOffBy ? node.signedOffBy.replace(/^_+|_+$/g, "") : "";
+  const cells = Object.entries(node.fields).filter(([name, value]) => value && name !== "Signed-off-by");
   return (
     <section>
-      <h2>Roadmap</h2>
-      <p>
-        {node.roadmapName}
-        {node.roadmapRetired ? " (retired)" : ""}
-      </p>
+      <h2>{node.table}</h2>
+      {node.tableRetired ? <p>(retired)</p> : null}
+      {cells.length > 0 ? (
+        <dl>
+          {cells.map(([name, value]) => (
+            <div key={name}>
+              <dt>{name}</dt>
+              <dd>{value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {clean ? (
         <p>
           Signed off by: <em>{clean}</em>
         </p>
       ) : null}
-      {node.notes ? <p>{node.notes}</p> : null}
     </section>
   );
 }
@@ -143,7 +151,7 @@ export function NodeDetail({ node, upstream, downstream, references }: NodeDetai
       </p>
       {status ? <p>Status: {status}</p> : null}
       <SignedOffByDetails node={node} />
-      <RoadmapDetails node={node} />
+      <RowDetails node={node} />
       <DetailsSection node={node} references={references} />
       <NodeList title="Justified by (upstream)" nodes={upstream} references={references} />
       <NodeList title="Produces (downstream)" nodes={downstream} references={references} />

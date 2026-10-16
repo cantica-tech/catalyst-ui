@@ -18,12 +18,6 @@
     }
   },
   "packages/catalyst-app-model/src/tree.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
-    },
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    },
     "no-useless-assignment": {
       "count": 1
     }

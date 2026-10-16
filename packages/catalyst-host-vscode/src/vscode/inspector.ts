@@ -1,4 +1,6 @@
-import type { ChainModel, ChainNode, IamRole, IamUser, RoadmapNode } from "catalyst-core";
+import { existsSync } from "node:fs";
+
+import type { ChainModel, ChainNode, IamRole, IamUser, ModuleType, RowNode } from "catalyst-core";
 import { readEntityDefinition } from "catalyst-core";
 import * as vscode from "vscode";
 import {
@@ -8,16 +10,15 @@ import {
   SHOW_IAM_DETAIL_COMMAND,
 } from "../constants.js";
 import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
-import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "catalyst-app-model";
+import { buildRowSections, type RowGroup, type RowSection } from "catalyst-app-model";
 import { breadthFirst, childId, itemKey } from "catalyst-app-model";
 import {
   buildTreeSections,
   formatNodeLabel,
-  type DevArtifactGroup,
+  type ArtifactGroup,
   type RuleGroup,
   type RuleTypeSection,
-  type TreeSection,
-  type TreeSectionKind,
+  type TypeSection,
 } from "catalyst-app-model";
 
 export interface DeploymentView {
@@ -31,13 +32,14 @@ export interface DeploymentView {
 
 export type InspectorTreeItem =
   | { type: "deployment"; corpusRoot: string; folderName: string }
-  | { type: "dev-artifact-group"; corpusRoot: string; group: DevArtifactGroup }
+  | { type: "artifact-group"; corpusRoot: string; group: ArtifactGroup }
   | { type: "rule-group"; corpusRoot: string; group: RuleGroup }
   | { type: "rule-type-section"; corpusRoot: string; section: RuleTypeSection }
-  | { type: "section"; corpusRoot: string; section: TreeSection }
+  | { type: "type-section"; corpusRoot: string; section: TypeSection }
+  | { type: "domain-section"; corpusRoot: string; nodes: ChainNode[] }
   | { type: "node"; corpusRoot: string; node: ChainNode }
-  | { type: "roadmap-section"; corpusRoot: string; section: RoadmapSection }
-  | { type: "roadmap-group"; corpusRoot: string; group: RoadmapGroup }
+  | { type: "row-section"; corpusRoot: string; section: RowSection }
+  | { type: "row-group"; corpusRoot: string; group: RowGroup }
   | { type: "user-section"; corpusRoot: string; section: UserSection }
   | { type: "user"; corpusRoot: string; user: IamUser }
   | { type: "role-section"; corpusRoot: string; section: RoleSection }
@@ -46,45 +48,10 @@ export type InspectorTreeItem =
   | { type: "journal-entry"; corpusRoot: string }
   | { type: "backlog-entry"; corpusRoot: string };
 
-/**
- * Icon basename (under resources/icons/{light,dark}/<name>.svg) per tree
- * section kind. Dev-artifact sub-types each get their own section icon,
- * same one their individual nodes already use via `nodeIconName`.
- */
-export const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
-  requirement: "requirements",
-  bug: "bug",
-  "house-keeping": "house-keeping",
-  step: "step",
-  test: "test",
-  domain: "domain",
-  feature: "features",
-};
-
-/**
- * Entity type (`definitions/<type>.md`, INV-23) backing each section's
- * hover tooltip.
- */
-export const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
-  requirement: ["requirement"],
-  bug: ["bug"],
-  "house-keeping": ["house-keeping"],
-  step: ["step"],
-  test: ["test"],
-  domain: ["domain"],
-  feature: ["feature"],
-};
-
-export const ENTITY_TYPE_LABELS: Record<string, string> = {
-  bug: "Bug",
-  requirement: "Requirement",
-  "house-keeping": "House-keeping",
-  test: "Test",
+/** Labels of the kernel's own entity types; a module type's label is its own name. */
+export const ENTITY_TYPE_LABELS: Partial<Record<string, string>> = {
   rule: "Rule",
   domain: "Domain",
-  feature: "Feature",
-  step: "Step",
-  roadmap: "Roadmap",
   user: "User",
   role: "Role",
   journal: "Journal",
@@ -97,45 +64,34 @@ export const ENTITY_TYPE_LABELS: Record<string, string> = {
  * the label) if none are found, e.g. a deployment that predates INV-23
  * and hasn't migrated yet.
  */
-export function sectionTooltip(corpusRoot: string, entityTypes: string[]): vscode.MarkdownString | undefined {
+export function sectionTooltip(
+  corpusRoot: string,
+  entityTypes: string[],
+  label?: string,
+): vscode.MarkdownString | undefined {
   const blocks: string[] = [];
   for (const entityType of entityTypes) {
     const definition = readEntityDefinition(corpusRoot, entityType);
     if (!definition) continue;
-    const label = ENTITY_TYPE_LABELS[entityType] ?? entityType;
-    blocks.push(`**${label}**\n\n${definition.description}`);
+    const shown = label ?? ENTITY_TYPE_LABELS[entityType] ?? entityType;
+    blocks.push(`**${shown}**\n\n${definition.description}`);
   }
   return blocks.length > 0 ? new vscode.MarkdownString(blocks.join("\n\n")) : undefined;
 }
 
-/** Icon basename for an individual chain-model node, by its kind (and dev-artifact sub-type). */
-export function nodeIconName(node: ChainNode): string | undefined {
-  switch (node.kind) {
-    case "dev-artifact":
-      switch (node.artifactType) {
-        case "bug":
-          return "bug";
-        case "requirement":
-          return "requirements";
-        case "house-keeping":
-          return "house-keeping";
-        case "test":
-          return "test";
-      }
-      return undefined;
-    case "rule":
-      return "rule";
-    case "domain":
-      return "domain";
-    case "feature":
-      return "features";
-    case "roadmap":
-      return "roadmap";
-    case "step":
-      return "step";
-    default:
-      return undefined;
-  }
+/** A type's slug, as its definition file and an icon may be named: `House-keeping` → `house-keeping`. */
+export function typeSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/** The icon names worth trying for a module type, from its own names; the caller keeps the first that exists. */
+export function typeIconCandidates(type: ModuleType | undefined, prefix: string): string[] {
+  const names = type ? [typeSlug(type.name), typeSlug(type.plural_name)] : [];
+  const first = names.map((n) => n.split("-")[0]);
+  return [...new Set([...names, ...first, prefix.toLowerCase()])].filter(Boolean);
 }
 
 /**
@@ -178,6 +134,14 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
   constructor(private readonly extensionUri: vscode.Uri) {}
+
+  /** The icon a module type shows: the first of its candidate names this extension ships, else the generic one. */
+  private typeIcon(model: ChainModel, prefix: string): { light: vscode.Uri; dark: vscode.Uri } {
+    const shipped = typeIconCandidates(model.types?.get(prefix), prefix).find((name) =>
+      existsSync(vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "light", `${name}.svg`).fsPath),
+    );
+    return this.iconUris(shipped ?? "dev-artifacts");
+  }
 
   /** Light/dark pair for an icon basename under resources/icons/. */
   private iconUris(name: string): { light: vscode.Uri; dark: vscode.Uri } {
@@ -247,7 +211,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     if (element.type === "deployment") {
       return new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.Expanded);
     }
-    if (element.type === "dev-artifact-group") {
+    if (element.type === "artifact-group") {
       const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
       const item = new vscode.TreeItem(`${element.group.label} (${total})`, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("dev-artifacts");
@@ -268,32 +232,43 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       item.tooltip = sectionTooltip(element.corpusRoot, ["rule"]);
       return item;
     }
-    if (element.type === "section") {
+    if (element.type === "type-section") {
       const item = new vscode.TreeItem(
-        `${element.section.label} (${element.section.nodes.length})`,
+        `${element.section.label} (${String(element.section.nodes.length)})`,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
-      const iconName = SECTION_ICON_NAMES[element.section.kind];
-      if (iconName) item.iconPath = this.iconUris(iconName);
-      const entityTypes = SECTION_ENTITY_TYPES[element.section.kind];
-      if (entityTypes) {
-        item.tooltip = sectionTooltip(element.corpusRoot, entityTypes);
-      }
+      const model = this.getModel(element.corpusRoot);
+      if (model) item.iconPath = this.typeIcon(model, element.section.typePrefix);
+      const type = model?.types?.get(element.section.typePrefix);
+      if (type) item.tooltip = sectionTooltip(element.corpusRoot, [typeSlug(type.name)], type.name);
       return item;
     }
-    if (element.type === "roadmap-section") {
+    if (element.type === "domain-section") {
+      const item = new vscode.TreeItem(
+        `Domains (${String(element.nodes.length)})`,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+      item.iconPath = this.iconUris("domain");
+      item.tooltip = sectionTooltip(element.corpusRoot, ["domain"]);
+      return item;
+    }
+    if (element.type === "row-section") {
       const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("roadmap");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["roadmap"]);
+      const model = this.getModel(element.corpusRoot);
+      if (model) item.iconPath = this.typeIcon(model, element.section.typePrefix);
+      const type = model?.types?.get(element.section.typePrefix);
+      if (type) item.tooltip = sectionTooltip(element.corpusRoot, [typeSlug(type.name)], type.name);
       return item;
     }
-    if (element.type === "roadmap-group") {
+    if (element.type === "row-group") {
       const retiredMark = element.group.retired ? " (retired)" : "";
       const item = new vscode.TreeItem(
-        `${element.group.name}${retiredMark} (${element.group.items.length})`,
+        `${element.group.name}${retiredMark} (${String(element.group.items.length)})`,
         vscode.TreeItemCollapsibleState.Collapsed,
       );
-      item.iconPath = this.iconUris("roadmap");
+      const model = this.getModel(element.corpusRoot);
+      const prefix = element.group.items[0]?.typePrefix;
+      if (model && prefix) item.iconPath = this.typeIcon(model, prefix);
       return item;
     }
     if (element.type === "user-section") {
@@ -355,8 +330,13 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       return item;
     }
 
+    const nodeModel = this.getModel(element.corpusRoot);
+    const nodeType =
+      element.node.kind === "artifact" || element.node.kind === "row"
+        ? nodeModel?.types?.get(element.node.typePrefix)
+        : undefined;
     const item = new vscode.TreeItem(
-      formatNodeLabel(element.node),
+      formatNodeLabel(element.node, nodeType),
       this.hasChildNodes(element.corpusRoot, element.node)
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
@@ -366,97 +346,51 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       title: "Show detail",
       arguments: [element.corpusRoot, element.node.id],
     };
-    const iconName = nodeIconName(element.node);
-    if (iconName) item.iconPath = this.iconUris(iconName);
+    if (element.node.kind === "artifact" || element.node.kind === "row") {
+      if (nodeModel) item.iconPath = this.typeIcon(nodeModel, element.node.typePrefix);
+    } else if (element.node.kind === "rule" || element.node.kind === "domain") {
+      item.iconPath = this.iconUris(element.node.kind);
+    }
     return item;
   }
 
   /**
-   * Which reverse-edge node kinds nest under a given node in the tree, for
-   * discoverability on top of that kind's own flat section under "Dev
-   * Artifacts". Steps deliberately do **not** nest here, even though a
-   * step names exactly one parent requirement or bug
-   * (`Rules-of-Rules.md` §21) — a step is assembled under the flat
-   * "Steps" section and nowhere else, never duplicated as a nested
-   * child too. Tests still nest under both a requirement's/bug's and a
-   * step's own tree node (`Rules-of-Rules.md` §22, `(0,n)` many-to-many,
-   * so the same test can legitimately nest under more than one parent,
-   * or under none) — that's on top of the flat "Tests" section, not a
-   * duplicate of it, since `(0,n)` doesn't single out one owner the way
-   * a step's own required parent does.
+   * The artifacts that cite `node` through one of their reference fields
+   * (a step's parent, a test's requirements…), nested under it in the tree
+   * on top of their own type's section — whatever the module's types are.
+   * Mentions in prose do not nest.
    */
-  private childKindsFor(node: ChainNode): ("step" | "test")[] {
-    if (node.kind === "dev-artifact" && (node.artifactType === "requirement" || node.artifactType === "bug")) {
-      return ["test"];
-    }
-    if (node.kind === "step") return ["test"];
-    return [];
-  }
-
-  private isChildOfKind(candidate: ChainNode, kind: "step" | "test"): boolean {
-    if (kind === "step") return candidate.kind === "step";
-    return candidate.kind === "dev-artifact" && candidate.artifactType === "test";
-  }
-
-  /** True when `node` has at least one child of a kind `childKindsFor` names, resolved via reverse edges. */
-  private hasChildNodes(corpusRoot: string, node: ChainNode): boolean {
-    const kinds = this.childKindsFor(node);
-    if (kinds.length === 0) return false;
-    const model = this.getModel(corpusRoot);
-    const reverse = model?.reverseEdges.get(node.id);
-    if (!model || !reverse) return false;
-    for (const id of reverse) {
-      const candidate = model.nodes.get(id);
-      if (candidate && kinds.some((k) => this.isChildOfKind(candidate, k))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /** `node`'s own steps and/or tests, resolved via the chain model's reverse edges — sorted by id. */
-  private childNodesFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
-    const kinds = this.childKindsFor(node);
-    if (kinds.length === 0) return [];
+  private citers(corpusRoot: string, node: ChainNode): ChainNode[] {
+    if (node.kind !== "artifact") return [];
     const model = this.getModel(corpusRoot);
     const reverse = model?.reverseEdges.get(node.id);
     if (!model || !reverse) return [];
+    const cites = (ref: string) => ref === node.id || node.id.startsWith(`${ref}-`);
     return [...reverse]
       .map((id) => model.nodes.get(id))
-      .filter((n): n is ChainNode => n !== undefined && kinds.some((k) => this.isChildOfKind(n, k)))
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((childNode) => ({
-        type: "node" as const,
-        corpusRoot,
-        node: childNode,
-      }));
+      .filter((n): n is ChainNode => n?.kind === "artifact" && Object.values(n.links).some((ids) => ids.some(cites)))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  private hasChildNodes(corpusRoot: string, node: ChainNode): boolean {
+    return this.citers(corpusRoot, node).length > 0;
+  }
+
+  private childNodesFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
+    return this.citers(corpusRoot, node).map((childNode) => ({ type: "node" as const, corpusRoot, node: childNode }));
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
-    const { devArtifacts, rules, sections: otherSections } = buildTreeSections(view.model);
+    const { artifacts, rules, domains } = buildTreeSections(view.model);
     const sections: InspectorTreeItem[] = [
-      {
-        type: "dev-artifact-group",
-        corpusRoot: view.corpusRoot,
-        group: devArtifacts,
-      },
-      {
-        type: "rule-group",
-        corpusRoot: view.corpusRoot,
-        group: rules,
-      },
-      ...otherSections.map((section): InspectorTreeItem => ({
-        type: "section",
-        corpusRoot: view.corpusRoot,
-        section,
-      })),
+      { type: "artifact-group", corpusRoot: view.corpusRoot, group: artifacts },
+      { type: "rule-group", corpusRoot: view.corpusRoot, group: rules },
+      { type: "domain-section", corpusRoot: view.corpusRoot, nodes: domains },
     ];
-    const roadmapNodes = [...view.model.nodes.values()].filter((n): n is RoadmapNode => n.kind === "roadmap");
-    sections.push({
-      type: "roadmap-section",
-      corpusRoot: view.corpusRoot,
-      section: buildRoadmapSection(roadmapNodes),
-    });
+    const rows = [...view.model.nodes.values()].filter((n): n is RowNode => n.kind === "row");
+    for (const section of buildRowSections(rows, view.model.types)) {
+      sections.push({ type: "row-section", corpusRoot: view.corpusRoot, section });
+    }
     sections.push({
       type: "user-section",
       corpusRoot: view.corpusRoot,
@@ -548,9 +482,9 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       const view = this.deployments.get(element.corpusRoot);
       return view ? this.sectionsFor(view) : [];
     }
-    if (element.type === "dev-artifact-group") {
+    if (element.type === "artifact-group") {
       return element.group.sections.map((section) => ({
-        type: "section",
+        type: "type-section",
         corpusRoot: element.corpusRoot,
         section,
       }));
@@ -569,21 +503,24 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         node,
       }));
     }
-    if (element.type === "section") {
+    if (element.type === "type-section") {
       return element.section.nodes.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,
         node,
       }));
     }
-    if (element.type === "roadmap-section") {
+    if (element.type === "domain-section") {
+      return element.nodes.map((node) => ({ type: "node", corpusRoot: element.corpusRoot, node }));
+    }
+    if (element.type === "row-section") {
       return element.section.groups.map((group) => ({
-        type: "roadmap-group",
+        type: "row-group",
         corpusRoot: element.corpusRoot,
         group,
       }));
     }
-    if (element.type === "roadmap-group") {
+    if (element.type === "row-group") {
       return element.group.items.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,

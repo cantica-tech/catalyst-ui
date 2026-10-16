@@ -4,6 +4,6 @@
  */
 export * from "./detail.js";
 export * from "./iam.js";
-export * from "./roadmaps.js";
+export * from "./rows.js";
 export * from "./tree.js";
 export * from "./tree-ids.js";

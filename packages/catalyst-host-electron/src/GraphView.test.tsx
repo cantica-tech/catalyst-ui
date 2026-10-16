@@ -10,7 +10,7 @@ describe("GraphView", () => {
       nodes: [
         {
           id: "REQ-000006",
-          kind: "dev-artifact",
+          kind: "artifact",
           title: "Electron host",
           x: 0,
           y: 0,
@@ -38,7 +38,7 @@ describe("GraphView", () => {
       nodes: [
         {
           id: "REQ-000006",
-          kind: "dev-artifact",
+          kind: "artifact",
           title: "Electron host",
           x: 0,
           y: 0,

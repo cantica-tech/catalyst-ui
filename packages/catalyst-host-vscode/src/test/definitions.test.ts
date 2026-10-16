@@ -28,7 +28,7 @@ function modelOf(nodes: ChainNode[]): ChainModel {
 }
 
 describe("resolveDefinitionAt", () => {
-  const model = modelOf([node({ id: "env-RUNTIME-001" }), node({ id: "REQ-000001", kind: "dev-artifact" })]);
+  const model = modelOf([node({ id: "env-RUNTIME-001" }), node({ id: "REQ-000001", kind: "artifact" })]);
 
   it("resolves a rule id when the cursor is inside the backtick-quoted token", () => {
     const line = "Targets `env-RUNTIME-001` directly.";

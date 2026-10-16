@@ -2,8 +2,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { devArtifactType } from "../ids.js";
-
 /** Builds small, real-shaped `.criterion` corpora on disk for tests — never used by product code. */
 
 export interface FixtureRule {
@@ -188,7 +186,7 @@ function renderDevArtifactFile(artifact: FixtureArtifact): string {
   if (artifact.feature) fields.Feature = `\`${artifact.feature}\``;
   if (artifact.requirements?.length) fields.Requirements = artifact.requirements.map((r) => `\`${r}\``).join(", ");
   if (artifact.steps?.length) fields.Steps = artifact.steps.map((s) => `\`${s}\``).join(", ");
-  const descriptionHeading = devArtifactType(artifact.id) === "requirement" ? "Summary" : "Description";
+  const descriptionHeading = artifact.id.startsWith("REQ-") ? "Summary" : "Description"; // a fixture of the example module
   const description = artifact.description ? `## ${descriptionHeading}\n\n${artifact.description}\n\n` : "";
   return `# \`${artifact.id}\` — ${artifact.title}\n\n${renderFieldTable(fields)}\n${description}## Notes\n\n${artifact.extraBody ?? "None."}\n`;
 }

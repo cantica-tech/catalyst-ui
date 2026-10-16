@@ -1,14 +1,17 @@
 import { describe, it } from "vitest";
 import * as assert from "assert";
 
-import type { ChainNode } from "catalyst-core";
+import type { ChainNode, ModuleType } from "catalyst-core";
 
 import { formatNodeLabel, getNodeUser } from "../tree.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
-    kind: "dev-artifact",
-    artifactType: "requirement",
+    kind: "artifact",
+    typePrefix: overrides.id.split("-")[0],
+    status: "",
+    closed: false,
+    links: {},
     title: overrides.id,
     location: { file: "f.md", line: 1 },
     references: [],
@@ -20,7 +23,7 @@ describe("formatNodeLabel", () => {
   it("formats a node with name and username, stripping the userid from ID", () => {
     const n = node({
       id: "REQ-000001-yCNjAMXO",
-      kind: "dev-artifact",
+      kind: "artifact",
       name: "Password Reset Flow",
       signedOffBy: "Olivier Steck",
     });
@@ -31,7 +34,7 @@ describe("formatNodeLabel", () => {
   it("formats a node with name but no username, stripping the userid from ID", () => {
     const n = node({
       id: "REQ-000001-yCNjAMXO",
-      kind: "dev-artifact",
+      kind: "artifact",
       name: "Password Reset Flow",
     });
     assert.strictEqual(formatNodeLabel(n), "… Password Reset Flow [REQ-000001]");
@@ -41,7 +44,7 @@ describe("formatNodeLabel", () => {
   it("falls back to title when name is missing, stripping the userid from ID", () => {
     const n = node({
       id: "REQ-000001-yCNjAMXO",
-      kind: "dev-artifact",
+      kind: "artifact",
       title: "Password Reset Flow Title",
       signedOffBy: "Olivier Steck",
     });
@@ -112,153 +115,49 @@ describe("formatNodeLabel", () => {
     assert.strictEqual(formatNodeLabel(n), "✅ github actions on push [env-CI-000001]");
   });
 
-  it("formats an open bug with 🐛 preceding its name and id", () => {
-    const n = node({
-      id: "BUG-000001-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "bug",
-      name: "Fluent Bit TCP output format raw unrecognized",
-      status: "open",
-    });
-    assert.strictEqual(formatNodeLabel(n), "🐛 Fluent Bit TCP output format raw unrecognized [BUG-000001]");
-  });
+  describe("a mark from the type alone (catalyst roadmap R6.7)", () => {
+    const type: ModuleType = {
+      prefix: "ITEM",
+      name: "Item",
+      plural_name: "Items",
+      states: ["Open", "Active", "Done", "Abandoned"],
+      initial: "Open",
+      closed_states: ["Done", "Abandoned"],
+      fields: [],
+    };
+    const glyph = (status: string) =>
+      formatNodeLabel(
+        node({ id: "ITEM-000001-Ab3xR9pQ", title: "Login", status, closed: type.closed_states.includes(status) }),
+        type,
+      ).split(" ")[0];
 
-  it("formats an in-progress bug with 🐛 preceding its name and id", () => {
-    const n = node({
-      id: "BUG-000002-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "bug",
-      name: "Catalog missing column migration",
-      status: "in-progress",
-    });
-    assert.strictEqual(formatNodeLabel(n), "🐛 Catalog missing column migration [BUG-000002]");
-  });
-
-  it("formats a fixed bug with ✅ status glyph rather than 🐛", () => {
-    const n = node({
-      id: "BUG-000003-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "bug",
-      name: "Childless root sump not correlatable",
-      status: "fixed",
-    });
-    assert.strictEqual(formatNodeLabel(n), "✅ Childless root sump not correlatable [BUG-000003]");
-  });
-
-  it("formats a finished roadmap item with ✅ status glyph", () => {
-    const n = node({
-      id: "RM-000001-z6qEx1Kf",
-      kind: "roadmap",
-      name: "Bulk export",
-      status: "Done",
-    });
-    assert.strictEqual(formatNodeLabel(n), "✅ Bulk export [RM-000001]");
-  });
-
-  it("formats an in-progress roadmap item with ⏳ status glyph", () => {
-    const n = node({
-      id: "RM-000002-z6qEx1Kf",
-      kind: "roadmap",
-      name: "Import dataset",
-      status: "In progress",
-    });
-    assert.strictEqual(formatNodeLabel(n), "⏳ Import dataset [RM-000002]");
-  });
-
-  it("formats a not done roadmap item with … status glyph", () => {
-    const n = node({
-      id: "RM-000003-z6qEx1Kf",
-      kind: "roadmap",
-      name: "Realtime updates",
-      status: "Not triaged",
-    });
-    assert.strictEqual(formatNodeLabel(n), "… Realtime updates [RM-000003]");
-  });
-
-  it("formats a passing test with ✅ status glyph", () => {
-    const n = node({
-      id: "TEST-000001-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "test",
-      name: "Parser round trip",
-      status: "passing",
-    });
-    assert.strictEqual(formatNodeLabel(n), "✅ Parser round trip [TEST-000001]");
-  });
-
-  it("formats a failing test with ❌ status glyph", () => {
-    const n = node({
-      id: "TEST-000002-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "test",
-      name: "Auth token expiry",
-      status: "failing",
-    });
-    assert.strictEqual(formatNodeLabel(n), "❌ Auth token expiry [TEST-000002]");
-  });
-
-  it("formats a blocked test with ⚠️ status glyph", () => {
-    const n = node({
-      id: "TEST-000003-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "test",
-      name: "Migration rollback",
-      status: "blocked",
-    });
-    assert.strictEqual(formatNodeLabel(n), "⚠️ Migration rollback [TEST-000003]");
-  });
-
-  it("formats a proposed test with … status glyph", () => {
-    const n = node({
-      id: "TEST-000004-z6qEx1Kf",
-      kind: "dev-artifact",
-      artifactType: "test",
-      name: "Exploratory smoke test",
-      status: "proposed",
-    });
-    assert.strictEqual(formatNodeLabel(n), "… Exploratory smoke test [TEST-000004]");
-  });
-
-  describe("requirement and feature status (implemented / in progress / not yet / abandoned)", () => {
-    const glyph = (n: ChainNode) => formatNodeLabel(n).split(" ")[0];
-    const req = (status: string) =>
-      node({
-        id: "REQ-000001-Ab3xR9pQ",
-        title: "Login",
-        status,
-      });
-    const feat = (status: string) =>
-      node({
-        id: "FEAT-000001-Ab3xR9pQ",
-        kind: "feature",
-        title: "Login",
-        status,
-      });
-
-    it("marks an implemented requirement or feature ✅", () => {
-      for (const s of ["Completed", "done", "shipped"]) {
-        assert.strictEqual(glyph(req(s)), "✅", s);
-        assert.strictEqual(glyph(feat(s)), "✅", s);
-      }
+    it("marks a closed state done, or dropped when its word says so", () => {
+      assert.strictEqual(glyph("Done"), "✅");
+      assert.strictEqual(glyph("Abandoned"), "🗑");
     });
 
-    it("marks one in progress ⏳", () => {
-      for (const s of ["Active", "in-progress", "in-development"]) {
-        assert.strictEqual(glyph(req(s)), "⏳", s);
-        assert.strictEqual(glyph(feat(s)), "⏳", s);
-      }
+    it("marks the initial state, or none, not started", () => {
+      assert.strictEqual(glyph("Open"), "…");
+      assert.strictEqual(glyph(""), "…");
     });
 
-    it("marks one not implemented yet …", () => {
-      for (const s of ["Draft", "Proposed", "Vetted", "Triaged", ""]) {
-        assert.strictEqual(glyph(req(s)), "…", s);
-        assert.strictEqual(glyph(feat(s)), "…", s);
-      }
+    it("marks any other state under way", () => {
+      assert.strictEqual(glyph("Active"), "⏳");
     });
 
-    it("marks an abandoned one 🗑", () => {
-      assert.strictEqual(glyph(req("Abandoned")), "🗑");
-      assert.strictEqual(glyph(feat("Abandoned")), "🗑");
+    it("marks a row the same way", () => {
+      const row = {
+        ...node({ id: "RM-000001-Ab3xR9pQ", title: "Bulk export" }),
+        kind: "row",
+        table: "beta",
+        tableRetired: false,
+        fields: {},
+        signedOffBy: "",
+        description: "",
+        status: "Done",
+        closed: true,
+      } as ChainNode;
+      assert.strictEqual(formatNodeLabel(row), "✅ Bulk export [RM-000001]");
     });
   });
 });
