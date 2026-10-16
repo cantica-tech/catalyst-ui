@@ -1,6 +1,6 @@
 import * as assert from "assert";
 
-import { panelKeysFor, parseWebviewMessage, proposalWriteBlockedMessage, webviewCsp } from "../webview-protocol.js";
+import { panelKeysFor, parseWebviewMessage, webviewCsp } from "../webview-protocol.js";
 
 describe("webview protocol (B-02, B-10, B-11)", () => {
   it("accepts only a well-formed openReference message", () => {
@@ -31,12 +31,6 @@ describe("webview protocol (B-02, B-10, B-11)", () => {
     ]);
     assert.deepStrictEqual(panelKeysFor(open, "/a/.criterion"), ["node:/a/.criterion:REQ-1", "journal:/a/.criterion"]);
     assert.deepStrictEqual(panelKeysFor(open, "C:\\p\\.criterion"), ["node:C:\\p\\.criterion:REQ-2"]);
-  });
-
-  it("refuses proposal writes in an untrusted workspace, with a reason", () => {
-    assert.strictEqual(proposalWriteBlockedMessage(true), null);
-    const msg = proposalWriteBlockedMessage(false);
-    assert.ok(msg && /trust/i.test(msg));
   });
 
   it("builds a restrictive CSP", () => {

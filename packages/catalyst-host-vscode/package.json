@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst framework",
   "description": "Navigate a catalyst-governed project's rules, requirements, and drift right from the editor — chain inspector, health board with click-to-jump, propose-fix, and an authoring composer, all writing through the governing agent.",
-  "version": "0.39.0",
+  "version": "0.40.0",
   "private": true,
   "license": "UNLICENSED",
   "publisher": "CanticaTech",
@@ -112,14 +112,6 @@
       {
         "command": "catalyst.openBacklog",
         "title": "Catalyst: Open Backlog"
-      },
-      {
-        "command": "catalyst.proposeFix",
-        "title": "Catalyst: Propose Fix"
-      },
-      {
-        "command": "catalyst.composeProposal",
-        "title": "Catalyst: Compose Proposal"
       },
       {
         "command": "catalyst.sendToAgentChat",
@@ -258,6 +250,7 @@
     "publish": "npm run build && npm run bundle && npx vsce publish --no-dependencies"
   },
   "dependencies": {
+    "catalyst-app-model": "*",
     "catalyst-core": "*"
   },
   "devDependencies": {
@@ -271,7 +264,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers, agent commands and writing proposals (Propose fix, Compose proposal) wait until the workspace is trusted."
+      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers and agent commands wait until the workspace is trusted."
     },
     "virtualWorkspaces": {
       "supported": false,

@@ -1,4 +1,4 @@
-import type { ChainNode, Proposal, ReferenceInfo } from "catalyst-core";
+import type { ChainNode, ReferenceInfo } from "catalyst-core";
 
 import { renderMarkdown } from "./markdown.js";
 import { REFERENCE_CLASS, hoverText, linkifyReferences } from "./references.js";
@@ -7,7 +7,6 @@ export interface NodeDetailProps {
   node: ChainNode;
   upstream: ChainNode[];
   downstream: ChainNode[];
-  openProposals: Proposal[];
   /** The entities the content cites: linked, with a hover (REQ-000014-UVqkd7cL). */
   references?: Record<string, ReferenceInfo>;
 }
@@ -126,29 +125,13 @@ function DetailsSection({ node, references }: { node: ChainNode; references?: Re
   );
 }
 
-function ProposalList({ proposals }: { proposals: Proposal[] }) {
-  if (proposals.length === 0) return null;
-  return (
-    <section>
-      <h2>Open proposals</h2>
-      <ul>
-        {proposals.map((p) => (
-          <li key={p.id}>
-            <code>{p.id}</code> ({p.status}) — {p.intent}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 /**
  * The chain inspector's node-detail view — presentational only, no
  * VS Code or Electron API awareness, so it mounts unchanged inside
  * either host's webview (the roadmap's "one protocol, three packages"
  * decision).
  */
-export function NodeDetail({ node, upstream, downstream, openProposals, references }: NodeDetailProps) {
+export function NodeDetail({ node, upstream, downstream, references }: NodeDetailProps) {
   const status = statusOf(node);
   return (
     <div>
@@ -162,7 +145,6 @@ export function NodeDetail({ node, upstream, downstream, openProposals, referenc
       <SignedOffByDetails node={node} />
       <RoadmapDetails node={node} />
       <DetailsSection node={node} references={references} />
-      <ProposalList proposals={openProposals} />
       <NodeList title="Justified by (upstream)" nodes={upstream} references={references} />
       <NodeList title="Produces (downstream)" nodes={downstream} references={references} />
     </div>

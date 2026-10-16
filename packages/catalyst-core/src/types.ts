@@ -171,53 +171,6 @@ export interface ValidationReport {
   durationMs: number;
 }
 
-export type ProposalStatus = "proposed" | "applying" | "applied" | "partial" | "stale";
-
-/**
- * A reviewable, agent-mediated write request — the only path from a
- * read-only view to an actual change on a governed file. A host only
- * ever creates and displays these; executing `expectations` and
- * advancing `status` is an agent's job, never a host's or core's own.
- */
-export interface Proposal {
-  id: string;
-  name?: string;
-  status: ProposalStatus;
-  intent: string;
-  targets: string[];
-  expectations: string[];
-  constraints: string[];
-  location: SourceLocation;
-}
-
-export type RunStatus = "running" | "completed" | "failed";
-
-export type RunStepStatus = "done" | "failed" | "pending" | "drift";
-
-/** One `## Checklist` line, glyph-parsed into a status plus its text. */
-export interface RunStep {
-  status: RunStepStatus;
-  text: string;
-}
-
-/**
- * An external agent's own live run-state — unlike a `Proposal`, never
- * created or edited by a host UI, only parsed and displayed. A `drift`
- * step is self-reported by the agent; `catalyst-core` never
- * independently verifies the claim, the same way it never executes a
- * proposal's `expectations`.
- */
-export interface Run {
-  id: string;
-  name?: string;
-  status: RunStatus;
-  command: string;
-  started: string;
-  steps: RunStep[];
-  ledger: string[];
-  location: SourceLocation;
-}
-
 /** `IAM/users/users.json` — advisory registry, not access control (`rr-META-011`). Identity key is `name`. */
 export interface IamUser {
   name: string;
@@ -266,8 +219,6 @@ export interface WatchUpdate {
   report: ValidationReport;
   /** The journal, oldest first, as catalyst serves it. */
   journal: JournalEntry[];
-  proposals: Proposal[];
-  runs: Run[];
   users: IamUser[];
   roles: IamRole[];
 }
@@ -275,14 +226,12 @@ export interface WatchUpdate {
 /**
  * The extension-host <-> webview message payload for one node's detail
  * view: its own fields plus what it's justified by (upstream) and what
- * it produces (downstream), resolved from the chain model's edges, plus
- * any open proposal targeting it.
+ * it produces (downstream), resolved from the chain model's edges.
  */
 export interface NodeDetailPayload {
   node: ChainNode;
   upstream: ChainNode[];
   downstream: ChainNode[];
-  openProposals: Proposal[];
 }
 
 export interface KernelVersionInfo {

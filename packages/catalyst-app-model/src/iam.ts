@@ -10,7 +10,7 @@ export interface RoleSection {
   roles: IamRole[];
 }
 
-/** A 9th sidebar section listing every registered user, alongside roadmaps/proposals/runs and the five chain-model sections. */
+/** A 9th sidebar section listing every registered user, alongside the roadmaps and the chain-model sections. */
 export function buildUserSection(users: IamUser[]): UserSection {
   return { label: `Users (${users.length})`, users };
 }

@@ -1,9 +1,7 @@
-import type { ChainModel, ChainNode, Proposal } from "catalyst-core";
+import type { ChainModel, ChainNode } from "catalyst-core";
 import { describe, expect, it } from "vitest";
 
 import { buildNodeDetail } from "./detail.js";
-
-const noProposals = new Map<string, Proposal[]>();
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
@@ -23,7 +21,7 @@ describe("buildNodeDetail", () => {
       reverseEdges: new Map(),
       definitionsById: new Map(),
     };
-    expect(buildNodeDetail(model, "nowhere", noProposals)).toBeNull();
+    expect(buildNodeDetail(model, "nowhere")).toBeNull();
   });
 
   it("resolves upstream and downstream from the model's edges", () => {
@@ -40,34 +38,12 @@ describe("buildNodeDetail", () => {
       definitionsById: new Map(),
     };
 
-    const reqDetail = buildNodeDetail(model, req.id, noProposals)!;
+    const reqDetail = buildNodeDetail(model, req.id)!;
     expect(reqDetail.upstream.map((n) => n.id)).toEqual([rule.id]);
     expect(reqDetail.downstream).toEqual([]);
 
-    const ruleDetail = buildNodeDetail(model, rule.id, noProposals)!;
+    const ruleDetail = buildNodeDetail(model, rule.id)!;
     expect(ruleDetail.upstream).toEqual([]);
     expect(ruleDetail.downstream.map((n) => n.id)).toEqual([req.id]);
-  });
-
-  it("includes any open proposal targeting the node", () => {
-    const req = node({ id: "REQ-000006" });
-    const model: ChainModel = {
-      nodes: new Map([[req.id, req]]),
-      edges: new Map(),
-      reverseEdges: new Map(),
-      definitionsById: new Map(),
-    };
-    const proposal: Proposal = {
-      id: "PROP-000001",
-      status: "proposed",
-      intent: "Fix it",
-      targets: [req.id],
-      expectations: [],
-      constraints: [],
-      location: { file: "p.md", line: 1 },
-    };
-
-    const detail = buildNodeDetail(model, req.id, new Map([[req.id, [proposal]]]))!;
-    expect(detail.openProposals).toEqual([proposal]);
   });
 });

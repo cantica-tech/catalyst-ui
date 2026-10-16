@@ -3,12 +3,11 @@ import { randomBytes } from "node:crypto";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { ChainModel, Proposal, SlashCommandSpec } from "catalyst-core";
+import type { ChainModel, SlashCommandSpec } from "catalyst-core";
 import {
   commandNames,
   composeCommandRequest,
   discoverSlashCommands,
-  openProposalsByTarget,
   resolveAgentLaunch,
   resolveCorpusRoot,
   watchProject,
@@ -29,7 +28,6 @@ import {
 interface ProjectRuntime {
   handle: { close(): Promise<void> };
   model: ChainModel | null;
-  proposals: Proposal[];
   agentProcess?: ChildProcessWithoutNullStreams;
 }
 
@@ -48,11 +46,10 @@ function startWatching(project: TrackedProject, win: BrowserWindow): void {
   const handle = watchProject(
     project.projectRoot,
     project.corpusRoot,
-    ({ model, report, proposals }) => {
+    ({ model, report }) => {
       const runtime = runtimeByProjectId.get(project.id);
       if (runtime) {
         runtime.model = model;
-        runtime.proposals = proposals;
       }
       win.webContents.send("catalyst:project-update", {
         projectId: project.id,
@@ -66,7 +63,7 @@ function startWatching(project: TrackedProject, win: BrowserWindow): void {
     },
   );
 
-  runtimeByProjectId.set(project.id, { handle, model: null, proposals: [] });
+  runtimeByProjectId.set(project.id, { handle, model: null });
 }
 
 /**
@@ -169,7 +166,7 @@ function registerIpcHandlers(win: BrowserWindow): void {
     if (!isProjectId(projectId) || !isProjectId(nodeId)) return null;
     const runtime = runtimeByProjectId.get(projectId);
     if (!runtime?.model) return null;
-    return buildNodeDetail(runtime.model, nodeId, openProposalsByTarget(runtime.proposals));
+    return buildNodeDetail(runtime.model, nodeId);
   });
 
   ipcMain.handle("catalyst:listSlashCommands", (event, projectId: unknown): SlashCommandSpec[] => {
