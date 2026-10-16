@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 
+import { Approvals } from "./Approvals.js";
 import { Artifacts } from "./Artifacts.js";
 import { Board } from "./Board.js";
 import { connectionFromPage, StudioClient } from "./client.js";
@@ -79,6 +80,11 @@ function mount(): void {
                 id: "journal",
                 label: "Journal",
                 render: () => <Journal client={client} />,
+              },
+              {
+                id: "approvals",
+                label: "Approvals",
+                render: () => <Approvals client={client} />,
               },
               {
                 id: "team",
