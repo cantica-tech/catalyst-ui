@@ -1,0 +1,31 @@
+# Decisions
+
+The owner's decisions for Catalyst Studio, one row per question, the decision and its date. Decisions about catalyst
+itself (storage, scope, agents, process, approval gates) are in `docs/decisions.md` of the catalyst repository; the
+plan they shape is [roadmap.md](roadmap.md).
+
+## Product, brand and licence
+
+| # | Question | Decision |
+|---|---|---|
+| C1 | Desktop shell: Tauri (small) or Electron (embedded terminal)? | **Electron**, Tauri explored on a branch (2026-10-07): `explore/tauri-shell`, local only; the shell's security fixes (R0.11) mandatory |
+| C2 | Should the UI launch agents itself (streamed runs, a cost meter), or compose commands to paste into an agent's chat? | **The VS Code host runs them** (2026-10-16): on the person's confirmed click the extension spawns `catalyst agent run --json` (catalyst 0.76.0) and streams it into the Studio's console; no HTTP route starts a run, so a page in a browser cannot launch one; the agent's own permission settings apply |
+| C3 | The product's name | **Catalyst Studio** (2026-10-16; "Catalyst UI" considered the same day and set aside); the repository stays `catalyst-ui`; the Marketplace listing reads **"Catalyst Studio — rules, journal and traceability for AI-assisted development"**. Name search the same day, not a legal trademark search: Tailwind Labs sells a React UI kit named Catalyst ("Catalyst UI", same audience); an open-source "Catalyst UI" component library exists; npm `catalyst-ui` is taken; another publisher's small "Catalyst Studio" on the Marketplace turns product plans into agent prompts; Zoho and Euvic sell developer products named Catalyst. The official USPTO and EUIPO registers are still to check before any filing |
+| C4 | Open source or commercial? | **Open source, Apache-2.0** (2026-10-16): `LICENSE` at the root and in the extension, a `NOTICE` naming CanticaTech as copyright holder, every package's `license` field; it applies from 0.47.0 (earlier releases shipped under a proprietary licence) |
+
+## How the Studio is built (estimate [`23`](design/23-studio-estimate.md), all decided as recommended 2026-10-16)
+
+| # | Question | Decision |
+|---|---|---|
+| S1 | Where the Studio lives | A new `packages/catalyst-studio`, mounted by the hosts |
+| S2 | Transport | HTTP to `catalyst serve --local` in every host: one client |
+| S3 | Writes in the first views | Read-only; a settling action shown as its command (superseded by W) |
+| S4 | Graph layout | `elkjs`, layout only, drawn in the design system's own SVG |
+| S5 | `PROP-` and `RUN-` | Dropped |
+| S6 | Accessibility gate | axe clean on every Studio page in CI |
+
+## Writes
+
+| # | Question | Decision |
+|---|---|---|
+| W | How does the Studio write ([`24`](design/24-studio-gaps-roadmap.md))? | **W1** (2026-10-16): the host runs catalyst's own verbs after the person confirms in its dialog — VS Code now, the Electron shell through a preload bridge (R6.49); no HTTP write route; a browser page stays read-only |
