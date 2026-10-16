@@ -80,6 +80,34 @@ export interface JournalEntry {
   action?: string | null;
   artifact?: string | null;
   intent?: string | string[] | null;
+  tier?: string | null;
+  targets?: string[] | null;
+  /** The files it touched, each with its blob before and after (null: absent). */
+  files?: { path: string; before?: string | null; after?: string | null }[];
+}
+
+/** One entry that changed an entity's file, with the file before and after. */
+export interface HistoryEntry {
+  timestamp: string | null;
+  actor: string | null;
+  command: string | null;
+  action: string | null;
+  artifact: string | null;
+  tier: string | null;
+  intent: string[];
+  before: string | null;
+  after: string | null;
+  content_before: string | null;
+  content_after: string | null;
+  redacted: boolean;
+}
+
+/** `GET /v1/history/<id>`: every change to an entity's file, in the journal's order (catalyst >= 0.62.0). */
+export interface History {
+  id: string;
+  type: string;
+  file: string;
+  entries: HistoryEntry[];
 }
 
 /** One entity type as the module declares it (`graph.types[prefix]`). */
@@ -106,10 +134,31 @@ export interface GraphArtifact {
   [field: string]: unknown;
 }
 
+/** One rule in `graph`: its title, its status line, its domain and the entities its text names. */
+export interface GraphRule {
+  id: string;
+  title: string;
+  status: string;
+  file: string;
+  line: number;
+  retired: boolean;
+  domain: string | null;
+  mentions: string[];
+}
+
+/** One registered domain: its code, its file and that file's title. */
+export interface GraphDomain {
+  code: string;
+  file: string | null;
+  title: string | null;
+}
+
 /** `GET /v1/graph`: the chain, and the module's types. */
 export interface Graph {
   types: Record<string, EntityType>;
   artifacts: GraphArtifact[];
+  rules?: GraphRule[];
+  domains?: GraphDomain[];
 }
 
 /** `GET /v1/view/<id>`: one artifact, with what an entity page shows (catalyst >= 0.73.0). */
@@ -152,6 +201,16 @@ export interface Impact {
   downstream?: Reached[];
   mentions: string[];
   mentioned_by: string[];
+}
+
+/** One registered user, as `catalyst list users --json` gives them. */
+export interface User {
+  name: string;
+  userid: string;
+  roles: string[];
+  active: boolean;
+  registered?: string;
+  notes?: string;
 }
 
 /** One part of a command with parts (`/create bug`): read on its own. */
@@ -250,6 +309,15 @@ export class StudioClient {
 
   view(id: string): Promise<EntityView> {
     return this.get<EntityView>(`view/${encodeURIComponent(id)}`);
+  }
+
+  history(id: string): Promise<History> {
+    return this.get<History>(`history/${encodeURIComponent(id)}`);
+  }
+
+  /** The registered users (`GET /v1/list?type=users`). */
+  users(): Promise<User[]> {
+    return this.get<User[]>("list?type=users");
   }
 
   /** The deployment's commands (catalyst >= 0.75.0). */

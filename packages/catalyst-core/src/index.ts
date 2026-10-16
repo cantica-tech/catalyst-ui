@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.45.0";
+export const VERSION = "0.46.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -111,12 +111,16 @@ export {
   CATALYST_SERVE_FLOOR,
   type CatalystCheck,
   type CatalystGraph,
+  type AgentRun,
   type CatalystServer,
+  type RunEvent,
   type WatcherHandle,
+  COMMAND_NAME,
   catalystCommand,
   modelFromGraph,
   readThroughCatalyst,
   reportFromCheck,
+  startAgentRun,
   startLocalServe,
   watchCatalyst,
   watchProject,

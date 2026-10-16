@@ -1,8 +1,8 @@
-import type { ELK as ElkInstance, ELKConstructorArguments, ElkNode } from "elkjs/lib/elk-api.js";
-import ElkBundled from "elkjs/lib/elk.bundled.js";
+import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { useEffect, useState } from "react";
 
 import type { Impact } from "./client.js";
+import { ELK } from "./elk.js";
 
 export interface PlacedNode {
   id: string;
@@ -27,12 +27,6 @@ export interface TraceLayout {
   nodes: PlacedNode[];
   edges: PlacedEdge[];
 }
-
-// elkjs is CommonJS: under NodeNext its default import types as the module,
-// while at runtime it is the constructor (and so is `.default`)
-type ElkConstructor = new (args?: ELKConstructorArguments) => ElkInstance;
-const bundled = ElkBundled as unknown as ElkConstructor & { default?: ElkConstructor };
-const ELK: ElkConstructor = bundled.default ?? bundled;
 
 const NODE_W = 170;
 const NODE_H = 36;
