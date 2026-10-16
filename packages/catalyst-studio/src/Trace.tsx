@@ -1,4 +1,5 @@
 import type { Impact, Reached } from "./client.js";
+import { TraceGraph } from "./TraceGraph.js";
 
 export interface TraceNode {
   reached: Reached;
@@ -61,6 +62,7 @@ export function Trace({ impact, onOpen }: { impact: Impact; onOpen: (id: string)
       )}
       <h4>Rests on it</h4>
       {down.length === 0 ? <p className="muted">Nothing rests on it.</p> : <Branch nodes={down} onOpen={onOpen} />}
+      <TraceGraph impact={impact} onOpen={onOpen} />
       {prose.length > 0 && (
         <>
           <h4>Cited in prose only</h4>

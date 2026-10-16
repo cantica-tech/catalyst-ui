@@ -279,3 +279,39 @@ details summary {
 .trace > li {
   padding: var(--space-1) 0;
 }
+
+.trace-figure {
+  margin: var(--space-4) 0;
+  overflow-x: auto;
+}
+
+.trace-edge {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.trace-node rect {
+  fill: var(--surface);
+  stroke: var(--border);
+}
+
+.trace-node-focus rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.trace-node text {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.trace-node {
+  cursor: pointer;
+}
+
+.trace-node:focus-visible rect {
+  stroke: var(--focus);
+  stroke-width: 3;
+}

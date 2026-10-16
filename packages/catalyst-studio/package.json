@@ -12,6 +12,7 @@
   "dependencies": {
     "catalyst-app-model": "*",
     "catalyst-core": "*",
+    "elkjs": "^0.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

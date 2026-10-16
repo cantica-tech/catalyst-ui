@@ -94,3 +94,38 @@ describe("the trace (studio-SHELL-000004)", () => {
     expect(host.textContent).toContain("Nothing rests on it.");
   });
 });
+
+describe("the trace as a graph (studio-SHELL-000004)", () => {
+  it("lays upstream to the left of the entity and downstream to its right, every link drawn", async () => {
+    const { layoutTrace } = await import("../TraceGraph.js");
+    const layout = await layoutTrace(impact);
+    const x = (id: string) => layout.nodes.find((n) => n.id === id)?.x ?? NaN;
+    expect(layout.nodes).toHaveLength(6);
+    expect(x("AUTH")).toBeLessThan(x("br-AUTH-000001"));
+    expect(x("br-AUTH-000001")).toBeLessThan(x("REQ-000001"));
+    expect(x("REQ-000001")).toBeLessThan(x("STEP-000001"));
+    expect(x("STEP-000001")).toBeLessThan(x("TEST-000001"));
+    expect(layout.edges).toHaveLength(5);
+    expect(layout.edges.every((e) => e.points.length >= 2)).toBe(true);
+    expect(layout.nodes.find((n) => n.id === "REQ-000001")?.role).toBe("focus");
+  });
+
+  it("opens an entity from the keyboard, and is axe-clean", async () => {
+    const { layoutTrace, TraceGraphView } = await import("../TraceGraph.js");
+    const layout = await layoutTrace(impact);
+    const opened: string[] = [];
+    act(() => {
+      root.render(<TraceGraphView layout={layout} onOpen={(id) => opened.push(id)} />);
+    });
+    const node = host.querySelector('[aria-label="Open STEP-000001"]');
+    act(() => {
+      node?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    expect(opened).toEqual(["STEP-000001"]);
+    const result = await axe.run(host, {
+      resultTypes: ["violations"],
+      rules: { "color-contrast": { enabled: false } },
+    });
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+});
