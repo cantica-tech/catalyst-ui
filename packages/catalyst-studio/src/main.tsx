@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 
+import { Artifacts } from "./Artifacts.js";
 import { connectionFromPage, StudioClient } from "./client.js";
 import { Overview } from "./Overview.js";
 import { Shell } from "./Shell.js";
@@ -33,6 +34,15 @@ function mount(): void {
               </>
             ),
         },
+        ...(client
+          ? [
+              {
+                id: "artifacts",
+                label: "Artifacts",
+                render: () => <Artifacts client={client} />,
+              },
+            ]
+          : []),
       ]}
     />,
   );
