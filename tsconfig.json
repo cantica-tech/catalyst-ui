@@ -4,6 +4,7 @@
     { "path": "packages/catalyst-core" },
     { "path": "packages/catalyst-app-model" },
     { "path": "packages/catalyst-ui" },
+    { "path": "packages/catalyst-studio" },
     { "path": "packages/catalyst-host-vscode" },
     { "path": "packages/catalyst-host-electron" }
   ]
