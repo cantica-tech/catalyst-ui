@@ -10,11 +10,9 @@ import { sectionLines } from "./markdown.js";
 import type {
   ChainModel,
   ChainNode,
-  DevArtifactType,
   IssueKind,
-  RoadmapStatus,
+  ModuleType,
   SourceLocation,
-  StepStatus,
   ValidationIssue,
   ValidationReport,
   WatchUpdate,
@@ -63,7 +61,7 @@ export interface CatalystGraph {
     links: Record<string, string[]>;
     mentions: string[];
   } & Record<string, unknown>)[];
-  types: Record<string, { name: string; closed_states: string[] }>;
+  types: Record<string, Omit<ModuleType, "prefix">>;
 }
 
 /** What `catalyst check --json` prints. */
@@ -73,15 +71,6 @@ export interface CatalystCheck {
   warnings: string[];
 }
 
-// The software-engineering module's types, as this package has always drawn them.
-const DEV_ARTIFACT: Partial<Record<string, DevArtifactType>> = {
-  BUG: "bug",
-  REQ: "requirement",
-  HK: "house-keeping",
-  TEST: "test",
-};
-const ROADMAP_STATUSES = new Set<string>(["Not triaged", "Triaged", "In progress", "Done"]);
-const STEP_STATUSES = new Set<string>(["planned", "in-progress", "done", "abandoned"]);
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
 function readText(path: string): string {
@@ -94,14 +83,6 @@ function readText(path: string): string {
 
 function plain(value: unknown): string {
   return typeof value === "string" ? value.replace(/`/g, "").trim() : "";
-}
-
-function first(links: Partial<Record<string, string[]>>, ...names: string[]): string | undefined {
-  for (const name of names) {
-    const v = links[name]?.[0];
-    if (v) return v;
-  }
-  return undefined;
 }
 
 function adder(map: Map<string, Set<string>>, key: string, value: string): void {
@@ -130,7 +111,7 @@ function ruleSection(text: string, line: number): string {
   return lines.slice(start, end).join("\n");
 }
 
-/** `catalyst graph` as the hosts' `ChainModel`: nodes by kind as this package draws them, edges from field links, mentions and each rule's domain. */
+/** `catalyst graph` as the hosts' `ChainModel`: rules, domains and the module's artifacts as its types describe them, edges from field links, mentions and each rule's domain. */
 export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): ChainModel {
   const nodes = new Map<string, ChainNode>();
   const definitionsById = new Map<string, SourceLocation[]>();
@@ -174,10 +155,25 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
     });
   }
 
+  const types = new Map<string, ModuleType>(
+    Object.entries(graph.types).map(([prefix, t]) => [
+      prefix,
+      {
+        prefix,
+        name: t.name,
+        plural_name: t.plural_name,
+        states: t.states,
+        initial: t.initial,
+        closed_states: t.closed_states,
+        fields: t.fields,
+      },
+    ]),
+  );
   for (const a of graph.artifacts) {
     const fields: Partial<Record<string, string>> = (a.row ? a.fields : undefined) ?? {};
-    const links: Partial<Record<string, string[]>> = a.links;
+    const links: Record<string, string[]> = a.links;
     const status = plain(a.row ? fields.Status : a.Status);
+    const closed = (types.get(a.type)?.closed_states ?? []).includes(status);
     const signedText = plain(a.row ? fields["Signed-off-by"] : a["Signed-off-by"]);
     const signed = signedText ? signedText : undefined;
     if (a.row) {
@@ -185,73 +181,42 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
       const title = or(plain(fields.Title), a.id);
       add({
         id: a.id,
-        kind: "roadmap",
+        kind: "row",
+        typePrefix: a.type,
         title,
         name: title,
         location: at(a.file, a.line ?? 1),
         references: a.mentions,
-        roadmapName: basename(a.file, ".md"),
-        roadmapRetired: RETIRED_HEADER_RE.test(readText(file)),
-        description: plain(fields.Description),
-        status: (ROADMAP_STATUSES.has(status) ? status : "Not triaged") as RoadmapStatus,
-        linked: a.mentions.find((m) => (fields.Linked ?? "").includes(m)),
+        table: basename(a.file, ".md"),
+        tableRetired: RETIRED_HEADER_RE.test(readText(file)),
+        status,
+        closed,
+        fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, plain(v)])),
+        links,
         signedOffBy: signed ?? "",
-        notes: plain(fields.Notes),
+        description: plain(fields.Description),
       });
       continue;
     }
     const content = readText(join(criterionRoot, a.file));
-    const base = {
+    const description = (heading: string) => sectionLines(content, heading).join(" ");
+    add({
       id: a.id,
+      kind: "artifact",
+      typePrefix: a.type,
       title: or(a.title, a.id),
       name: or(a.title, a.id),
       location: at(a.file),
       references: a.mentions,
-    };
-    const description = (heading: string) => sectionLines(content, heading).join(" ");
-    const devType = DEV_ARTIFACT[a.type];
-    if (devType) {
-      add({
-        ...base,
-        kind: "dev-artifact",
-        artifactType: devType,
-        status,
-        targets: links.Targets ?? [],
-        feature: first(links, "Feature"),
-        requirements: devType === "test" ? (links.Requirements ?? []) : undefined,
-        steps: devType === "test" ? (links.Steps ?? []) : undefined,
-        signedOffBy: signed,
-        registered: true,
-        fileExists: true,
-        description: description(devType === "requirement" ? "Summary" : "Description"),
-        content,
-      });
-    } else if (a.type === "FEAT") {
-      add({
-        ...base,
-        kind: "feature",
-        status,
-        signedOffBy: signed,
-        registered: true,
-        fileExists: true,
-        description: or(description("Description"), description("Summary")),
-        content,
-      });
-    } else if (a.type === "STEP") {
-      add({
-        ...base,
-        kind: "step",
-        parent: first(links, "Parent", "Requirement") ?? "",
-        status: (STEP_STATUSES.has(status) ? status : "planned") as StepStatus,
-        signedOffBy: signed,
-        registered: true,
-        fileExists: true,
-        description: description("Description"),
-        content,
-      });
-    } else {
-      add({ ...base, kind: "work-item" });
-    }
+      status,
+      closed,
+      links,
+      signedOffBy: signed,
+      registered: true,
+      fileExists: true,
+      description: or(description("Description"), description("Summary")),
+      content,
+    });
   }
 
   const edges = new Map<string, Set<string>>();
@@ -271,7 +236,7 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
     for (const cited of Object.values(a.links)) for (const ref of cited) link(a.id, ref);
     for (const m of a.mentions) link(a.id, m);
   }
-  return { nodes, edges, reverseEdges, definitionsById };
+  return { nodes, edges, reverseEdges, definitionsById, types };
 }
 
 const KINDS: Record<string, IssueKind> = {

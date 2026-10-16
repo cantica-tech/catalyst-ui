@@ -1,12 +1,7 @@
-import {
-  BACKTICK_DEV_ARTIFACT_ID_RE,
-  BACKTICK_FEATURE_ID_RE,
-  BACKTICK_ROADMAP_ID_RE,
-  BACKTICK_RULE_ID_RE,
-} from "catalyst-core";
+import { BACKTICK_ENTITY_ID_RE, BACKTICK_RULE_ID_RE } from "catalyst-core";
 import type { ChainModel, SourceLocation } from "catalyst-core";
 
-const ID_PATTERNS = [BACKTICK_RULE_ID_RE, BACKTICK_DEV_ARTIFACT_ID_RE, BACKTICK_FEATURE_ID_RE, BACKTICK_ROADMAP_ID_RE];
+const ID_PATTERNS = [BACKTICK_RULE_ID_RE, BACKTICK_ENTITY_ID_RE];
 
 /**
  * Finds the backtick-quoted id token (if any) spanning `character` in

@@ -1,15 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  BACKTICK_RULE_ID_RE,
-  DEV_ARTIFACT_ID_RE,
-  FEATURE_ID_RE,
-  ROADMAP_ID_RE,
-  RULE_ID_RE,
-  collectIdReferences,
-  devArtifactType,
-  extractIds,
-} from "../ids.js";
+import { BACKTICK_RULE_ID_RE, ENTITY_ID_RE, RULE_ID_RE, collectIdReferences, extractIds } from "../ids.js";
 
 describe("id patterns", () => {
   it("matches well-formed rule ids", () => {
@@ -30,36 +21,29 @@ describe("id patterns", () => {
     expect(RULE_ID_RE.test("FEAT-000001")).toBe(false);
   });
 
-  it("matches well-formed dev-artifact ids", () => {
-    expect(DEV_ARTIFACT_ID_RE.test("REQ-000001")).toBe(true);
-    expect(DEV_ARTIFACT_ID_RE.test("BUG-000042")).toBe(true);
-    expect(DEV_ARTIFACT_ID_RE.test("HK-000003")).toBe(true);
-    expect(DEV_ARTIFACT_ID_RE.test("env-RUNTIME-001")).toBe(false);
+  it("matches an entity id of any module type", () => {
+    expect(ENTITY_ID_RE.test("REQ-000001")).toBe(true);
+    expect(ENTITY_ID_RE.test("BUG-000042")).toBe(true);
+    expect(ENTITY_ID_RE.test("HK-000003")).toBe(true);
+    expect(ENTITY_ID_RE.test("env-RUNTIME-001")).toBe(false);
   });
 
-  it("matches a dev-artifact id carrying its signer's userid suffix (Rules-of-Rules.md §20)", () => {
-    expect(DEV_ARTIFACT_ID_RE.test("REQ-000001-Ab3xR9pQ")).toBe(true);
-    expect(DEV_ARTIFACT_ID_RE.test("BUG-000042-Ab3xR9pQ")).toBe(true);
+  it("matches an entity id carrying its signer's userid suffix (Rules-of-Rules.md §20)", () => {
+    expect(ENTITY_ID_RE.test("REQ-000001-Ab3xR9pQ")).toBe(true);
+    expect(ENTITY_ID_RE.test("BUG-000042-Ab3xR9pQ")).toBe(true);
   });
 
   it("does not mistake an all-lowercase 8-letter summary word for a userid suffix", () => {
     // Every generated userid contains an uppercase letter (rr-META-011) —
     // an old-style, unsuffixed id followed by a lowercase 8-letter word
     // must never be misread as if that word were the suffix.
-    expect(DEV_ARTIFACT_ID_RE.test("REQ-000001-database")).toBe(false);
+    expect(ENTITY_ID_RE.test("REQ-000001-database")).toBe(false);
   });
 
-  it("matches well-formed feature ids, with or without a userid suffix", () => {
-    expect(FEATURE_ID_RE.test("FEAT-000001")).toBe(true);
-    expect(FEATURE_ID_RE.test("FEAT-000001-Ab3xR9pQ")).toBe(true);
-    expect(FEATURE_ID_RE.test("REQ-000001")).toBe(false);
-  });
-
-  it("matches well-formed roadmap ids, with or without a userid suffix", () => {
-    expect(ROADMAP_ID_RE.test("RM-000001")).toBe(true);
-    expect(ROADMAP_ID_RE.test("RM-000001-Ab3xR9pQ")).toBe(true);
-    expect(ROADMAP_ID_RE.test("REQ-000001")).toBe(false);
-    expect(ROADMAP_ID_RE.test("FEAT-000001")).toBe(false);
+  it("does not take a rule id, or a lowercase prefix, for an entity id", () => {
+    expect(ENTITY_ID_RE.test("env-RUNTIME-001")).toBe(false);
+    expect(ENTITY_ID_RE.test("note-000001")).toBe(false);
+    expect(ENTITY_ID_RE.test("CASE-000001-Ab3xR9pQ")).toBe(true); // any module's prefix
   });
 });
 
@@ -75,12 +59,12 @@ describe("extractIds", () => {
 });
 
 describe("collectIdReferences", () => {
-  it("collects rule, dev-artifact, and feature ids from free text", () => {
+  it("collects rule and entity ids from free text", () => {
     const text = "Targeted by `REQ-000001`, backed by `env-RUNTIME-001`, part of `FEAT-000001`.";
     expect(collectIdReferences(text).sort()).toEqual(["FEAT-000001", "REQ-000001", "env-RUNTIME-001"].sort());
   });
 
-  it("collects a roadmap id, e.g. a feature's own `Roadmap` field citation", () => {
+  it("collects a row's id, e.g. a cited roadmap item", () => {
     const text = "**Roadmap:** `RM-000001`";
     expect(collectIdReferences(text)).toEqual(["RM-000001"]);
   });
@@ -93,13 +77,5 @@ describe("collectIdReferences", () => {
   it("ignores backtick tokens that are not id-shaped", () => {
     const text = "`create-bug` is a command, `NNN` is a placeholder.";
     expect(collectIdReferences(text)).toEqual([]);
-  });
-});
-
-describe("devArtifactType", () => {
-  it("classifies each dev-artifact prefix", () => {
-    expect(devArtifactType("BUG-000001")).toBe("bug");
-    expect(devArtifactType("HK-000001")).toBe("house-keeping");
-    expect(devArtifactType("REQ-000001")).toBe("requirement");
   });
 });

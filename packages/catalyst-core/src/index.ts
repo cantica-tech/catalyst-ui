@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.42.0";
+export const VERSION = "0.43.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -51,12 +51,7 @@ export {
   workingCopyState,
 } from "./discover.js";
 export type { WorkingCopyState } from "./discover.js";
-export {
-  BACKTICK_DEV_ARTIFACT_ID_RE,
-  BACKTICK_FEATURE_ID_RE,
-  BACKTICK_RULE_ID_RE,
-  BACKTICK_ROADMAP_ID_RE,
-} from "./ids.js";
+export { BACKTICK_ENTITY_ID_RE, BACKTICK_RULE_ID_RE } from "./ids.js";
 export { parseIamUsers, parseIamRoles } from "./iam.js";
 export {
   CRITERION_GITIGNORE_ENTRY,

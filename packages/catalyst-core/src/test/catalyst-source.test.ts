@@ -66,7 +66,32 @@ const graph: CatalystGraph = {
       mentions: [REQ],
     },
   ],
-  types: {},
+  types: {
+    REQ: {
+      name: "Requirement",
+      plural_name: "Requirements",
+      states: ["Draft", "Active", "Completed"],
+      initial: "Draft",
+      closed_states: ["Completed"],
+      fields: [{ name: "Targets", kind: "ref-list", required: true, target_type: "rule" }],
+    },
+    STEP: {
+      name: "Step",
+      plural_name: "Steps",
+      states: ["planned", "in-progress", "done"],
+      initial: "planned",
+      closed_states: ["done"],
+      fields: [{ name: "Parent", kind: "ref", required: true, target_type: "REQ" }],
+    },
+    RM: {
+      name: "Roadmap item",
+      plural_name: "Roadmap items",
+      states: [],
+      initial: null,
+      closed_states: ["Done"],
+      fields: [],
+    },
+  },
 };
 
 describe("the adapter", () => {
@@ -75,19 +100,29 @@ describe("the adapter", () => {
     expect([...m.nodes.keys()].sort()).toEqual(["AUTH", REQ, "RM-000001-Abcd1234", STEP, RULE].sort());
     const req = m.nodes.get(REQ);
     expect(req).toMatchObject({
-      kind: "dev-artifact",
-      artifactType: "requirement",
+      kind: "artifact",
+      typePrefix: "REQ",
       status: "Active",
+      closed: false,
       signedOffBy: "Ada",
+      links: { Targets: [RULE], Domain: ["AUTH"] },
     });
+    expect(m.types?.get("REQ")).toMatchObject({ prefix: "REQ", plural_name: "Requirements", initial: "Draft" });
     expect(req?.location).toEqual({ file: "/c/requirements/REQ-000001-sign-in.md", line: 1 });
-    expect(m.nodes.get(STEP)).toMatchObject({ kind: "step", parent: "REQ-000001", status: "in-progress" });
+    expect(m.nodes.get(STEP)).toMatchObject({
+      kind: "artifact",
+      typePrefix: "STEP",
+      status: "in-progress",
+      links: { Parent: ["REQ-000001"] },
+    });
     expect(m.nodes.get(RULE)).toMatchObject({ kind: "rule", docPrefix: "br", domain: "AUTH", title: "Login flow" });
     expect(m.nodes.get("RM-000001-Abcd1234")).toMatchObject({
-      kind: "roadmap",
-      roadmapName: "beta",
+      kind: "row",
+      typePrefix: "RM",
+      table: "beta",
       status: "Triaged",
-      linked: REQ,
+      closed: false,
+      fields: { Title: "Beta", Description: "Ship it", Status: "Triaged", Linked: REQ, Notes: "n" },
       location: { file: "/c/development/roadmaps/beta.md", line: 7 },
     });
     expect([...(m.edges.get(REQ) ?? [])].sort()).toEqual(["AUTH", RULE, STEP].sort());
@@ -172,7 +207,7 @@ describe.skipIf(!canServe)("through catalyst serve --local", () => {
     try {
       const first = await nextUpdate(updates, 1);
       const kinds = new Set([...first.model.nodes.values()].map((n) => n.kind));
-      expect([...kinds].sort()).toEqual(expect.arrayContaining(["dev-artifact", "domain", "rule"]));
+      expect([...kinds].sort()).toEqual(expect.arrayContaining(["artifact", "domain", "rule"]));
       expect(Array.isArray(first.journal)).toBe(true);
       expect(first.report.nodeCount).toBe(first.model.nodes.size);
       const bug = join(criterion, "development", "bugs", "BUG-000001-beta.md");

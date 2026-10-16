@@ -1,10 +1,8 @@
-import type { DevArtifactType } from "./types.js";
-
 /**
  * ID shapes, per Rules-of-Rules.md §3 (rules: `(DOC_PREFIX)-(DOMAIN)-(NNNNNN)[-parent]-(userid)`)
- * and §6 (dev artifacts: `(BUG|REQ|HK|TEST)-(NNNNNN)-(userid)`, `TEST-` added
- * kernel 0.30.0, §22), plus §9's separate FEAT- scheme and §20's
- * userid-suffix mechanism (kernel 0.26.0).
+ * and every entity type's `(PREFIX)-(NNNNNN)-(userid)`, whatever prefixes the
+ * module declares (catalyst roadmap R6.7: no prefix is named here), plus
+ * §20's userid-suffix mechanism (kernel 0.26.0).
  * Kept as bare pattern source strings so they can be composed into other regexes.
  *
  * `USERID_SUFFIX_PATTERN` requires the 8 characters right after the
@@ -23,33 +21,19 @@ import type { DevArtifactType } from "./types.js";
  */
 export const USERID_SUFFIX_PATTERN = "(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}(?![a-zA-Z0-9]))?";
 export const RULE_ID_PATTERN = "[a-z]+-[A-Z0-9_]+-\\d{3,6}(?:-[a-zA-Z0-9]+)*";
-export const DEV_ARTIFACT_ID_PATTERN = `(?:BUG|REQ|HK|TEST)-\\d{6}${USERID_SUFFIX_PATTERN}`;
-export const FEATURE_ID_PATTERN = `FEAT-\\d{6}${USERID_SUFFIX_PATTERN}`;
-export const ROADMAP_ID_PATTERN = `RM-\\d{6}${USERID_SUFFIX_PATTERN}`;
-export const STEP_ID_PATTERN = `STEP-\\d{6}${USERID_SUFFIX_PATTERN}`;
+/** An entity of any module type: an uppercase prefix and six digits. */
+export const ENTITY_ID_PATTERN = `[A-Z][A-Z0-9]*-\\d{6}${USERID_SUFFIX_PATTERN}`;
 
 export const RULE_ID_RE = new RegExp(`^${RULE_ID_PATTERN}$`);
-export const DEV_ARTIFACT_ID_RE = new RegExp(`^${DEV_ARTIFACT_ID_PATTERN}$`);
-export const FEATURE_ID_RE = new RegExp(`^${FEATURE_ID_PATTERN}$`);
-export const ROADMAP_ID_RE = new RegExp(`^${ROADMAP_ID_PATTERN}$`);
-export const STEP_ID_RE = new RegExp(`^${STEP_ID_PATTERN}$`);
+export const ENTITY_ID_RE = new RegExp(`^${ENTITY_ID_PATTERN}$`);
 
 export const BACKTICK_RULE_ID_RE = new RegExp(`\`(${RULE_ID_PATTERN})\``, "g");
-export const BACKTICK_DEV_ARTIFACT_ID_RE = new RegExp(`\`(${DEV_ARTIFACT_ID_PATTERN})\``, "g");
-export const BACKTICK_FEATURE_ID_RE = new RegExp(`\`(${FEATURE_ID_PATTERN})\``, "g");
-export const BACKTICK_ROADMAP_ID_RE = new RegExp(`\`(${ROADMAP_ID_PATTERN})\``, "g");
-export const BACKTICK_STEP_ID_RE = new RegExp(`\`(${STEP_ID_PATTERN})\``, "g");
+export const BACKTICK_ENTITY_ID_RE = new RegExp(`\`(${ENTITY_ID_PATTERN})\``, "g");
 
-/** Every backtick-quoted rule/dev-artifact/feature/roadmap/step id token found in `text`, deduped. */
+/** Every backtick-quoted rule or entity id token found in `text`, deduped. */
 export function collectIdReferences(text: string): string[] {
   const found = new Set<string>();
-  for (const re of [
-    BACKTICK_RULE_ID_RE,
-    BACKTICK_DEV_ARTIFACT_ID_RE,
-    BACKTICK_FEATURE_ID_RE,
-    BACKTICK_ROADMAP_ID_RE,
-    BACKTICK_STEP_ID_RE,
-  ]) {
+  for (const re of [BACKTICK_RULE_ID_RE, BACKTICK_ENTITY_ID_RE]) {
     re.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = re.exec(text))) {
@@ -68,13 +52,6 @@ export function extractIds(text: string, re: RegExp): string[] {
     found.push(match[1]);
   }
   return found;
-}
-
-export function devArtifactType(id: string): DevArtifactType {
-  if (id.startsWith("BUG-")) return "bug";
-  if (id.startsWith("HK-")) return "house-keeping";
-  if (id.startsWith("TEST-")) return "test";
-  return "requirement";
 }
 
 const SHORT_FORM_RE = /^[A-Z]+-\d{6}$/;

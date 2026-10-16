@@ -1,4 +1,4 @@
-import type { ChainNode, DevArtifactNode, RoadmapNode, RuleNode, StepNode } from "catalyst-core";
+import type { ArtifactNode, ChainNode, RowNode, RuleNode } from "catalyst-core";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -19,14 +19,15 @@ function rule(overrides: Partial<RuleNode> & { id: string }): ChainNode {
   };
 }
 
-function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
+function bug(overrides: Partial<ArtifactNode> & { id: string }): ChainNode {
   return {
-    kind: "dev-artifact",
-    artifactType: "bug",
+    kind: "artifact",
+    typePrefix: overrides.id.split("-")[0],
     title: overrides.id,
     location: { file: "f.md", line: 1 },
     status: "open",
-    targets: [],
+    closed: false,
+    links: {},
     registered: true,
     fileExists: true,
     description: "",
@@ -36,13 +37,15 @@ function bug(overrides: Partial<DevArtifactNode> & { id: string }): ChainNode {
   };
 }
 
-function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
+function step(overrides: Partial<ArtifactNode> & { id: string }): ChainNode {
   return {
-    kind: "step",
+    kind: "artifact",
+    typePrefix: "STEP",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
-    parent: "REQ-000001",
+    links: { Parent: ["REQ-000001"] },
     status: "in-progress",
+    closed: false,
     registered: true,
     fileExists: true,
     description: "",
@@ -52,17 +55,20 @@ function step(overrides: Partial<StepNode> & { id: string }): ChainNode {
   };
 }
 
-function roadmap(overrides: Partial<RoadmapNode> & { id: string }): ChainNode {
+function roadmap(overrides: Partial<RowNode> & { id: string }): ChainNode {
   return {
-    kind: "roadmap",
+    kind: "row",
+    typePrefix: "RM",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
-    roadmapName: "product",
-    roadmapRetired: false,
+    table: "product",
+    tableRetired: false,
     description: "",
     status: "Not triaged",
+    closed: false,
+    fields: {},
+    links: {},
     signedOffBy: "alice",
-    notes: "",
     references: [],
     ...overrides,
   };
@@ -107,7 +113,6 @@ describe("NodeDetail", () => {
       NodeDetail({
         node: bug({
           id: "REQ-000001",
-          artifactType: "requirement",
           title: "Core parser",
         }),
         upstream: [],
@@ -124,14 +129,12 @@ describe("NodeDetail", () => {
       NodeDetail({
         node: bug({
           id: "REQ-000001",
-          artifactType: "requirement",
           title: "Core parser",
         }),
         upstream: [],
         downstream: [
           bug({
             id: "TEST-000001",
-            artifactType: "test",
             status: "passing",
             title: "Parser round trip",
           }),
@@ -192,7 +195,7 @@ describe("NodeDetail", () => {
     expect(withoutDescription).not.toContain("Some text.");
   });
 
-  it("renders a roadmap node's description exactly once, not duplicated by RoadmapDetails", () => {
+  it("renders a roadmap node's description exactly once, not duplicated by RowDetails", () => {
     const html = renderToStaticMarkup(
       NodeDetail({
         node: roadmap({
