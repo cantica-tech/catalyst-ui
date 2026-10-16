@@ -60,3 +60,4 @@ export {
 } from "./TypeMap.js";
 export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTable } from "./Roadmap.js";
 export { activity, Team, TeamView, type Activity } from "./Team.js";
+export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";

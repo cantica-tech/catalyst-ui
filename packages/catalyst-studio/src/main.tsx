@@ -9,6 +9,7 @@ import { Journal } from "./Journal.js";
 import { Overview } from "./Overview.js";
 import { Roadmap } from "./Roadmap.js";
 import { Rules } from "./Rules.js";
+import { Search, SEARCH_ID } from "./Search.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
 import { Team } from "./Team.js";
@@ -83,6 +84,12 @@ function mount(): void {
                 id: "team",
                 label: "Team",
                 render: () => <Team client={client} />,
+              },
+              {
+                id: "search",
+                label: "Search",
+                render: () => <Search client={client} />,
+                shortcut: { key: "/", focus: SEARCH_ID },
               },
               {
                 id: "commands",
