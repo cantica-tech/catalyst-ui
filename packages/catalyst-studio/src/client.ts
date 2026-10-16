@@ -17,12 +17,35 @@ export interface CheckReport {
   warnings: string[];
 }
 
+/** One file an unrecorded commit changed: its content hash before and after (null when absent). */
+export interface ChangedFile {
+  path: string;
+  before: string | null;
+  after: string | null;
+}
+
+/**
+ * What catalyst shows for an item, by kind: a commit's sha, author and files
+ * (`unrecorded-commit`), a path (`unrecorded-change`), a case's status and
+ * entity (`reconciliation`), an analysis's status and scope (`analysis`).
+ */
+export interface Evidence {
+  commit?: string;
+  author?: string;
+  files?: ChangedFile[];
+  path?: string;
+  status?: string;
+  entity?: string | null;
+  scope?: string | null;
+  [key: string]: unknown;
+}
+
 /** One thing waiting for a person: its evidence, and the commands that settle it (a person chooses). */
 export interface InboxItem {
   kind: string;
   id: string;
   title: string;
-  evidence: string;
+  evidence: Evidence;
   settle: string[];
 }
 
