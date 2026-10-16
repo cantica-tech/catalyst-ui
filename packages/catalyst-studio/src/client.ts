@@ -17,10 +17,46 @@ export interface CheckReport {
   warnings: string[];
 }
 
+/** One thing waiting for a person: its evidence, and the commands that settle it (a person chooses). */
+export interface InboxItem {
+  kind: string;
+  id: string;
+  title: string;
+  evidence: string;
+  settle: string[];
+}
+
 /** `GET /v1/inbox`: what waits for a person, counted by kind. */
 export interface InboxReport {
-  items: unknown[];
+  items: InboxItem[];
   counts: Record<string, number>;
+}
+
+/** `GET /v1/backlog`: open work by type and status, and what it lacks. */
+export interface Backlog {
+  open: Record<string, Record<string, string[]>>;
+  missing_links: { id: string; field: string }[];
+  rules_without_open_work: string[];
+}
+
+/** `GET /v1/head` (local): the change counter, and what the deployment runs (catalyst >= 0.74.0). */
+export interface Head {
+  seq: number;
+  files: number;
+  kernel?: string | null;
+  modules?: { id: string; version: string }[];
+  catalyst?: string;
+}
+
+/** One journal entry, as the journal holds it. */
+export interface JournalEntry {
+  at: string;
+  timestamp?: string | null;
+  actor?: string | null;
+  command?: string | null;
+  action?: string | null;
+  artifact?: string | null;
+  intent?: string | string[] | null;
 }
 
 /** One entity type as the module declares it (`graph.types[prefix]`). */
@@ -119,6 +155,19 @@ export class StudioClient {
 
   inbox(): Promise<InboxReport> {
     return this.get<InboxReport>("inbox");
+  }
+
+  head(): Promise<Head> {
+    return this.get<Head>("head");
+  }
+
+  backlog(): Promise<Backlog> {
+    return this.get<Backlog>("backlog");
+  }
+
+  /** The journal entries since `since` (an ISO date or time), oldest first. */
+  journal(since?: string): Promise<JournalEntry[]> {
+    return this.get<JournalEntry[]>(since ? `journal?since=${encodeURIComponent(since)}` : "journal");
   }
 
   graph(): Promise<Graph> {
