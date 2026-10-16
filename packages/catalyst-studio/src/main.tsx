@@ -2,6 +2,8 @@ import { createRoot } from "react-dom/client";
 
 import { Artifacts } from "./Artifacts.js";
 import { connectionFromPage, StudioClient } from "./client.js";
+import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
+import { Inbox } from "./Inbox.js";
 import { Overview } from "./Overview.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
@@ -37,9 +39,20 @@ function mount(): void {
         ...(client
           ? [
               {
+                id: "inbox",
+                label: "Inbox",
+                render: () => <Inbox client={client} />,
+              },
+              {
                 id: "artifacts",
                 label: "Artifacts",
                 render: () => <Artifacts client={client} />,
+              },
+              {
+                id: "commands",
+                label: "Commands",
+                render: () => <Commands client={client} />,
+                shortcut: { key: "k", focus: COMMAND_SEARCH_ID },
               },
             ]
           : []),

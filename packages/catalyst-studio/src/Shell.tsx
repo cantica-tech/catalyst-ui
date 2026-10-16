@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -6,6 +6,8 @@ export interface View {
   id: string;
   label: string;
   render: () => ReactNode;
+  /** Ctrl/⌘ with this key opens the view from anywhere, then focuses the element with id `focus`. */
+  shortcut?: { key: string; focus: string };
 }
 
 const THEMES: { id: Theme; label: string }[] = [
@@ -41,7 +43,32 @@ export function Shell({
 }) {
   const [current, setCurrent] = useState(initialView ?? views[0].id);
   const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [focusNext, setFocusNext] = useState<string | null>(null);
   const view = views.find((v) => v.id === current) ?? views[0];
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+      const target = views.find((v) => v.shortcut?.key === event.key.toLowerCase());
+      if (!target?.shortcut) return;
+      event.preventDefault();
+      setCurrent(target.id);
+      setFocusNext(target.shortcut.focus);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [views]);
+
+  useEffect(() => {
+    if (!focusNext) return;
+    const element = document.getElementById(focusNext);
+    if (element) {
+      element.focus();
+      setFocusNext(null);
+    }
+  }); // after every render: the view may show its element only once it has loaded
 
   const pickTheme = (next: Theme) => {
     setTheme(next);

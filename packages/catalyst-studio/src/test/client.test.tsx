@@ -93,12 +93,40 @@ describe("the dashboard (studio-SHELL-000003)", () => {
         {
           kind: "unrecorded-change",
           id: "src/a.py",
-          title: "src/a.py changed outside catalyst",
-          evidence: "changed in git, not in the journal",
-          settle: ["catalyst journal adopt HEAD", "git checkout -- src/a.py"],
+          title: "changed in the project, not in the journal",
+          evidence: { path: "src/a.py" },
+          settle: ["catalyst journal append --file src/a.py --intent <why> …", "discard the change"],
+        },
+        {
+          kind: "unrecorded-commit",
+          id: "abc1234",
+          title: "quick fix",
+          evidence: {
+            commit: "abc1234def",
+            author: "ada",
+            files: [
+              { path: "src/a.py", before: "h1", after: "h2" },
+              { path: "src/b.py", before: null, after: "h3" },
+            ],
+          },
+          settle: ["catalyst journal adopt abc1234 --intent <why>", "git revert abc1234"],
+        },
+        {
+          kind: "reconciliation",
+          id: "RECON-000001",
+          title: "Two versions of REQ-000001",
+          evidence: { status: "Open", entity: "REQ-000001" },
+          settle: ["catalyst reconcile RECON-000001 accept"],
+        },
+        {
+          kind: "analysis",
+          id: "AN-000001",
+          title: "Rules for auth",
+          evidence: { status: "Deciding", scope: null },
+          settle: ["catalyst analysis decide AN-000001 …"],
         },
       ],
-      counts: { "unrecorded-change": 1 },
+      counts: { "unrecorded-change": 1, "unrecorded-commit": 1, reconciliation: 1, analysis: 1 },
     },
     backlog: {
       open: { REQ: { Draft: ["REQ-000001"], Active: ["REQ-000002", "REQ-000003"] }, BUG: {} },
@@ -127,9 +155,11 @@ describe("the dashboard (studio-SHELL-000003)", () => {
     expect(text).toContain("1 error");
     expect(text).toContain("2 warnings");
     expect(text).toContain("INV-7 naming: x");
-    expect(text).toContain("1 decision to take");
-    expect(text).toContain("catalyst journal adopt HEAD");
-    expect(text).toContain("git checkout -- src/a.py");
+    expect(text).toContain("4 decisions to take");
+    expect(text).toContain("by ada, commit abc1234, 2 files");
+    expect(text).toContain("Open, about REQ-000001");
+    expect(text).toContain("catalyst journal adopt abc1234 --intent <why>");
+    expect(text).toContain("git revert abc1234");
     expect(text).toContain("Requirements");
     expect(text).toContain("1 missing link");
     expect(text).toContain("1 rule with no open work.");
