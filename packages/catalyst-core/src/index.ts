@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.39.0";
+export const VERSION = "0.40.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -9,6 +9,16 @@ export {
 } from "./kernel-version.js";
 
 export * from "./types.js";
+export {
+  ScriptedHost,
+  type HostFolder,
+  type HostMemento,
+  type HostPort,
+  type InputOptions,
+  type NotifyLevel,
+  type PickItem,
+  type PickOptions,
+} from "./host-port.js";
 export * from "./module-loader.js";
 export {
   AGENT_PRESETS,
@@ -58,8 +68,6 @@ export {
   writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
-export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
-export { parseRuns, hasDrift } from "./runs.js";
 export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export {
   compareVersions,

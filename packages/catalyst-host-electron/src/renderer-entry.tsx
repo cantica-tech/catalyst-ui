@@ -71,12 +71,7 @@ function App() {
         </main>
         <aside style={{ width: 320, overflow: "auto" }}>
           {detail ? (
-            <NodeDetail
-              node={detail.node}
-              upstream={detail.upstream}
-              downstream={detail.downstream}
-              openProposals={detail.openProposals}
-            />
+            <NodeDetail node={detail.node} upstream={detail.upstream} downstream={detail.downstream} />
           ) : (
             <p>Select a node.</p>
           )}

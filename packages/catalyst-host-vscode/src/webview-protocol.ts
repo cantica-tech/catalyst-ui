@@ -41,16 +41,6 @@ export function panelKeysFor(owners: ReadonlyMap<string, string>, corpusRoot: st
 }
 
 /**
- * `null` when proposal files may be written, else the message to show
- * (B-11): an untrusted workspace stays read-only.
- */
-export function proposalWriteBlockedMessage(isTrusted: boolean): string | null {
-  return isTrusted
-    ? null
-    : "catalyst writes proposals only in a trusted workspace. Trust this workspace (Manage Workspace Trust) to create a proposal.";
-}
-
-/**
  * Content-Security-Policy for every catalyst webview: nothing but the
  * nonce'd bundle and stylesheet, images only from the extension itself.
  */

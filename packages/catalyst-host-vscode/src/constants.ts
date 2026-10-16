@@ -1,0 +1,38 @@
+export const VIEW_ID = "catalystChainInspector";
+
+/** The chain inspector view slots, one per deployment (package.json `views`). */
+export const INSPECTOR_VIEW_IDS = [VIEW_ID, ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${VIEW_ID}${n}`)];
+
+export const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
+
+/** `catalyst.trackEntityInTree`: reveal the entity a detail panel shows (REQ-000017-UVqkd7cL). */
+export const TRACK_SETTING = "trackEntityInTree";
+
+/** `catalyst.ignoredFolders`: folders this workspace leaves out of catalyst (REQ-000015-UVqkd7cL). */
+export const IGNORED_FOLDERS_SETTING = "ignoredFolders";
+
+export const SHOW_IAM_DETAIL_COMMAND = "catalyst.showIamDetail";
+
+export const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
+
+export const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
+
+export const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
+
+export const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
+
+export const REFRESH_CHAIN_INSPECTOR_COMMAND = "catalyst.refreshChainInspector";
+
+export const LOAD_UI_MODULE_COMMAND = "catalyst.loadUiModule";
+
+export const SELECT_KERNEL_VERSION_COMMAND = "catalyst.selectKernelVersion";
+
+export const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
+
+export const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
+
+export const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
+
+export const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
+
+export const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
