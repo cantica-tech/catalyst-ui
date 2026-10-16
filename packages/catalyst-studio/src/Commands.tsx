@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 
 import { ApiError, type Command, type CommandSpec, type StudioClient } from "./client.js";
+import { clipboardCopy, CopyButton } from "./Copy.js";
 import { Status } from "./Status.js";
 
 /** One entry the palette offers: a command, or one part of a command with parts. */
@@ -164,7 +165,6 @@ export function CommandPage({
   onBack: () => void;
 }) {
   const [args, setArgs] = useState("");
-  const [said, setSaid] = useState("");
   const argsId = useId();
   const composed = composeCommand(entry, args);
   return (
@@ -191,30 +191,10 @@ export function CommandPage({
           autoComplete="off"
           onChange={(event) => {
             setArgs(event.target.value);
-            setSaid("");
           }}
         />
         <p>
-          <code className="composed">{composed}</code>{" "}
-          <button
-            type="button"
-            aria-label={`Copy ${composed}`}
-            onClick={() => {
-              copy(composed).then(
-                () => {
-                  setSaid("Copied");
-                },
-                () => {
-                  setSaid("Could not copy: select the command instead");
-                },
-              );
-            }}
-          >
-            Copy
-          </button>{" "}
-          <span className="muted" aria-live="polite">
-            {said}
-          </span>
+          <code className="composed">{composed}</code> <CopyButton text={composed} copy={copy} />
         </p>
       </section>
       <section aria-labelledby="command-procedure">
@@ -233,10 +213,6 @@ export function CommandPage({
 
 /** The id of the palette's search box: the shell focuses it on Ctrl/⌘+K. */
 export const COMMAND_SEARCH_ID = "command-search";
-
-function clipboardCopy(text: string): Promise<void> {
-  return navigator.clipboard.writeText(text);
-}
 
 type Load =
   | { state: "loading" }

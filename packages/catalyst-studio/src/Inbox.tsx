@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { ChangedFile, EntityView, InboxItem, InboxReport, StudioClient } from "./client.js";
+import { clipboardCopy, CopyButton } from "./Copy.js";
 import { describeEvidence } from "./evidence.js";
 import { Status } from "./Status.js";
 
@@ -80,32 +81,12 @@ export function isCommand(settle: string): boolean {
   return /^(catalyst|git) /.test(settle);
 }
 
-/** One command that settles an item, with a button that copies it and says whether it did. */
+/** One command that settles an item, copyable; words such as "discard the change" are just said. */
 function SettleCommand({ command, copy }: { command: string; copy: (text: string) => Promise<void> }) {
-  const [said, setSaid] = useState("");
   if (!isCommand(command)) return <li>{command}</li>;
   return (
     <li>
-      <code>{command}</code>{" "}
-      <button
-        type="button"
-        aria-label={`Copy ${command}`}
-        onClick={() => {
-          copy(command).then(
-            () => {
-              setSaid("Copied");
-            },
-            () => {
-              setSaid("Could not copy: select the command instead");
-            },
-          );
-        }}
-      >
-        Copy
-      </button>{" "}
-      <span className="muted" aria-live="polite">
-        {said}
-      </span>
+      <code>{command}</code> <CopyButton text={command} copy={copy} />
     </li>
   );
 }
@@ -235,11 +216,6 @@ export function InboxItemPage({
       </section>
     </article>
   );
-}
-
-/** The clipboard, when the page may write to it. */
-function clipboardCopy(text: string): Promise<void> {
-  return navigator.clipboard.writeText(text);
 }
 
 type Load = { state: "loading" } | { state: "ready"; report: InboxReport } | { state: "failed"; message: string };

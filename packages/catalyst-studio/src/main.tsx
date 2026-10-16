@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 
 import { Artifacts } from "./Artifacts.js";
+import { Board } from "./Board.js";
 import { connectionFromPage, StudioClient } from "./client.js";
 import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
 import { Inbox } from "./Inbox.js";
@@ -48,6 +49,11 @@ function mount(): void {
                 id: "artifacts",
                 label: "Artifacts",
                 render: (target?: string) => <Artifacts client={client} target={target} />,
+              },
+              {
+                id: "board",
+                label: "Board",
+                render: () => <Board client={client} />,
               },
               {
                 id: "journal",

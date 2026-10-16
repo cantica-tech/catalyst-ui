@@ -450,3 +450,39 @@ article input[type="text"] {
   color: var(--ok);
   background: color-mix(in srgb, var(--ok) 10%, transparent);
 }
+
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(14rem, 1fr);
+  gap: var(--space-3);
+  overflow-x: auto;
+  align-items: start;
+}
+
+.column {
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.column h3 {
+  display: inline;
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.cards {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-2) 0 0;
+}
+
+.card {
+  margin-bottom: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
