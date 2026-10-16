@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApiError, connectionFromPage, parseBatch, StudioClient } from "../client.js";
-import { OverviewView, type OverviewData } from "../Overview.js";
+import { compareVersions, OverviewView, type OverviewData } from "../Overview.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -85,13 +85,41 @@ afterEach(() => {
   host.remove();
 });
 
-describe("the overview (studio-SHELL-000001)", () => {
+describe("the dashboard (studio-SHELL-000003)", () => {
   const busy: OverviewData = {
     check: { ok: false, errors: ["INV-7 naming: x"], warnings: ["w1", "w2"] },
-    inbox: { items: [], counts: { "unrecorded-change": 2, reconciliation: 1, analysis: 0 } },
+    inbox: {
+      items: [
+        {
+          kind: "unrecorded-change",
+          id: "src/a.py",
+          title: "src/a.py changed outside catalyst",
+          evidence: "changed in git, not in the journal",
+          settle: ["catalyst journal adopt HEAD", "git checkout -- src/a.py"],
+        },
+      ],
+      counts: { "unrecorded-change": 1 },
+    },
+    backlog: {
+      open: { REQ: { Draft: ["REQ-000001"], Active: ["REQ-000002", "REQ-000003"] }, BUG: {} },
+      missing_links: [{ id: "REQ-000001", field: "Targets" }],
+      rules_without_open_work: ["br-AUTH-000001"],
+    },
+    head: { seq: 3, files: 10, kernel: "0.73.0", modules: [{ id: "process", version: "3.2.0" }], catalyst: "0.74.0" },
+    recent: [
+      {
+        at: "j:1",
+        timestamp: "2026-10-16T08:00:00Z",
+        actor: "ada",
+        action: "create",
+        artifact: "REQ-000001",
+        intent: ["Create it"],
+      },
+    ],
+    typeNames: { REQ: "Requirements" },
   };
 
-  it("shows the errors and warnings, and what waits for a person with the command that lists it", async () => {
+  it("shows health, what waits with the commands that settle it, open work, versions and activity", async () => {
     act(() => {
       root.render(<OverviewView data={busy} />);
     });
@@ -99,18 +127,26 @@ describe("the overview (studio-SHELL-000001)", () => {
     expect(text).toContain("1 error");
     expect(text).toContain("2 warnings");
     expect(text).toContain("INV-7 naming: x");
-    expect(text).toContain("3 decisions to take");
-    expect(text).toContain("Changes made outside catalyst: 2");
-    expect(text).not.toContain("Analyses");
-    expect(text).toContain("catalyst inbox");
+    expect(text).toContain("1 decision to take");
+    expect(text).toContain("catalyst journal adopt HEAD");
+    expect(text).toContain("git checkout -- src/a.py");
+    expect(text).toContain("Requirements");
+    expect(text).toContain("1 missing link");
+    expect(text).toContain("1 rule with no open work.");
+    expect(text).toContain("Kernel 0.73.0");
+    expect(text).toContain("Behind");
+    expect(text).toContain("catalyst sync plan");
+    expect(text).toContain("Create it");
+    const rows = [...host.querySelectorAll("tbody tr")].map((r) => r.textContent);
+    expect(rows).toEqual(["RequirementsDraft1", "RequirementsActive2"]);
     const result = await axe.run(host, {
       resultTypes: ["violations"],
       rules: { "color-contrast": { enabled: false } },
     });
-    expect(result.violations.map((v) => v.id)).toEqual([]);
+    expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
   });
 
-  it("says so when all is well", () => {
+  it("says so when all is well, and leaves out what an older catalyst does not serve", () => {
     act(() => {
       root.render(
         <OverviewView data={{ check: { ok: true, errors: [], warnings: [] }, inbox: { items: [], counts: {} } }} />,
@@ -118,5 +154,12 @@ describe("the overview (studio-SHELL-000001)", () => {
     });
     expect(host.textContent).toContain("No errors");
     expect(host.textContent).toContain("Nothing waiting");
+    expect(host.textContent).not.toContain("Versions");
+  });
+
+  it("compares versions by number", () => {
+    expect(compareVersions("0.73.0", "0.74.0")).toBeLessThan(0);
+    expect(compareVersions("0.74.0", "0.74.0+gabc")).toBe(0);
+    expect(compareVersions("0.100.0", "0.99.0")).toBeGreaterThan(0);
   });
 });
