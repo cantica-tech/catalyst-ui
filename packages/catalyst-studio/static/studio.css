@@ -193,3 +193,55 @@ main h2 {
     animation: none !important;
   }
 }
+
+.link-button {
+  font: inherit;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.artifact-list {
+  list-style: none;
+  padding: 0;
+}
+
+.artifact-list li {
+  padding: var(--space-1) 0;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-4);
+}
+
+.fields div {
+  display: contents;
+}
+
+.fields dt {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.fields dd {
+  margin: 0;
+}
+
+.section-text {
+  white-space: pre-wrap;
+}
+
+.journal {
+  padding-left: var(--space-6);
+}
+
+.journal time {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}

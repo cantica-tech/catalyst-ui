@@ -23,6 +23,55 @@ export interface InboxReport {
   counts: Record<string, number>;
 }
 
+/** One entity type as the module declares it (`graph.types[prefix]`). */
+export interface EntityType {
+  name: string;
+  plural_name: string;
+  fields: { name: string; kind: string; required: boolean; target_type: string | null }[];
+  states: string[];
+  initial: string | null;
+  closed_states: string[];
+  transitions?: { from: string; to: string }[];
+  guards?: Record<string, { condition: string; argument: string }[]>;
+  sections?: string[];
+}
+
+/** One artifact in `graph`: its fields by name, as written, besides these. */
+export interface GraphArtifact {
+  id: string;
+  type: string;
+  title?: string;
+  file: string;
+  row?: boolean;
+  links: Record<string, string[]>;
+  [field: string]: unknown;
+}
+
+/** `GET /v1/graph`: the chain, and the module's types. */
+export interface Graph {
+  types: Record<string, EntityType>;
+  artifacts: GraphArtifact[];
+}
+
+/** `GET /v1/view/<id>`: one artifact, with what an entity page shows (catalyst >= 0.73.0). */
+export interface EntityView {
+  id: string;
+  type: string;
+  title?: string;
+  file: string;
+  links: Record<string, string[]>;
+  linked_from: { id: string; field: string }[];
+  journal: {
+    timestamp: string | null;
+    actor: string | null;
+    action: string | null;
+    intent: string | string[] | null;
+  }[];
+  sections?: { heading: string; text: string }[];
+  next?: { state: string; blocked_by: string[] }[];
+  [field: string]: unknown;
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -70,6 +119,14 @@ export class StudioClient {
 
   inbox(): Promise<InboxReport> {
     return this.get<InboxReport>("inbox");
+  }
+
+  graph(): Promise<Graph> {
+    return this.get<Graph>("graph");
+  }
+
+  view(id: string): Promise<EntityView> {
+    return this.get<EntityView>(`view/${encodeURIComponent(id)}`);
   }
 
   /**
