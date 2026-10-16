@@ -577,3 +577,21 @@ progress {
 .run-log li {
   padding: var(--space-1) 0;
 }
+
+.action-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-1) 0;
+}
+
+.action-form input,
+.action-form select {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+}

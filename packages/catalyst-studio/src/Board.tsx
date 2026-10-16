@@ -1,7 +1,9 @@
 import { useEffect, useId, useState } from "react";
 
 import type { EntityType, Graph, GraphArtifact, StudioClient } from "./client.js";
+import { ActionForm } from "./ActionForm.js";
 import { clipboardCopy, CopyButton } from "./Copy.js";
+import { useHost } from "./host.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -68,6 +70,7 @@ function Card({
   copy: (text: string) => Promise<void>;
 }) {
   const navigate = useNavigate();
+  const host = useHost();
   const moves = movesFrom(type, state);
   return (
     <li className="card">
@@ -89,7 +92,17 @@ function Card({
               const command = `catalyst status set ${artifact.id} ${to}`;
               return (
                 <li key={to}>
-                  <code>{command}</code> <CopyButton text={command} copy={copy} />
+                  {host?.act ? (
+                    <ActionForm
+                      host={host}
+                      label={`Move to ${to}`}
+                      action={{ verb: "status-set", id: artifact.id, state: to }}
+                    />
+                  ) : (
+                    <>
+                      <code>{command}</code> <CopyButton text={command} copy={copy} />
+                    </>
+                  )}
                 </li>
               );
             })}

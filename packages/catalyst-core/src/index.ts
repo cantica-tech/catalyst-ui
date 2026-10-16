@@ -125,3 +125,4 @@ export {
   watchCatalyst,
   watchProject,
 } from "./catalyst-source.js";
+export { ActionError, actionArgs, describeAction, runAction, type ActionResult, type StudioAction } from "./actions.js";

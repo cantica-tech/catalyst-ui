@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 
 import type { ChangedFile, EntityView, InboxItem, InboxReport, StudioClient } from "./client.js";
 import { clipboardCopy, CopyButton } from "./Copy.js";
+import { ActionForm } from "./ActionForm.js";
 import { describeEvidence } from "./evidence.js";
+import { useHost } from "./host.js";
 import { Status } from "./Status.js";
 
 /** The kinds catalyst reports, in its order, each with the heading the inbox gives it. */
@@ -185,6 +187,7 @@ export function InboxItemPage({
   copy: (text: string) => Promise<void>;
 }) {
   const heading = KINDS.find((k) => k.kind === item.kind)?.heading ?? item.kind;
+  const host = useHost();
   return (
     <article aria-labelledby="item-title">
       <p>
@@ -197,8 +200,9 @@ export function InboxItemPage({
       </h2>
       <p className="muted">{heading}</p>
       <Evidence item={item} artifact={artifact} />
+      {host?.act && <SettleHere item={item} />}
       <section aria-labelledby="item-settle">
-        <h3 id="item-settle">Settle it with</h3>
+        <h3 id="item-settle">{host?.act ? "Or settle it with" : "Settle it with"}</h3>
         {item.settle.length === 0 ? (
           <p className="muted">catalyst names no command for it.</p>
         ) : (
@@ -215,6 +219,56 @@ export function InboxItemPage({
         )}
       </section>
     </article>
+  );
+}
+
+/** The decisions a reconciliation case takes (`catalyst reconcile`). */
+const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
+
+/**
+ * Settling here, through the host (studio-SHELL-000016): an unrecorded
+ * commit adopted, a changed file journaled, a case decided. Reverting and
+ * an analysis's decision stay commands to copy.
+ */
+function SettleHere({ item }: { item: InboxItem }) {
+  const host = useHost();
+  if (!host?.act) return null;
+  const forms =
+    item.kind === "unrecorded-commit" ? (
+      <ActionForm
+        host={host}
+        label="Adopt into the journal"
+        action={{ verb: "journal-adopt", commit: item.evidence.commit ?? item.id }}
+        journals
+      />
+    ) : item.kind === "unrecorded-change" ? (
+      <ActionForm
+        host={host}
+        label="Record in the journal"
+        action={{ verb: "journal-append", path: item.evidence.path ?? item.id }}
+        journals
+      />
+    ) : item.kind === "reconciliation" ? (
+      <ul className="settle">
+        {DECISIONS.map((d) => (
+          <li key={d}>
+            <ActionForm
+              host={host}
+              label={d}
+              action={{ verb: "reconcile", case: item.id, decision: d }}
+              textLabel={d === "propose" ? "The proposal" : undefined}
+            />
+          </li>
+        ))}
+      </ul>
+    ) : null;
+  if (!forms) return null;
+  return (
+    <section aria-labelledby="item-settle-here">
+      <h3 id="item-settle-here">Settle it here</h3>
+      <p className="muted">Your editor shows the exact command and asks you before catalyst runs it.</p>
+      {forms}
+    </section>
   );
 }
 

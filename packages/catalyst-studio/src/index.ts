@@ -62,5 +62,15 @@ export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTabl
 export { activity, Team, TeamView, type Activity } from "./Team.js";
 export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";
 export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
-export { connectHost, type HostRuns, type RunEvent, type RunHandle } from "./host.js";
+export {
+  connectHost,
+  HostContext,
+  useHost,
+  type ActionResult,
+  type HostRuns,
+  type RunEvent,
+  type RunHandle,
+  type StudioAction,
+} from "./host.js";
+export { ActionForm, TIERS } from "./ActionForm.js";
 export { RunConsole, runSummary } from "./RunConsole.js";
