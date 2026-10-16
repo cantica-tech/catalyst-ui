@@ -64,20 +64,6 @@
       "count": 1
     }
   },
-  "packages/catalyst-host-vscode/src/agent-bridge.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-call": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unsafe-member-access": {
-      "count": 2
-    },
-    "@typescript-eslint/no-unsafe-return": {
-      "count": 1
-    }
-  },
   "packages/catalyst-host-vscode/src/detail.ts": {
     "@typescript-eslint/prefer-nullish-coalescing": {
       "count": 1
@@ -118,6 +104,20 @@
       "count": 1
     },
     "no-useless-assignment": {
+      "count": 1
+    }
+  },
+  "packages/catalyst-host-vscode/src/vscode/agent-bridge.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-call": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-return": {
       "count": 1
     }
   },

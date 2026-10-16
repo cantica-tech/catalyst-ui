@@ -32,9 +32,10 @@ import {
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { resolveAndInvoke } from "./agent-bridge.js";
+import { resolveAndInvoke } from "./vscode/agent-bridge.js";
 import { buildProposeFixContent } from "./codeactions.js";
 import { discoverCommandCandidates, pickCommandAndArgs } from "./command-picker.js";
+import { VscodeHost } from "./vscode/vscode-host.js";
 import { buildAuthoringProposalContent, type ComposableArtifactType } from "./composer.js";
 import {
   COMPOSABLE_TYPES,
@@ -56,8 +57,8 @@ import {
   SWITCH_UI_MODULE_COMMAND,
   TRACK_SETTING,
 } from "./constants.js";
-import type { DeploymentTarget, RegisteredDeployment } from "./deployments.js";
-import { journalByCorpus, setupDeployment } from "./deployments.js";
+import type { DeploymentTarget, RegisteredDeployment } from "./vscode/deployments.js";
+import { journalByCorpus, setupDeployment } from "./vscode/deployments.js";
 import {
   buildIamRoleDetail,
   buildIamUserDetail,
@@ -65,15 +66,16 @@ import {
   buildReferenceTable,
   referencesForNode,
 } from "./detail.js";
-import { ChainInspectorProvider, InspectorPanelProvider } from "./inspector.js";
-import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./onboarding.js";
+import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
+import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
-import { writeProposal } from "./proposal-files.js";
+import { writeProposal } from "./vscode/proposal-files.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
-import { renderWebviewHtml } from "./webview-html.js";
+import { renderWebviewHtml } from "./vscode/webview-html.js";
 import { panelKeysFor, parseWebviewMessage, proposalWriteBlockedMessage } from "./webview-protocol.js";
 
 export function activate(context: vscode.ExtensionContext): void {
+  const host = new VscodeHost(context);
   const uiModuleManager = new UiModuleManager();
   let inMemoryKernelVersion: string | null = null;
   const storagePath = context.globalStorageUri.fsPath;
@@ -396,10 +398,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(SEND_TO_AGENT_CHAT_COMMAND, async () => {
-      const picked = await pickCommandAndArgs(discoverCommandCandidates());
+      const picked = await pickCommandAndArgs(host, discoverCommandCandidates(host));
       if (!picked) return;
 
-      const projectRoot = picked.folder.uri.fsPath;
+      const projectRoot = picked.folder.path;
       const chatAgents = parseChatAgents(projectRoot);
       let agentDef: AgentBinding | null = chatAgents[0] ?? null;
       if (chatAgents.length > 1) {

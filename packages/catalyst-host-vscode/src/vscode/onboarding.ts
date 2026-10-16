@@ -19,9 +19,9 @@ import {
   ONBOARDING_DISMISSED_PREFIX,
   SELECT_KERNEL_VERSION_COMMAND,
   SYNC_OFFER_DISMISSED_PREFIX,
-} from "./constants.js";
+} from "../constants.js";
 import type { DeploymentTarget } from "./deployments.js";
-import { buildInstantiationPrompt, findSiblingFrameworkRepo } from "./framework-discovery.js";
+import { buildInstantiationPrompt, findSiblingFrameworkRepo } from "../framework-discovery.js";
 
 /**
  * The chat participant for a known, detected coding-agent extension —

@@ -6,12 +6,12 @@ import {
   OPEN_JOURNAL_COMMAND,
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
-} from "./constants.js";
-import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "./iam.js";
-import { buildProposalSection, type ProposalSection } from "./proposals.js";
-import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "./roadmaps.js";
-import { buildRunSection, formatRunLabel, formatStepLabel, type RunSection } from "./runmonitor.js";
-import { breadthFirst, childId, itemKey } from "./tree-ids.js";
+} from "../constants.js";
+import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "../iam.js";
+import { buildProposalSection, type ProposalSection } from "../proposals.js";
+import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "../roadmaps.js";
+import { buildRunSection, formatRunLabel, formatStepLabel, type RunSection } from "../runmonitor.js";
+import { breadthFirst, childId, itemKey } from "../tree-ids.js";
 import {
   buildTreeSections,
   formatNodeLabel,
@@ -20,7 +20,7 @@ import {
   type RuleTypeSection,
   type TreeSection,
   type TreeSectionKind,
-} from "./tree.js";
+} from "../tree.js";
 
 export interface DeploymentView {
   corpusRoot: string;

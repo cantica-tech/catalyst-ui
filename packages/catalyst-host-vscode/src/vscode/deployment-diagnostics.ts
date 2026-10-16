@@ -1,6 +1,6 @@
 import type { ChainModel, ValidationReport } from "catalyst-core";
 import * as vscode from "vscode";
-import { buildDiagnosticsByFile } from "./diagnostics.js";
+import { buildDiagnosticsByFile } from "../diagnostics.js";
 
 export function lineRange(oneIndexedLine: number): vscode.Range {
   const line = Math.max(0, oneIndexedLine - 1);

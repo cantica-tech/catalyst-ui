@@ -9,6 +9,16 @@ export {
 } from "./kernel-version.js";
 
 export * from "./types.js";
+export {
+  ScriptedHost,
+  type HostFolder,
+  type HostMemento,
+  type HostPort,
+  type InputOptions,
+  type NotifyLevel,
+  type PickItem,
+  type PickOptions,
+} from "./host-port.js";
 export * from "./module-loader.js";
 export {
   AGENT_PRESETS,

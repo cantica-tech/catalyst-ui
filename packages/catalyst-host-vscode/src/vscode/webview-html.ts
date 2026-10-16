@@ -1,7 +1,7 @@
 import type { WebviewPayload } from "catalyst-core";
 import { randomBytes } from "node:crypto";
 import type * as vscode from "vscode";
-import { webviewCsp } from "./webview-protocol.js";
+import { webviewCsp } from "../webview-protocol.js";
 
 /**
  * Theme-aware styling for a node's rendered markdown (`marked` output in

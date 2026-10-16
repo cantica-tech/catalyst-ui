@@ -1,14 +1,13 @@
-import type { SlashCommandSpec } from "catalyst-core";
+import type { HostFolder, HostPort, SlashCommandSpec } from "catalyst-core";
 import { discoverSlashCommands } from "catalyst-core";
-import * as vscode from "vscode";
 
 export interface CommandCandidate {
-  folder: vscode.WorkspaceFolder;
+  folder: HostFolder;
   commands: SlashCommandSpec[];
 }
 
 export interface PickedCommand {
-  folder: vscode.WorkspaceFolder;
+  folder: HostFolder;
   cmd: SlashCommandSpec;
   args: string;
 }
@@ -19,17 +18,18 @@ export interface PickedCommand {
  * Returns `undefined` if the user dismissed a picker, or there was
  * nothing to pick from (already reported to the user in that case).
  */
-export async function pickCommandAndArgs(candidates: CommandCandidate[]): Promise<PickedCommand | undefined> {
+export async function pickCommandAndArgs(
+  host: HostPort,
+  candidates: CommandCandidate[],
+): Promise<PickedCommand | undefined> {
   if (candidates.length === 0) {
-    void vscode.window.showInformationMessage(
-      "No catalyst commands found: is a catalyst criterion reachable for this workspace?",
-    );
+    void host.notify("info", "No catalyst commands found: is a catalyst criterion reachable for this workspace?");
     return undefined;
   }
 
   let chosen = candidates[0];
   if (candidates.length > 1) {
-    const pick = await vscode.window.showQuickPick(
+    const pick = await host.pick(
       candidates.map((entry) => ({ label: entry.folder.name, entry })),
       { placeHolder: "Which project?" },
     );
@@ -37,7 +37,7 @@ export async function pickCommandAndArgs(candidates: CommandCandidate[]): Promis
     chosen = pick.entry;
   }
 
-  const commandPick = await vscode.window.showQuickPick(
+  const commandPick = await host.pick(
     chosen.commands.map((cmd) => ({
       label: `/${cmd.name}`,
       description: cmd.description ?? "",
@@ -51,7 +51,7 @@ export async function pickCommandAndArgs(candidates: CommandCandidate[]): Promis
   let args = "";
   if (commandPick.cmd.argumentHint) {
     args =
-      (await vscode.window.showInputBox({
+      (await host.input({
         prompt: `Arguments for /${commandPick.cmd.name}`,
         placeHolder: commandPick.cmd.argumentHint,
       })) ?? "";
@@ -60,12 +60,12 @@ export async function pickCommandAndArgs(candidates: CommandCandidate[]): Promis
   return { folder: chosen.folder, cmd: commandPick.cmd, args };
 }
 
-export function discoverCommandCandidates(): CommandCandidate[] {
-  const folders = vscode.workspace.workspaceFolders ?? [];
-  return folders
+export function discoverCommandCandidates(host: HostPort): CommandCandidate[] {
+  return host
+    .folders()
     .map((folder) => ({
       folder,
-      commands: discoverSlashCommands(folder.uri.fsPath),
+      commands: discoverSlashCommands(folder.path),
     }))
     .filter((entry) => entry.commands.length > 0);
 }

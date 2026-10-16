@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import * as vscode from "vscode";
-import { proposalWriteBlockedMessage } from "./webview-protocol.js";
+import { proposalWriteBlockedMessage } from "../webview-protocol.js";
 
 export function slugify(text: string): string {
   return (

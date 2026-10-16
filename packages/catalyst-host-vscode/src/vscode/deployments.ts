@@ -1,10 +1,10 @@
 import type { JournalEntry, ValidationReport, WatcherHandle } from "catalyst-core";
 import { watchProject } from "catalyst-core";
 import * as vscode from "vscode";
-import { canProposeFix } from "./codeactions.js";
-import { buildCodeLensesForFile } from "./codelens.js";
-import { PROPOSE_FIX_COMMAND, SHOW_DETAIL_COMMAND } from "./constants.js";
-import { resolveDefinitionAt } from "./definitions.js";
+import { canProposeFix } from "../codeactions.js";
+import { buildCodeLensesForFile } from "../codelens.js";
+import { PROPOSE_FIX_COMMAND, SHOW_DETAIL_COMMAND } from "../constants.js";
+import { resolveDefinitionAt } from "../definitions.js";
 import { lineRange, refreshDiagnosticsForDeployment } from "./deployment-diagnostics.js";
 import type { ChainInspectorProvider } from "./inspector.js";
 
