@@ -1,5 +1,5 @@
 /** The Studio (catalyst roadmap R6.2): one bundle every host shows, reading catalyst only over its HTTP API. */
-export { applyTheme, Shell, type Theme, type View } from "./Shell.js";
+export { applyTheme, Shell, useNavigate, type Navigate, type Theme, type View } from "./Shell.js";
 export { Status, type StatusTone } from "./Status.js";
 export {
   ApiError,
@@ -16,6 +16,12 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type User,
+  type GraphDomain,
+  type GraphRule,
+  type History,
+  type HistoryEntry,
+  type JournalEntry,
   type Command,
   type CommandPart,
   type CommandSpec,
@@ -36,3 +42,25 @@ export {
   searchPalette,
   type PaletteEntry,
 } from "./Commands.js";
+export { diffStat, hunks, lineDiff, type DiffLine, type Hunk } from "./diff.js";
+export { changeKind, DiffView, EntityHistory } from "./History.js";
+export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Journal.js";
+export { Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
+export { clipboardCopy, CopyButton } from "./Copy.js";
+export { citers, groupRules, ruleDocument, RuleBrowser, Rules, ruleStatus, searchRules } from "./Rules.js";
+export {
+  layoutMap,
+  TypeMap,
+  typeMap,
+  TypeMapDrawing,
+  TypeMapTable,
+  type MapEdge,
+  type MapNode,
+  type PlacedMap,
+} from "./TypeMap.js";
+export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTable } from "./Roadmap.js";
+export { activity, Team, TeamView, type Activity } from "./Team.js";
+export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";
+export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
+export { connectHost, type HostRuns, type RunEvent, type RunHandle } from "./host.js";
+export { RunConsole, runSummary } from "./RunConsole.js";

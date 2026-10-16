@@ -1,11 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 export type Theme = "system" | "light" | "dark";
 
 export interface View {
   id: string;
   label: string;
-  render: () => ReactNode;
+  /** `target`: what another view asked this one to open (an entity's ID), if any. */
+  render: (target?: string) => ReactNode;
   /** Ctrl/⌘ with this key opens the view from anywhere, then focuses the element with id `focus`. */
   shortcut?: { key: string; focus: string };
 }
@@ -15,6 +16,16 @@ const THEMES: { id: Theme; label: string }[] = [
   { id: "light", label: "Light" },
   { id: "dark", label: "Dark" },
 ];
+
+/** Opens a view, with what it should open (`navigate("artifacts", "REQ-000001")`). */
+export type Navigate = (view: string, target?: string) => void;
+
+const NavigateContext = createContext<Navigate>(() => undefined);
+
+/** How a view opens another: the shell's navigation, or nothing outside a shell. */
+export function useNavigate(): Navigate {
+  return useContext(NavigateContext);
+}
 
 /** Applies a theme to the document: `system` follows the operating system. */
 export function applyTheme(theme: Theme, root: HTMLElement = document.documentElement): void {
@@ -42,18 +53,25 @@ export function Shell({
   onTheme?: (theme: Theme) => void;
 }) {
   const [current, setCurrent] = useState(initialView ?? views[0].id);
-  const [theme, setTheme] = useState<Theme>(initialTheme);
   const [focusNext, setFocusNext] = useState<string | null>(null);
+  // a navigation remounts the view with its target, even to the same view
+  const [target, setTarget] = useState<{ value?: string; n: number }>({ n: 0 });
+  const navigate: Navigate = (viewId, value) => {
+    setCurrent(viewId);
+    setTarget((t) => ({ value, n: t.n + 1 }));
+    if (value) setFocusNext("studio-main"); // a link to another view lands the reader on it
+  };
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const view = views.find((v) => v.id === current) ?? views[0];
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-      const target = views.find((v) => v.shortcut?.key === event.key.toLowerCase());
-      if (!target?.shortcut) return;
+      const wanted = views.find((v) => v.shortcut?.key === event.key.toLowerCase());
+      if (!wanted?.shortcut) return;
       event.preventDefault();
-      setCurrent(target.id);
-      setFocusNext(target.shortcut.focus);
+      setCurrent(wanted.id);
+      setFocusNext(wanted.shortcut.focus);
     };
     document.addEventListener("keydown", onKey);
     return () => {
@@ -90,7 +108,7 @@ export function Shell({
                   type="button"
                   aria-current={v.id === view.id ? "page" : undefined}
                   onClick={() => {
-                    setCurrent(v.id);
+                    navigate(v.id);
                   }}
                 >
                   {v.label}
@@ -114,8 +132,8 @@ export function Shell({
           ))}
         </div>
       </header>
-      <main id="studio-main" tabIndex={-1}>
-        {view.render()}
+      <main id="studio-main" tabIndex={-1} key={`${view.id}:${String(target.n)}`}>
+        <NavigateContext.Provider value={navigate}>{view.render(target.value)}</NavigateContext.Provider>
       </main>
     </>
   );

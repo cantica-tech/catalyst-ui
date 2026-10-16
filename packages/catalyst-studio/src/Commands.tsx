@@ -1,6 +1,9 @@
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 
 import { ApiError, type Command, type CommandSpec, type StudioClient } from "./client.js";
+import { clipboardCopy, CopyButton } from "./Copy.js";
+import type { HostRuns, RunEvent, RunHandle } from "./host.js";
+import { RunConsole } from "./RunConsole.js";
 import { Status } from "./Status.js";
 
 /** One entry the palette offers: a command, or one part of a command with parts. */
@@ -157,16 +160,41 @@ export function CommandPage({
   spec,
   copy,
   onBack,
+  host,
 }: {
   entry: PaletteEntry;
   spec?: CommandSpec;
   copy: (text: string) => Promise<void>;
   onBack: () => void;
+  /** The host that runs commands, inside VS Code (studio-SHELL-000015); none in a browser. */
+  host?: HostRuns | null;
 }) {
   const [args, setArgs] = useState("");
-  const [said, setSaid] = useState("");
   const argsId = useId();
   const composed = composeCommand(entry, args);
+  const [events, setEvents] = useState<RunEvent[] | null>(null);
+  const [declined, setDeclined] = useState(false);
+  const [handle, setHandle] = useState<RunHandle | null>(null);
+  const running = events !== null && !declined && !events.some((e) => e.event === "end");
+  const start = () => {
+    if (!host) return;
+    setEvents([]);
+    setDeclined(false);
+    // a part runs as its command, the part leading its arguments (`/create bug …`)
+    const runArgs = [entry.part, args.trim()].filter(Boolean).join(" ");
+    setHandle(
+      host.run(
+        entry.command,
+        runArgs,
+        (event) => {
+          setEvents((list) => [...(list ?? []), event]);
+        },
+        () => {
+          setDeclined(true);
+        },
+      ),
+    );
+  };
   return (
     <article aria-labelledby="command-title">
       <p>
@@ -181,7 +209,10 @@ export function CommandPage({
       <section aria-labelledby="command-compose">
         <h3 id="command-compose">Ask your agent</h3>
         <p className="muted">
-          Typed as <code>{entry.usage}</code>. The Studio runs no command yet: copy this into your agent&apos;s chat.
+          Typed as <code>{entry.usage}</code>.{" "}
+          {host
+            ? "Run it with your agent here (VS Code asks you first), or copy it into your agent's chat."
+            : "Copy it into your agent's chat; inside VS Code, the Studio can run it."}
         </p>
         <label htmlFor={argsId}>Arguments</label>{" "}
         <input
@@ -191,32 +222,30 @@ export function CommandPage({
           autoComplete="off"
           onChange={(event) => {
             setArgs(event.target.value);
-            setSaid("");
           }}
         />
         <p>
-          <code className="composed">{composed}</code>{" "}
-          <button
-            type="button"
-            aria-label={`Copy ${composed}`}
-            onClick={() => {
-              copy(composed).then(
-                () => {
-                  setSaid("Copied");
-                },
-                () => {
-                  setSaid("Could not copy: select the command instead");
-                },
-              );
-            }}
-          >
-            Copy
-          </button>{" "}
-          <span className="muted" aria-live="polite">
-            {said}
-          </span>
+          <code className="composed">{composed}</code> <CopyButton text={composed} copy={copy} />
         </p>
+        {host && (
+          <p>
+            <button type="button" onClick={start} disabled={running}>
+              Run with your agent
+            </button>{" "}
+            {running && (
+              <button
+                type="button"
+                onClick={() => {
+                  handle?.cancel();
+                }}
+              >
+                Stop
+              </button>
+            )}
+          </p>
+        )}
       </section>
+      {events !== null && <RunConsole events={events} declined={declined} />}
       <section aria-labelledby="command-procedure">
         <h3 id="command-procedure">What it does</h3>
         {spec ? (
@@ -234,10 +263,6 @@ export function CommandPage({
 /** The id of the palette's search box: the shell focuses it on Ctrl/⌘+K. */
 export const COMMAND_SEARCH_ID = "command-search";
 
-function clipboardCopy(text: string): Promise<void> {
-  return navigator.clipboard.writeText(text);
-}
-
 type Load =
   | { state: "loading" }
   | { state: "ready"; entries: PaletteEntry[] }
@@ -248,9 +273,11 @@ type Load =
 export function Commands({
   client,
   copy = clipboardCopy,
+  host,
 }: {
   client: StudioClient;
   copy?: (text: string) => Promise<void>;
+  host?: HostRuns | null;
 }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [open, setOpen] = useState<PaletteEntry | null>(null);
@@ -301,6 +328,7 @@ export function Commands({
         entry={open}
         spec={spec}
         copy={copy}
+        host={host}
         onBack={() => {
           setOpen(null);
         }}

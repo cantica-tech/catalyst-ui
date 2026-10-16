@@ -496,3 +496,85 @@ export function watchProject(
     },
   };
 }
+
+/** One event of `catalyst agent run --json` (catalyst >= 0.76.0, `spec/run-event.schema.json`). */
+export interface RunEvent {
+  event: "start" | "session" | "text" | "tool" | "tool_result" | "end";
+  [field: string]: unknown;
+}
+
+export interface AgentRun {
+  /** Stops the run (the agent's process tree is catalyst's to end). */
+  cancel(): void;
+  /** Resolves with the run's `end` event (one is made up when catalyst gives none). */
+  done: Promise<RunEvent>;
+}
+
+/** A catalyst command name, as §4 names it: never an option or a path. */
+export const COMMAND_NAME = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Run `catalyst agent run --json <command> <arguments>` from `project` and
+ * call `onEvent` with each event as it arrives. The arguments are one
+ * string, as typed after the slash command; catalyst joins its words again.
+ */
+export function startAgentRun(
+  project: string,
+  command: string,
+  args: string,
+  onEvent: (event: RunEvent) => void,
+  catalyst = catalystCommand(),
+): AgentRun {
+  if (!COMMAND_NAME.test(command)) throw new Error(`not a catalyst command: ${command}`);
+  const [cmd, ...pre] = catalyst;
+  const words = args.split(/\s+/).filter(Boolean);
+  const child = spawn(cmd, [...pre, "agent", "run", "--json", command, ...words], {
+    cwd: project,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderr += chunk.toString();
+  });
+  let end: RunEvent | null = null;
+  createInterface({ input: child.stdout }).on("line", (line) => {
+    let event: RunEvent;
+    try {
+      event = JSON.parse(line) as RunEvent;
+    } catch {
+      return; // not an event: catalyst prints only JSON lines with --json
+    }
+    if (event.event === "end") end = event;
+    onEvent(event);
+  });
+  const done = new Promise<RunEvent>((resolve) => {
+    const finish = (why: string) => {
+      if (!end) {
+        end = {
+          event: "end",
+          ok: false,
+          turns: 0,
+          usage: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          cost_usd: null,
+          duration_ms: null,
+          denied: [],
+          result: (stderr.trim() || why).slice(0, 2000),
+        };
+        onEvent(end);
+      }
+      resolve(end);
+    };
+    child.on("error", (e) => {
+      finish(`catalyst could not start: ${e.message}`);
+    });
+    child.on("close", (code, signal) => {
+      finish(signal ? `stopped (${signal})` : `catalyst exited ${String(code)} without a result`);
+    });
+  });
+  return {
+    cancel: () => {
+      child.kill();
+    },
+    done,
+  };
+}
