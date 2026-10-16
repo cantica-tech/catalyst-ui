@@ -1,148 +1,39 @@
-import { cleanRuleTitle, type ChainModel, type ChainNode } from "catalyst-core";
+import { cleanRuleTitle, type ChainModel, type ChainNode, type ModuleType } from "catalyst-core";
 
 export function getNodeUser(node: ChainNode): string | undefined {
-  let user: string | undefined;
-  if (node.kind === "dev-artifact" || node.kind === "feature" || node.kind === "rule" || node.kind === "step") {
-    user = node.signedOffBy || undefined;
-  } else if (node.kind === "roadmap") {
-    user = node.signedOffBy || undefined;
-  }
+  const user = node.kind === "artifact" || node.kind === "row" || node.kind === "rule" ? node.signedOffBy : undefined;
   if (!user) return undefined;
   return user.replace(/^_+|_+$/g, "") || undefined;
 }
 
-export function getNodeStatusGlyph(node: ChainNode): string {
-  const isBug = (node.kind === "dev-artifact" && node.artifactType === "bug") || node.id.startsWith("BUG-");
+/** A closed state whose word says the work was dropped rather than done. */
+const DROPPED_RE = /\b(abandon\w*|reject\w*|cancel\w*|wont[- ]?fix|won't fix|retired|obsolete|duplicate)\b/i;
 
-  if (isBug) {
-    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
-    const isClosed =
-      s.includes("fixed") ||
-      s.includes("closed") ||
-      s.includes("wontfix") ||
-      s.includes("won't fix") ||
-      s.includes("duplicate") ||
-      s.includes("resolved") ||
-      s.includes("done") ||
-      s.includes("✅") ||
-      s.includes("🗑");
-
-    if (!isClosed) {
-      return "🐛 ";
-    }
+/**
+ * An artifact's or row's mark, from its type alone (catalyst roadmap R6.7):
+ * a closed state is done (✅) or dropped (🗑, when its word says so), the
+ * type's initial state or no status is not started (…), any other state is
+ * under way (⏳). A rule keeps the marks its own status text carries.
+ */
+export function getNodeStatusGlyph(node: ChainNode, type?: ModuleType): string {
+  if (node.kind === "artifact" || node.kind === "row") {
+    const status = node.status.trim();
+    if (node.closed) return DROPPED_RE.test(status) ? "🗑 " : "✅ ";
+    if (!status || status === type?.initial) return "… ";
+    return "⏳ ";
   }
-
-  const isTest = (node.kind === "dev-artifact" && node.artifactType === "test") || node.id.startsWith("TEST-");
-  if (isTest) {
-    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
-    if (s.includes("passing")) return "✅ ";
-    if (s.includes("failing")) return "❌ ";
-    if (s.includes("blocked")) return "⚠️ ";
-    return "… "; // proposed, or unrecognized
-  }
-
-  const isRoadmap = node.kind === "roadmap" || node.id.startsWith("RM-");
-  if (isRoadmap) {
-    const s = ("status" in node && typeof node.status === "string" ? node.status : "").toLowerCase().trim();
-
-    const isDone =
-      s.includes("done") ||
-      s.includes("finished") ||
-      s.includes("completed") ||
-      s.includes("closed") ||
-      s.includes("fixed") ||
-      s.includes("✅");
-
-    if (isDone) {
-      return "✅ ";
-    }
-
-    const isInProgress =
-      s.includes("in progress") ||
-      s.includes("in-progress") ||
-      s.includes("in_progress") ||
-      s.includes("progress") ||
-      s.includes("⏳");
-
-    if (isInProgress) {
-      return "⏳ ";
-    }
-
-    return "… ";
-  }
-
-  // A requirement or a feature: implemented, in progress, not implemented
-  // yet, or abandoned — from the statuses their entity definitions allow
-  // (and the legacy values older artifacts still carry).
-  const isRequirement =
-    (node.kind === "dev-artifact" && node.artifactType === "requirement") || node.id.startsWith("REQ-");
-  const isFeature = node.kind === "feature" || node.id.startsWith("FEAT-");
-  if (isRequirement || isFeature) {
-    const s = ("status" in node && typeof node.status === "string" ? node.status : "")
-      .toLowerCase()
-      .replace(/[`*_]/g, "")
-      .trim();
-    if (/\b(completed|done|shipped|implemented)\b/.test(s) || s.includes("✅")) return "✅ ";
-    if (/\b(abandoned|wontfix)\b/.test(s) || s.includes("🗑")) return "🗑 ";
-    if (/\b(active|in[- _]?progress|in[- _]?development)\b/.test(s) || s.includes("⏳")) return "⏳ ";
-    return "… "; // draft, proposed, vetted, triaged, or none yet
-  }
-
-  if (node.kind === "step") {
-    switch (node.status) {
-      case "done":
-        return "✅ ";
-      case "in-progress":
-        return "⏳ ";
-      case "abandoned":
-        return "🗑 ";
-      default:
-        return "… ";
-    }
-  }
-
-  if ("status" in node && typeof node.status === "string" && node.status) {
+  if (node.kind === "rule") {
     if (node.status.includes("❌")) return "❌ ";
     if (node.status.includes("🗑")) return "🗑 ";
     if (node.status.includes("⚠️")) return "⚠️ ";
     const s = node.status.toLowerCase();
-    if (
-      s.includes("not implemented") ||
-      s.includes("unimplemented") ||
-      s.includes("not-implemented") ||
-      s.includes("incomplete") ||
-      s.includes("buggy") ||
-      s.includes("partially fixed") ||
-      s.includes("untested") ||
-      s.includes("broken") ||
-      s.includes("failed")
-    ) {
-      return "❌ ";
-    }
-    if (s.includes("working") || s.includes("implemented") || s.includes("fixed") || node.status.includes("✅")) {
-      return "✅ ";
-    }
-  }
-
-  const titleLower = ((node.name ?? "") + " " + (node.title ?? "")).toLowerCase();
-  if (
-    titleLower.includes("not implemented") ||
-    titleLower.includes("unimplemented") ||
-    titleLower.includes("not-implemented") ||
-    titleLower.includes("incomplete") ||
-    titleLower.includes("buggy") ||
-    titleLower.includes("untested")
-  ) {
-    return "❌ ";
-  }
-
-  if (node.kind === "rule") {
+    if (/\b(not[- ]implemented|unimplemented|incomplete|buggy|untested|broken|failed)\b/.test(s)) return "❌ ";
     return "✅ ";
   }
   return "";
 }
 
-export function formatNodeLabel(node: ChainNode): string {
+export function formatNodeLabel(node: ChainNode, type?: ModuleType): string {
   const idRegex =
     /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?|[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
   const match = idRegex.exec(node.id);
@@ -188,47 +79,21 @@ export function formatNodeLabel(node: ChainNode): string {
 
   const user = getNodeUser(node);
   const userSuffix = user ? ` - ${user}` : "";
-  const statusPrefix = getNodeStatusGlyph(node);
+  const statusPrefix = getNodeStatusGlyph(node, type);
   return `${statusPrefix}${displayName} [${idWithoutUserid}${userSuffix}]`;
 }
 
-/**
- * The sidebar tree's top-level sections — one per chain-model layer.
- * "rule-of-rules" isn't its own `NodeKind` in the model (an `rr`-prefixed
- * rule is still `kind: "rule"`), but the roadmap's "four layers" framing
- * calls it out as its own tree section, so it's split out here for
- * display only. Dev-artifact nodes are grouped under one "Dev Artifacts"
- * parent folder, itself split into five sub-sections: three by the
- * node's own `artifactType` (`requirement`/`bug`/`house-keeping`), plus
- * `test` (the fourth `artifactType`) and `step` (its own `NodeKind`, not
- * an `artifactType`, but grouped here too — display-only, catalyst-ui's
- * own choice, not a framework distinction) — each getting its own
- * entity-type identity (icon, tooltip). Work items are omitted entirely:
- * no project-management plugin is active in this deployment, so the
- * model never has any.
- *
- * A `STEP-NNNNNN` is assembled under this flat "Steps" section and
- * **nowhere else** — unlike a test (which additionally nests under
- * whichever requirement/bug/step it verifies, on top of its own flat
- * "Tests" section, since `(0,n)` doesn't single out one owner), a step
- * never appears a second time as a nested child under its one parent
- * requirement or bug (`extension.ts`'s `childKindsFor` deliberately
- * excludes it) — one place to look for every step, never a duplicate
- * listing.
- */
-export type DevArtifactSectionKind = "requirement" | "bug" | "house-keeping" | "step" | "test";
-export type TreeSectionKind = DevArtifactSectionKind | "domain" | "feature";
-
-export interface TreeSection {
-  kind: TreeSectionKind;
+/** The artifacts of one module type, under the type's own plural name. */
+export interface TypeSection {
+  typePrefix: string;
   label: string;
   nodes: ChainNode[];
 }
 
-/** The "Dev Artifacts" parent folder, wrapping its five sub-sections. */
-export interface DevArtifactGroup {
+/** The "Artifacts" parent folder: one section per module type that has artifacts kept as files. */
+export interface ArtifactGroup {
   label: string;
-  sections: TreeSection[];
+  sections: TypeSection[];
 }
 
 export interface RuleTypeSection {
@@ -244,24 +109,10 @@ export interface RuleGroup {
 }
 
 export interface TreeSections {
-  devArtifacts: DevArtifactGroup;
+  artifacts: ArtifactGroup;
   rules: RuleGroup;
-  sections: TreeSection[];
+  domains: ChainNode[];
 }
-
-const SECTION_LABELS: Record<TreeSectionKind, string> = {
-  requirement: "Requirements",
-  bug: "Bugs",
-  "house-keeping": "House-keeping",
-  step: "Steps",
-  test: "Tests",
-  domain: "Domains",
-  feature: "Features",
-};
-
-const DEV_ARTIFACT_SECTION_ORDER: DevArtifactSectionKind[] = ["requirement", "bug", "house-keeping", "step", "test"];
-
-const SECTION_ORDER: TreeSectionKind[] = ["domain", "feature"];
 
 export function ruleTypeLabel(prefix: string): string {
   const p = prefix.toLowerCase();
@@ -270,56 +121,47 @@ export function ruleTypeLabel(prefix: string): string {
   if (p === "ui") return "UI Rules";
   if (p === "br" || p === "business") return "Business Rules";
   if (p === "app") return "App Rules";
-  if (p === "hk" || p === "house-keeping") return "House-keeping Rules";
   if (p.length <= 3) return `${prefix.toUpperCase()} Rules`;
   return `${prefix.charAt(0).toUpperCase() + prefix.slice(1)} Rules`;
 }
 
-/** Groups a chain model's nodes into the sidebar tree's sections, sorted by id within each. */
+/** A type's label: its plural name, or its prefix when the model has no type for it. */
+export function typeLabel(model: ChainModel, prefix: string): string {
+  return model.types?.get(prefix)?.plural_name ?? prefix;
+}
+
+/**
+ * Groups a chain model's nodes into the sidebar tree: the module's artifacts
+ * by type (every declared type that keeps files, in the order of their
+ * plural names, plus any prefix the model has artifacts of but no type for),
+ * rules by document prefix, and domains — each sorted by id.
+ */
 export function buildTreeSections(model: ChainModel): TreeSections {
-  const devArtifactsByKind = new Map<DevArtifactSectionKind, ChainNode[]>();
+  const byType = new Map<string, ChainNode[]>();
   const rulesByPrefix = new Map<string, ChainNode[]>();
-  const otherByKind = new Map<TreeSectionKind, ChainNode[]>();
+  const domains: ChainNode[] = [];
+  const rowTypes = new Set<string>();
 
   for (const node of model.nodes.values()) {
-    if (node.kind === "dev-artifact") {
-      const list = devArtifactsByKind.get(node.artifactType) ?? [];
-      list.push(node);
-      devArtifactsByKind.set(node.artifactType, list);
-    } else if (node.kind === "step") {
-      const list = devArtifactsByKind.get("step") ?? [];
-      list.push(node);
-      devArtifactsByKind.set("step", list);
+    if (node.kind === "artifact") {
+      byType.set(node.typePrefix, [...(byType.get(node.typePrefix) ?? []), node]);
+    } else if (node.kind === "row") {
+      rowTypes.add(node.typePrefix);
     } else if (node.kind === "rule") {
       const prefix = node.docPrefix || "rule";
-      const list = rulesByPrefix.get(prefix) ?? [];
-      list.push(node);
-      rulesByPrefix.set(prefix, list);
-    } else if (node.kind === "domain" || node.kind === "feature") {
-      const list = otherByKind.get(node.kind) ?? [];
-      list.push(node);
-      otherByKind.set(node.kind, list);
+      rulesByPrefix.set(prefix, [...(rulesByPrefix.get(prefix) ?? []), node]);
+    } else if (node.kind === "domain") {
+      domains.push(node);
     }
   }
+  const byId = (a: ChainNode, b: ChainNode) => a.id.localeCompare(b.id);
+  for (const list of byType.values()) list.sort(byId);
+  for (const list of rulesByPrefix.values()) list.sort(byId);
+  domains.sort(byId);
 
-  for (const list of devArtifactsByKind.values()) {
-    list.sort((a, b) => a.id.localeCompare(b.id));
-  }
-  for (const list of rulesByPrefix.values()) {
-    list.sort((a, b) => a.id.localeCompare(b.id));
-  }
-  for (const list of otherByKind.values()) {
-    list.sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  const devArtifacts: DevArtifactGroup = {
-    label: "Dev Artifacts",
-    sections: DEV_ARTIFACT_SECTION_ORDER.map((kind) => ({
-      kind,
-      label: SECTION_LABELS[kind],
-      nodes: devArtifactsByKind.get(kind) ?? [],
-    })),
-  };
+  const prefixes = new Set([...(model.types?.keys() ?? []), ...byType.keys()]);
+  for (const p of rowTypes) if (!byType.has(p)) prefixes.delete(p);
+  const ordered = [...prefixes].sort((a, b) => typeLabel(model, a).localeCompare(typeLabel(model, b)));
 
   const sortedPrefixes = [...rulesByPrefix.keys()].sort((a, b) => {
     if (a === "rr") return -1;
@@ -327,20 +169,23 @@ export function buildTreeSections(model: ChainModel): TreeSections {
     return ruleTypeLabel(a).localeCompare(ruleTypeLabel(b));
   });
 
-  const rules: RuleGroup = {
-    label: "Rules",
-    sections: sortedPrefixes.map((prefix) => ({
-      prefix,
-      label: ruleTypeLabel(prefix),
-      nodes: rulesByPrefix.get(prefix) ?? [],
-    })),
+  return {
+    artifacts: {
+      label: "Artifacts",
+      sections: ordered.map((typePrefix) => ({
+        typePrefix,
+        label: typeLabel(model, typePrefix),
+        nodes: byType.get(typePrefix) ?? [],
+      })),
+    },
+    rules: {
+      label: "Rules",
+      sections: sortedPrefixes.map((prefix) => ({
+        prefix,
+        label: ruleTypeLabel(prefix),
+        nodes: rulesByPrefix.get(prefix) ?? [],
+      })),
+    },
+    domains,
   };
-
-  const sections = SECTION_ORDER.map((kind) => ({
-    kind,
-    label: SECTION_LABELS[kind],
-    nodes: otherByKind.get(kind) ?? [],
-  }));
-
-  return { devArtifacts, rules, sections };
 }

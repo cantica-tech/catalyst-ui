@@ -18,7 +18,7 @@ export interface GraphLayout {
   edges: GraphEdge[];
 }
 
-const COLUMN_ORDER: NodeKind[] = ["work-item", "dev-artifact", "rule", "domain", "feature"];
+const COLUMN_ORDER: NodeKind[] = ["work-item", "artifact", "row", "rule", "domain"];
 const COLUMN_WIDTH = 220;
 const ROW_HEIGHT = 60;
 

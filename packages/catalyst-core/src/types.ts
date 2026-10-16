@@ -5,9 +5,22 @@
  * "Architecture" decision (one protocol, three packages).
  */
 
-export type NodeKind = "work-item" | "dev-artifact" | "rule" | "domain" | "feature" | "roadmap" | "step";
+export type NodeKind = "work-item" | "artifact" | "row" | "rule" | "domain";
 
-export type DevArtifactType = "bug" | "requirement" | "house-keeping" | "test";
+/**
+ * One entity type the module declares, as catalyst serves it (`graph`'s
+ * `types`). The UI names no type of its own (catalyst roadmap R6.7): what an
+ * artifact is, how it is labelled and when it is closed all come from here.
+ */
+export interface ModuleType {
+  prefix: string;
+  name: string;
+  plural_name: string;
+  states: string[];
+  initial: string | null;
+  closed_states: string[];
+  fields: { name: string; kind: string; required: boolean; target_type: string | null }[];
+}
 
 export interface SourceLocation {
   file: string;
@@ -34,24 +47,24 @@ export interface WorkItemNode extends ChainNodeBase {
   kind: "work-item";
 }
 
-export interface DevArtifactNode extends ChainNodeBase {
-  kind: "dev-artifact";
-  artifactType: DevArtifactType;
+/** An artifact of one of the module's types, kept as its own file. */
+export interface ArtifactNode extends ChainNodeBase {
+  kind: "artifact";
+  /** Its type's ID prefix (`model.types` has the type). */
+  typePrefix: string;
   status: string;
-  targets: string[];
-  feature?: string;
-  /** `artifactType: "test"` only: `(0,n)` `REQ-NNNNNN` this test verifies (`Rules-of-Rules.md` §22). Undefined for every other artifact type. */
-  requirements?: string[];
-  /** `artifactType: "test"` only: `(0,n)` `STEP-NNNNNN` this test verifies (`Rules-of-Rules.md` §22). Undefined for every other artifact type — in particular, a *requirement's or bug's own* `Steps` field (the steps opened against it) is deliberately not read into this field; that relationship is already derivable from `StepNode.parent` via the chain model's reverse edges. */
-  steps?: string[];
+  /** The status is one of its type's closed states. */
+  closed: boolean;
+  /** Each reference field it fills, and the IDs it cites. */
+  links: Record<string, string[]>;
   signedOffBy?: string;
-  /** Listed in this artifact type's index table (requirements.md/bugs.md/house-keeping.md/tests.md). */
+  /** Listed in its type's index. */
   registered: boolean;
   /** Backing .md file exists on disk. */
   fileExists: boolean;
-  /** The document's own `## Description` section (`## Summary` for a requirement) — empty when index-only (no file) or the section is missing. */
+  /** Its `## Description` (or `## Summary`) section, when it has one. */
   description: string;
-  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
+  /** The backing .md file's complete raw text. */
   content: string;
 }
 
@@ -79,66 +92,24 @@ export interface DomainNode extends ChainNodeBase {
   content: string;
 }
 
-export interface FeatureNode extends ChainNodeBase {
-  kind: "feature";
+/** An item of a module type kept as rows of a table file (a roadmap's items, say). */
+export interface RowNode extends ChainNodeBase {
+  kind: "row";
+  typePrefix: string;
+  /** The file holding the table (its basename). */
+  table: string;
+  /** The file's header marks it `**Retired:**`. */
+  tableRetired: boolean;
   status: string;
-  signedOffBy?: string;
-  registered: boolean;
-  fileExists: boolean;
-  /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
-  description: string;
-  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
-  content: string;
-}
-
-export type StepStatus = "planned" | "in-progress" | "done" | "abandoned";
-
-/**
- * `STEP-NNNNNN` (`Rules-of-Rules.md` §21, kernel 0.29.0, widened to a
- * bug parent at 0.31.0) — one concrete unit of implementation work
- * performed toward a specific requirement or bug. Never rule-linked (no
- * `targets`/`domain` of its own — it inherits its parent's); `parent`
- * (a `REQ-NNNNNN` or `BUG-NNNNNN` id) is the one required
- * cross-reference.
- */
-export interface StepNode extends ChainNodeBase {
-  kind: "step";
-  parent: string;
-  status: StepStatus;
-  signedOffBy?: string;
-  /** Listed in `steps/steps.md`. */
-  registered: boolean;
-  /** Backing .md file exists on disk. */
-  fileExists: boolean;
-  /** The document's own `## Description` section — empty when index-only (no file) or the section is missing. */
-  description: string;
-  /** The backing .md file's complete raw text, every field and section — empty when index-only (no file). */
-  content: string;
-}
-
-export type RoadmapStatus = "Not triaged" | "Triaged" | "In progress" | "Done";
-
-/**
- * One `RM-NNNNNN` row inside a `development/roadmaps/<name>.md` file
- * (`rr-META-010`) — a row, not its own file, so `registered`/`fileExists`
- * (meaningful for dev-artifacts/features) don't apply here.
- */
-export interface RoadmapNode extends ChainNodeBase {
-  kind: "roadmap";
-  /** Which named roadmap file this row lives in (that file's basename). */
-  roadmapName: string;
-  /** True iff the owning roadmap file's header carries a `**Retired:**` field. */
-  roadmapRetired: boolean;
-  /** A sentence or two summarizing the item — distinct from `title`'s short label (kernel `0.20.0`+ shape). */
-  description: string;
-  status: RoadmapStatus;
-  /** The row's `Linked` cell's `FEAT-`/`REQ-` id, if any — also present in `references`. */
-  linked?: string;
+  closed: boolean;
+  /** Its cells by header, as written. */
+  fields: Record<string, string>;
+  links: Record<string, string[]>;
   signedOffBy: string;
-  notes: string;
+  description: string;
 }
 
-export type ChainNode = WorkItemNode | DevArtifactNode | RuleNode | DomainNode | FeatureNode | RoadmapNode | StepNode;
+export type ChainNode = WorkItemNode | ArtifactNode | RowNode | RuleNode | DomainNode;
 
 export interface ChainModel {
   nodes: Map<string, ChainNode>;
@@ -148,6 +119,8 @@ export interface ChainModel {
   reverseEdges: Map<string, Set<string>>;
   /** Every definition site seen per id; more than one entry means the id was reused. */
   definitionsById: Map<string, SourceLocation[]>;
+  /** The module's types by prefix, when the model came from catalyst. */
+  types?: Map<string, ModuleType>;
 }
 
 export type IssueSeverity = "error" | "warning";

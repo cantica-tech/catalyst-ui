@@ -14,7 +14,7 @@ import {
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
-    kind: "dev-artifact",
+    kind: "artifact",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
     references: [],
@@ -48,7 +48,7 @@ describe("buildNodeDetail", () => {
   });
 
   it("resolves upstream and downstream from the model's edges", () => {
-    const req = node({ id: "REQ-000002", kind: "dev-artifact" });
+    const req = node({ id: "REQ-000002", kind: "artifact" });
     const rule = node({
       id: "vscode-INSPECTOR-001",
       kind: "rule",
@@ -83,15 +83,17 @@ describe("buildNodeDetail", () => {
   });
 
   it("includes a requirement's steps in its downstream, resolved from reverseEdges", () => {
-    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const req = node({ id: "REQ-000001", kind: "artifact" });
     const step: ChainNode = {
       id: "STEP-000001",
-      kind: "step",
+      kind: "artifact",
+      typePrefix: "STEP",
       title: "STEP-000001",
       location: { file: "f.md", line: 1 },
       references: [],
-      parent: "REQ-000001",
+      links: { Parent: ["REQ-000001"] },
       status: "done",
+      closed: true,
       registered: true,
       fileExists: true,
       description: "",
@@ -121,15 +123,17 @@ describe("buildNodeDetail", () => {
   });
 
   it("includes a requirement's and a step's tests in their downstream, resolved from reverseEdges", () => {
-    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const req = node({ id: "REQ-000001", kind: "artifact" });
     const step: ChainNode = {
       id: "STEP-000001",
-      kind: "step",
+      kind: "artifact",
+      typePrefix: "STEP",
       title: "STEP-000001",
       location: { file: "f.md", line: 1 },
       references: [],
-      parent: "REQ-000001",
+      links: { Parent: ["REQ-000001"] },
       status: "done",
+      closed: true,
       registered: true,
       fileExists: true,
       description: "",
@@ -137,12 +141,11 @@ describe("buildNodeDetail", () => {
     };
     const test = node({
       id: "TEST-000001",
-      kind: "dev-artifact",
-      artifactType: "test",
+      kind: "artifact",
+      typePrefix: "TEST",
       status: "passing",
-      targets: ["env-RUNTIME-001"],
-      requirements: ["REQ-000001"],
-      steps: ["STEP-000001"],
+      closed: false,
+      links: { Targets: ["env-RUNTIME-001"], Requirements: ["REQ-000001"], Steps: ["STEP-000001"] },
       registered: true,
       fileExists: true,
       description: "",
@@ -229,7 +232,7 @@ describe("reference table (REQ-000014)", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const node = (id: string, extra: Record<string, unknown> = {}): any => ({
     id,
-    kind: "dev-artifact",
+    kind: "artifact",
     title: `${id} title`,
     location: { file: "f.md", line: 1 },
     references: [],
@@ -258,7 +261,7 @@ describe("reference table (REQ-000014)", () => {
     assert.deepStrictEqual(Object.keys(table).sort(), ["BUG-000003", "REQ-000001-Ab3xR9pQ"]);
     assert.deepStrictEqual(table["REQ-000001-Ab3xR9pQ"], {
       id: "REQ-000001-Ab3xR9pQ",
-      kind: "dev-artifact",
+      kind: "artifact",
       name: "Login flow",
       summary: "Users log in.",
     });
@@ -310,7 +313,7 @@ describe("hover descriptions from content (BUG-000001 follow-up)", () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const node: any = {
       id: "REQ-000013-X",
-      kind: "dev-artifact",
+      kind: "artifact",
       title: "Panels",
       description: "",
       content,

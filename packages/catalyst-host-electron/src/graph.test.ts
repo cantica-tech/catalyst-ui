@@ -5,7 +5,7 @@ import { computeGraphLayout } from "./graph.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
-    kind: "dev-artifact",
+    kind: "artifact",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
     references: [],
@@ -26,7 +26,7 @@ describe("computeGraphLayout", () => {
 
   it("groups nodes into columns by kind, in chain order", () => {
     const rule = node({ id: "env-RUNTIME-001", kind: "rule" });
-    const req = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const req = node({ id: "REQ-000001", kind: "artifact" });
     const domain = node({ id: "RUNTIME", kind: "domain" });
 
     const model: ChainModel = {
@@ -48,8 +48,8 @@ describe("computeGraphLayout", () => {
   });
 
   it("gives every node a deterministic, non-overlapping position", () => {
-    const a = node({ id: "REQ-000001", kind: "dev-artifact" });
-    const b = node({ id: "REQ-000002", kind: "dev-artifact" });
+    const a = node({ id: "REQ-000001", kind: "artifact" });
+    const b = node({ id: "REQ-000002", kind: "artifact" });
 
     const model: ChainModel = {
       nodes: new Map([
@@ -70,8 +70,8 @@ describe("computeGraphLayout", () => {
   });
 
   it("carries every model edge through, sorted", () => {
-    const a = node({ id: "REQ-000002", kind: "dev-artifact" });
-    const b = node({ id: "REQ-000001", kind: "dev-artifact" });
+    const a = node({ id: "REQ-000002", kind: "artifact" });
+    const b = node({ id: "REQ-000001", kind: "artifact" });
 
     const model: ChainModel = {
       nodes: new Map([

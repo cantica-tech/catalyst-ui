@@ -5,7 +5,7 @@ import { buildNodeDetail } from "./detail.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
-    kind: "dev-artifact",
+    kind: "artifact",
     title: overrides.id,
     location: { file: "f.md", line: 1 },
     references: [],
