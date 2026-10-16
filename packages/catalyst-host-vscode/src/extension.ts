@@ -32,6 +32,7 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 import { resolveAndInvoke } from "./vscode/agent-bridge.js";
 import { discoverCommandCandidates, pickCommandAndArgs } from "./command-picker.js";
+import { openStudio } from "./vscode/studio-panel.js";
 import { VscodeHost } from "./vscode/vscode-host.js";
 import {
   CONFIGURE_CRITERION_COMMAND,
@@ -44,6 +45,7 @@ import {
   OPEN_SETTINGS_COMMAND,
   REFRESH_CHAIN_INSPECTOR_COMMAND,
   SELECT_KERNEL_VERSION_COMMAND,
+  OPEN_STUDIO_COMMAND,
   SEND_TO_AGENT_CHAT_COMMAND,
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
@@ -327,6 +329,25 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     },
   });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(OPEN_STUDIO_COMMAND, async () => {
+      const projects = provider.getCorpusRoots().map((corpusRoot) => ({
+        label: provider.getFolderName(corpusRoot) ?? corpusRoot,
+        projectRoot: provider.getProjectRoot(corpusRoot) ?? corpusRoot,
+      }));
+      if (projects.length === 0) {
+        void host.notify("info", "No catalyst project is open.");
+        return;
+      }
+      const project =
+        projects.length === 1 ? projects[0] : await host.pick(projects, { placeHolder: "Which project?" });
+      if (!project) return;
+      await openStudio(context, project.projectRoot, project.label, (message) => {
+        agentBridgeOutputChannel.appendLine(message);
+      });
+    }),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(SEND_TO_AGENT_CHAT_COMMAND, async () => {

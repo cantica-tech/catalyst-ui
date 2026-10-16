@@ -18,6 +18,7 @@ export const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
 export const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
 
 export const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
+export const OPEN_STUDIO_COMMAND = "catalyst.openStudio";
 
 export const CONFIGURE_CRITERION_COMMAND = "catalyst.configureCriterion";
 

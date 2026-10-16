@@ -114,6 +114,10 @@
         "title": "Catalyst: Open Backlog"
       },
       {
+        "command": "catalyst.openStudio",
+        "title": "Catalyst: Open Studio"
+      },
+      {
         "command": "catalyst.sendToAgentChat",
         "title": "Catalyst: Send to Agent (Chat)…",
         "icon": "$(comment-discussion)"
@@ -242,7 +246,7 @@
   },
   "scripts": {
     "build": "tsc --build --force",
-    "prebuild": "npm run build:webview --workspace=catalyst-ui && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js",
+    "prebuild": "npm run build:webview --workspace=catalyst-ui && npm run build --workspace=catalyst-studio && mkdir -p dist && cp ../catalyst-ui/dist/webview.js dist/webview.js && rm -rf dist/studio && cp -R ../catalyst-studio/dist/web dist/studio",
     "test": "mocha \"dist/test/**/*.test.js\"",
     "pretest": "npm run build",
     "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:fsevents --outfile=dist/extension.js",

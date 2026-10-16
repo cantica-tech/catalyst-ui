@@ -2,6 +2,7 @@ src/**
 dist/**
 !dist/extension.js
 !dist/webview.js
+!dist/studio/**
 **/*.map
 tsconfig.json
 tsconfig.tsbuildinfo

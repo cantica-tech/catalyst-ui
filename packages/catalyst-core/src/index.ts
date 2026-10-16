@@ -118,6 +118,7 @@ export {
   type CatalystGraph,
   type CatalystServer,
   type WatcherHandle,
+  catalystCommand,
   modelFromGraph,
   readThroughCatalyst,
   reportFromCheck,

@@ -331,17 +331,25 @@ export interface CatalystServer {
   url: string;
   token: string;
   child: ChildProcess;
+  /** With `staticDir`: the page's URL, the token in its fragment. */
+  page?: string;
 }
 
-/** Start `catalyst serve --local` for `project` and read the URL and token it prints. */
+/**
+ * Start `catalyst serve --local` for `project` and read the URL and token it
+ * prints. With `staticDir`, the server also serves that directory's page
+ * (`--static`, catalyst >= 0.64.0) and says where it is.
+ */
 export function startLocalServe(
   project: string,
   command = catalystCommand(),
   timeoutMs = 15000,
+  staticDir?: string,
 ): Promise<CatalystServer> {
   return new Promise((resolve, reject) => {
     const [cmd, ...pre] = command;
-    const child = spawn(cmd, [...pre, "serve", "--local", "--project", project], {
+    const args = [...pre, "serve", "--local", "--project", project, ...(staticDir ? ["--static", staticDir] : [])];
+    const child = spawn(cmd, args, {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
@@ -366,8 +374,8 @@ export function startLocalServe(
       clearTimeout(timer);
       child.removeAllListeners("exit");
       try {
-        const hello = JSON.parse(line) as { url: string; token: string };
-        resolve({ url: hello.url, token: hello.token, child });
+        const hello = JSON.parse(line) as { url: string; token: string; page?: string };
+        resolve({ url: hello.url, token: hello.token, child, ...(hello.page ? { page: hello.page } : {}) });
       } catch {
         fail(`printed no address (${line.slice(0, 80)})`);
       }
