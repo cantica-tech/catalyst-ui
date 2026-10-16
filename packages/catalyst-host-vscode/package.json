@@ -114,14 +114,6 @@
         "title": "Catalyst: Open Backlog"
       },
       {
-        "command": "catalyst.proposeFix",
-        "title": "Catalyst: Propose Fix"
-      },
-      {
-        "command": "catalyst.composeProposal",
-        "title": "Catalyst: Compose Proposal"
-      },
-      {
         "command": "catalyst.sendToAgentChat",
         "title": "Catalyst: Send to Agent (Chat)…",
         "icon": "$(comment-discussion)"
@@ -272,7 +264,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers, agent commands and writing proposals (Propose fix, Compose proposal) wait until the workspace is trusted."
+      "description": "In an untrusted workspace catalyst only reads: the chain inspector, details and diagnostics work; install and sync offers and agent commands wait until the workspace is trusted."
     },
     "virtualWorkspaces": {
       "supported": false,

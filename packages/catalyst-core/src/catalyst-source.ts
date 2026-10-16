@@ -7,8 +7,6 @@ import { createInterface } from "node:readline";
 import { parseIamRoles, parseIamUsers } from "./iam.js";
 import { buildShortFormIndex, resolveIdReference } from "./ids.js";
 import { sectionLines } from "./markdown.js";
-import { parseProposals } from "./proposals.js";
-import { parseRuns } from "./runs.js";
 import type {
   ChainModel,
   ChainNode,
@@ -399,8 +397,6 @@ export async function readThroughCatalyst(
     model,
     report: reportFromCheck(check as CatalystCheck, criterionRoot, model),
     journal: coerceJournal(journal),
-    proposals: parseProposals(criterionRoot),
-    runs: parseRuns(criterionRoot),
     users: parseIamUsers(criterionRoot),
     roles: parseIamRoles(criterionRoot),
   };

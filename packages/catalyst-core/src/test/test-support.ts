@@ -64,25 +64,6 @@ export interface FixtureStep {
   description?: string;
 }
 
-export interface FixtureProposal {
-  id: string;
-  status?: string;
-  intent?: string;
-  targets?: string[];
-  expectations?: string[];
-  constraints?: string[];
-}
-
-export interface FixtureRun {
-  id: string;
-  status?: string;
-  command?: string;
-  started?: string;
-  /** Raw checklist lines, glyph prefix included (e.g. `"✅ Ran tests"`). */
-  checklist?: string[];
-  ledger?: string[];
-}
-
 export interface FixtureRoadmapItem {
   id: string;
   title: string;
@@ -133,8 +114,6 @@ export interface FixtureSpec {
   tests?: FixtureArtifact[];
   features?: FixtureFeature[];
   steps?: FixtureStep[];
-  proposals?: FixtureProposal[];
-  runs?: FixtureRun[];
   roadmaps?: FixtureRoadmap[];
   users?: FixtureUser[];
   roles?: FixtureRole[];
@@ -227,29 +206,6 @@ function renderStepFile(step: FixtureStep): string {
     Status: step.status ?? "in-progress",
   });
   return `# \`${step.id}\` — ${step.title}\n\n${fields}\n${description}`;
-}
-
-function renderProposalFile(proposal: FixtureProposal): string {
-  const fields = renderFieldTable({
-    ID: `\`${proposal.id}\``,
-    Status: proposal.status ?? "proposed",
-  });
-  const targets = (proposal.targets ?? []).map((t) => `- \`${t}\``).join("\n");
-  const expectations = (proposal.expectations ?? ["Placeholder expectation."]).map((e) => `- ${e}`).join("\n");
-  const constraints = (proposal.constraints ?? []).map((c) => `- ${c}`).join("\n");
-  return `# \`${proposal.id}\` — fixture proposal\n\n${fields}\n## Intent\n\n${proposal.intent ?? "Fixture intent."}\n\n## Targets\n\n${targets}\n\n## Expectations\n\n${expectations}\n\n## Constraints\n\n${constraints}\n`;
-}
-
-function renderRunFile(run: FixtureRun): string {
-  const fields = renderFieldTable({
-    ID: `\`${run.id}\``,
-    Status: run.status ?? "running",
-    Command: run.command ?? "fixture command",
-    Started: run.started ?? "2026-01-01T00:00:00Z",
-  });
-  const checklist = (run.checklist ?? ["✅ Fixture step"]).map((c) => `- ${c}`).join("\n");
-  const ledger = (run.ledger ?? []).map((l) => `- ${l}`).join("\n");
-  return `# \`${run.id}\` — fixture run\n\n${fields}\n## Checklist\n\n${checklist}\n\n## Ledger\n\n${ledger}\n`;
 }
 
 function renderRoadmapFile(roadmap: FixtureRoadmap): string {
@@ -412,24 +368,6 @@ export function createFixtureCorpus(spec: FixtureSpec): string {
   for (const step of steps) {
     if (step.createFile === false) continue;
     writeFileSync(join(stepsDir, `${step.id}-file.md`), renderStepFile(step));
-  }
-
-  const proposals = spec.proposals ?? [];
-  if (proposals.length > 0) {
-    const proposalsDir = join(root, "proposals");
-    mkdirSync(proposalsDir, { recursive: true });
-    for (const proposal of proposals) {
-      writeFileSync(join(proposalsDir, `${proposal.id}-fixture.md`), renderProposalFile(proposal));
-    }
-  }
-
-  const runs = spec.runs ?? [];
-  if (runs.length > 0) {
-    const runsDir = join(root, "runs");
-    mkdirSync(runsDir, { recursive: true });
-    for (const run of runs) {
-      writeFileSync(join(runsDir, `${run.id}-fixture.md`), renderRunFile(run));
-    }
   }
 
   const roadmaps = spec.roadmaps ?? [];

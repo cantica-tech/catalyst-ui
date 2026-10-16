@@ -3,7 +3,6 @@ import type {
   KernelVersionInfo,
   RemoteModuleInfo,
   UiModuleManifest,
-  ValidationIssue,
   WebviewPayload,
 } from "catalyst-core";
 import {
@@ -14,7 +13,6 @@ import {
   isIgnoredFolder,
   loadLocalSavedModule,
   meetsRequiredKernelVersion,
-  nextProposalId,
   optedOut,
   owningDeployment,
   packageUiModule,
@@ -33,13 +31,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as vscode from "vscode";
 import { resolveAndInvoke } from "./vscode/agent-bridge.js";
-import { buildProposeFixContent } from "./codeactions.js";
 import { discoverCommandCandidates, pickCommandAndArgs } from "./command-picker.js";
 import { VscodeHost } from "./vscode/vscode-host.js";
-import { buildAuthoringProposalContent, type ComposableArtifactType } from "./composer.js";
 import {
-  COMPOSABLE_TYPES,
-  COMPOSE_PROPOSAL_COMMAND,
   CONFIGURE_CRITERION_COMMAND,
   DIAGNOSTIC_COLLECTION_NAME,
   IGNORED_FOLDERS_SETTING,
@@ -48,7 +42,6 @@ import {
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
   OPEN_SETTINGS_COMMAND,
-  PROPOSE_FIX_COMMAND,
   REFRESH_CHAIN_INSPECTOR_COMMAND,
   SELECT_KERNEL_VERSION_COMMAND,
   SEND_TO_AGENT_CHAT_COMMAND,
@@ -69,10 +62,9 @@ import {
 import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
 import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
-import { writeProposal } from "./vscode/proposal-files.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
-import { panelKeysFor, parseWebviewMessage, proposalWriteBlockedMessage } from "./webview-protocol.js";
+import { panelKeysFor, parseWebviewMessage } from "./webview-protocol.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const host = new VscodeHost(context);
@@ -335,66 +327,6 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     },
   });
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(PROPOSE_FIX_COMMAND, async (corpusRoot: string, issue: ValidationIssue) => {
-      const id = nextProposalId(provider.getAllProposals(corpusRoot));
-      const content = buildProposeFixContent(issue, id);
-      const written = await writeProposal(corpusRoot, id, `propose-fix-${issue.kind}`, content);
-      if (!written) return;
-      void vscode.window.showInformationMessage(`Created ${id} — an agent still needs to act on it.`);
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand(COMPOSE_PROPOSAL_COMMAND, async () => {
-      // Say so before asking five questions whose answer can't be saved.
-      const blocked = proposalWriteBlockedMessage(vscode.workspace.isTrusted);
-      if (blocked) {
-        void vscode.window.showWarningMessage(blocked);
-        return;
-      }
-      const corpusRoots = provider.getCorpusRoots();
-      if (corpusRoots.length === 0) return;
-
-      let corpusRoot = corpusRoots[0];
-      if (corpusRoots.length > 1) {
-        const pick = await vscode.window.showQuickPick(
-          corpusRoots.map((root) => ({
-            label: provider.getFolderName(root) ?? root,
-            corpusRoot: root,
-          })),
-          { placeHolder: "Which catalyst deployment?" },
-        );
-        if (!pick) return;
-        corpusRoot = pick.corpusRoot;
-      }
-
-      const type = (await vscode.window.showQuickPick(COMPOSABLE_TYPES, {
-        placeHolder: "What kind of artifact are you proposing?",
-      })) as ComposableArtifactType | undefined;
-      if (!type) return;
-
-      const domain = await vscode.window.showInputBox({ prompt: "Domain" });
-      if (!domain) return;
-      const title = await vscode.window.showInputBox({ prompt: "Title" });
-      if (!title) return;
-      const description = (await vscode.window.showInputBox({ prompt: "Description" })) ?? "";
-      const targetsRaw =
-        (await vscode.window.showInputBox({
-          prompt: "Related ids (comma-separated, optional)",
-        })) ?? "";
-      const targets = targetsRaw
-        .split(",")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
-
-      const id = nextProposalId(provider.getAllProposals(corpusRoot));
-      const content = buildAuthoringProposalContent({ type, domain, targets, title, description }, id);
-      if (!(await writeProposal(corpusRoot, id, title, content))) return;
-      void vscode.window.showInformationMessage(`Created ${id} — an agent still needs to act on it.`);
-    }),
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(SEND_TO_AGENT_CHAT_COMMAND, async () => {
@@ -837,7 +769,7 @@ export function activate(context: vscode.ExtensionContext): void {
       showDetailPanel(`node:${corpusRoot}:${nodeId}`, corpusRoot, `Node: ${nodeId}`, () => {
         const model = provider.getModel(corpusRoot);
         if (!model) return null;
-        const payload = buildNodeDetail(model, nodeId, provider.getPendingTargets(corpusRoot));
+        const payload = buildNodeDetail(model, nodeId);
         if (!payload) return null;
         return {
           type: "node",

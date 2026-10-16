@@ -10,9 +10,11 @@ desktop app, sharing one core and one UI package.
 ## Status
 
 Shipping. All seven phases of the original roadmap are done — chain
-inspector, health board, proposal loop, authoring composer, Electron
-host, and run monitor — plus multi-root workspace support and an agent
-window for running catalyst slash commands from either host. The VS
+inspector, health board, Electron host — plus multi-root workspace
+support and an agent window for running catalyst slash commands from
+either host. The proposal loop, authoring composer and run monitor were
+removed in R6.1: they wrote `PROP-`/`RUN-` files outside catalyst's
+journal. The VS
 Code extension is published on the
 [Marketplace](https://marketplace.visualstudio.com/items?itemName=CanticaTech.catalyst-host-vscode)
 as **Catalyst framework**.
@@ -38,9 +40,9 @@ command line: `task release:vsix:publish PUBLISH_DIR=... --
   catalyst (`catalyst serve --local`, or a served criterion): the typed
   chain model, its validation and the journal come from catalyst's
   `graph`, `check` and `journal`, refreshed on its events; it needs
-  catalyst 0.54.0 or later. It also parses proposals and live agent runs.
+  catalyst 0.54.0 or later.
 - `packages/catalyst-ui` — React. All UI surfaces (chain inspector,
-  health board, proposal/authoring composer, run monitor), mounted
+  health board), mounted
   unchanged by both hosts.
 - `packages/catalyst-host-vscode` — the published VS Code extension:
   thin adapter over the core↔UI protocol via `postMessage`, plus

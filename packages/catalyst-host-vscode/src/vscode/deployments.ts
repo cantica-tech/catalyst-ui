@@ -1,9 +1,8 @@
-import type { JournalEntry, ValidationReport, WatcherHandle } from "catalyst-core";
+import type { JournalEntry, WatcherHandle } from "catalyst-core";
 import { watchProject } from "catalyst-core";
 import * as vscode from "vscode";
-import { canProposeFix } from "../codeactions.js";
 import { buildCodeLensesForFile } from "../codelens.js";
-import { PROPOSE_FIX_COMMAND, SHOW_DETAIL_COMMAND } from "../constants.js";
+import { SHOW_DETAIL_COMMAND } from "../constants.js";
 import { resolveDefinitionAt } from "../definitions.js";
 import { lineRange, refreshDiagnosticsForDeployment } from "./deployment-diagnostics.js";
 import type { ChainInspectorProvider } from "./inspector.js";
@@ -23,7 +22,7 @@ export interface RegisteredDeployment {
   ownedDiagnosticFiles: Set<string>;
 }
 
-/** Sets up one resolved deployment: its watcher plus its own Definition/CodeLens/CodeActions providers. */
+/** Sets up one resolved deployment: its watcher plus its own Definition and CodeLens providers. */
 export function setupDeployment(
   target: DeploymentTarget,
   corpusRoot: string,
@@ -34,16 +33,14 @@ export function setupDeployment(
   log: (message: string) => void = () => undefined,
 ): RegisteredDeployment {
   const ownedDiagnosticFiles = new Set<string>();
-  let latestReport: ValidationReport | undefined;
 
   // Through catalyst serve (REQ-000019); when catalyst cannot serve the project, say why (REQ-000020).
   const handle = watchProject(
     target.path,
     corpusRoot,
-    ({ model, report, journal, proposals, runs, users, roles }) => {
+    ({ model, report, journal, users, roles }) => {
       journalByCorpus.set(corpusRoot, journal);
-      provider.setState(corpusRoot, target.name, target.path, model, proposals, runs, users, roles);
-      latestReport = report;
+      provider.setState(corpusRoot, target.name, target.path, model, users, roles);
       refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
       codeLensChangeEmitter.fire();
       // Open detail panels of this deployment show the new state (B-10).
@@ -89,33 +86,6 @@ export function setupDeployment(
         );
       },
     }),
-  );
-
-  disposables.push(
-    vscode.languages.registerCodeActionsProvider(
-      selector,
-      {
-        provideCodeActions(document: vscode.TextDocument, range: vscode.Range): vscode.CodeAction[] {
-          if (!latestReport) return [];
-          const openTargetIds = new Set(provider.getPendingTargets(corpusRoot).keys());
-          const line = range.start.line + 1;
-
-          return latestReport.issues
-            .filter((issue) => issue.location?.file === document.uri.fsPath && issue.location.line === line)
-            .filter((issue) => canProposeFix(issue, openTargetIds))
-            .map((issue) => {
-              const action = new vscode.CodeAction(`Propose fix: ${issue.kind}`, vscode.CodeActionKind.QuickFix);
-              action.command = {
-                command: PROPOSE_FIX_COMMAND,
-                title: "Propose fix",
-                arguments: [corpusRoot, issue],
-              };
-              return action;
-            });
-        },
-      },
-      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
-    ),
   );
 
   return { handle, disposables, ownedDiagnosticFiles };

@@ -68,8 +68,6 @@ export {
   writeProjectToml,
   type JoinCriterionOptions,
 } from "./join-criterion.js";
-export { parseProposals, nextProposalId, openProposalsByTarget } from "./proposals.js";
-export { parseRuns, hasDrift } from "./runs.js";
 export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export {
   compareVersions,

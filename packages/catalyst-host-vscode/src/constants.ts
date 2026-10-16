@@ -1,5 +1,3 @@
-import { type ComposableArtifactType } from "./composer.js";
-
 export const VIEW_ID = "catalystChainInspector";
 
 /** The chain inspector view slots, one per deployment (package.json `views`). */
@@ -18,10 +16,6 @@ export const SHOW_IAM_DETAIL_COMMAND = "catalyst.showIamDetail";
 export const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
 
 export const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
-
-export const PROPOSE_FIX_COMMAND = "catalyst.proposeFix";
-
-export const COMPOSE_PROPOSAL_COMMAND = "catalyst.composeProposal";
 
 export const SEND_TO_AGENT_CHAT_COMMAND = "catalyst.sendToAgentChat";
 
@@ -42,5 +36,3 @@ export const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 export const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";
 
 export const SYNC_OFFER_DISMISSED_PREFIX = "catalyst.syncOffer.dismissed:";
-
-export const COMPOSABLE_TYPES: ComposableArtifactType[] = ["rule", "requirement", "bug", "house-keeping"];

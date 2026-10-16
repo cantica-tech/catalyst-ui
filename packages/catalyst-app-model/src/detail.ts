@@ -1,12 +1,4 @@
-import type {
-  ChainModel,
-  ChainNode,
-  IamRole,
-  IamUser,
-  NodeDetailPayload,
-  Proposal,
-  ReferenceInfo,
-} from "catalyst-core";
+import type { ChainModel, ChainNode, IamRole, IamUser, NodeDetailPayload, ReferenceInfo } from "catalyst-core";
 
 function resolveAll(model: ChainModel, ids: Set<string> | undefined): ChainNode[] {
   if (!ids) return [];
@@ -21,17 +13,13 @@ function resolveAll(model: ChainModel, ids: Set<string> | undefined): ChainNode[
 /**
  * Builds the extension -> webview payload for one node: itself, plus what
  * it's justified by (upstream, its resolved references), what it
- * produces (downstream, whatever resolves a reference back to it), and
- * any open (non-`applied`) proposal targeting it. Returns null for an
+ * produces (downstream, whatever resolves a reference back to it).
+ * Returns null for an
  * unknown id rather than throwing — the tree and the model it's built
  * from can only ever hand back ids that exist, but a stale command
  * invocation after a corpus change is still possible.
  */
-export function buildNodeDetail(
-  model: ChainModel,
-  nodeId: string,
-  openProposalsByTarget: Map<string, Proposal[]>,
-): NodeDetailPayload | null {
+export function buildNodeDetail(model: ChainModel, nodeId: string): NodeDetailPayload | null {
   const node = model.nodes.get(nodeId);
   if (!node) return null;
 
@@ -39,7 +27,6 @@ export function buildNodeDetail(
     node,
     upstream: resolveAll(model, model.edges.get(nodeId)),
     downstream: resolveAll(model, model.reverseEdges.get(nodeId)),
-    openProposals: openProposalsByTarget.get(nodeId) ?? [],
   };
 }
 

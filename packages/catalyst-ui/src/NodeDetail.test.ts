@@ -79,7 +79,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -94,7 +93,6 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", title: "Language and runtime" }),
         upstream: [rule({ id: "rr-META-003", title: "Unique ids" })],
         downstream: [rule({ id: "env-RUNTIME-002", title: "Downstream rule" })],
-        openProposals: [],
       }),
     );
 
@@ -114,7 +112,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [step({ id: "STEP-000001", title: "Wire up the tokenizer" })],
-        openProposals: [],
       }),
     );
 
@@ -139,7 +136,6 @@ describe("NodeDetail", () => {
             title: "Parser round trip",
           }),
         ],
-        openProposals: [],
       }),
     );
 
@@ -153,45 +149,11 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", title: "x" }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
     const noneCount = html.split("None.").length - 1;
     expect(noneCount).toBe(2);
-  });
-
-  it("renders open proposals when present, and nothing when there are none", () => {
-    const withProposal = renderToStaticMarkup(
-      NodeDetail({
-        node: rule({ id: "env-RUNTIME-001", title: "x" }),
-        upstream: [],
-        downstream: [],
-        openProposals: [
-          {
-            id: "PROP-000001",
-            status: "proposed",
-            intent: "Fix it",
-            targets: ["env-RUNTIME-001"],
-            expectations: [],
-            constraints: [],
-            location: { file: "p.md", line: 1 },
-          },
-        ],
-      }),
-    );
-    expect(withProposal).toContain("PROP-000001");
-    expect(withProposal).toContain("Fix it");
-
-    const withoutProposal = renderToStaticMarkup(
-      NodeDetail({
-        node: rule({ id: "env-RUNTIME-001", title: "x" }),
-        upstream: [],
-        downstream: [],
-        openProposals: [],
-      }),
-    );
-    expect(withoutProposal).not.toContain("Open proposals");
   });
 
   it("renders a node's own description when present, for any entity kind", () => {
@@ -203,7 +165,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -216,7 +177,6 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", description: "Some text." }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
     const withoutDescription = renderToStaticMarkup(
@@ -224,7 +184,6 @@ describe("NodeDetail", () => {
         node: rule({ id: "env-RUNTIME-001", description: "" }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -242,7 +201,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -261,7 +219,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -282,7 +239,6 @@ describe("NodeDetail", () => {
         }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -296,7 +252,6 @@ describe("NodeDetail", () => {
         node: bug({ id: "BUG-000001", description: "", content: "" }),
         upstream: [],
         downstream: [],
-        openProposals: [],
       }),
     );
 
@@ -318,7 +273,6 @@ describe("NodeDetail entity references (REQ-000014)", () => {
         }),
         upstream: [target],
         downstream: [],
-        openProposals: [],
         references: {
           "env-RUNTIME-000001-Ab3xR9pQ": {
             id: "env-RUNTIME-000001-Ab3xR9pQ",

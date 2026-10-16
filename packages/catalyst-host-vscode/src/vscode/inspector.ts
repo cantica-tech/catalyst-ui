@@ -1,5 +1,5 @@
-import type { ChainModel, ChainNode, IamRole, IamUser, Proposal, RoadmapNode, Run, RunStep } from "catalyst-core";
-import { openProposalsByTarget, readEntityDefinition } from "catalyst-core";
+import type { ChainModel, ChainNode, IamRole, IamUser, RoadmapNode } from "catalyst-core";
+import { readEntityDefinition } from "catalyst-core";
 import * as vscode from "vscode";
 import {
   OPEN_BACKLOG_COMMAND,
@@ -8,9 +8,7 @@ import {
   SHOW_IAM_DETAIL_COMMAND,
 } from "../constants.js";
 import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
-import { buildProposalSection, type ProposalSection } from "../proposals.js";
 import { buildRoadmapSection, type RoadmapGroup, type RoadmapSection } from "catalyst-app-model";
-import { buildRunSection, formatRunLabel, formatStepLabel, type RunSection } from "../runmonitor.js";
 import { breadthFirst, childId, itemKey } from "catalyst-app-model";
 import {
   buildTreeSections,
@@ -27,11 +25,8 @@ export interface DeploymentView {
   folderName: string;
   projectRoot: string;
   model: ChainModel;
-  proposals: Proposal[];
-  runs: Run[];
   users: IamUser[];
   roles: IamRole[];
-  pendingTargets: Map<string, Proposal[]>;
 }
 
 export type InspectorTreeItem =
@@ -40,15 +35,9 @@ export type InspectorTreeItem =
   | { type: "rule-group"; corpusRoot: string; group: RuleGroup }
   | { type: "rule-type-section"; corpusRoot: string; section: RuleTypeSection }
   | { type: "section"; corpusRoot: string; section: TreeSection }
-  | { type: "node"; corpusRoot: string; node: ChainNode; pending: boolean }
+  | { type: "node"; corpusRoot: string; node: ChainNode }
   | { type: "roadmap-section"; corpusRoot: string; section: RoadmapSection }
   | { type: "roadmap-group"; corpusRoot: string; group: RoadmapGroup }
-  | { type: "proposal-section"; corpusRoot: string; section: ProposalSection }
-  | { type: "proposal"; corpusRoot: string; proposal: Proposal }
-  | { type: "run-section"; corpusRoot: string; section: RunSection }
-  | { type: "run"; corpusRoot: string; run: Run }
-  | { type: "run-step"; step: RunStep }
-  | { type: "run-ledger-entry"; text: string }
   | { type: "user-section"; corpusRoot: string; section: UserSection }
   | { type: "user"; corpusRoot: string; user: IamUser }
   | { type: "role-section"; corpusRoot: string; section: RoleSection }
@@ -74,9 +63,7 @@ export const SECTION_ICON_NAMES: Partial<Record<TreeSectionKind, string>> = {
 
 /**
  * Entity type (`definitions/<type>.md`, INV-23) backing each section's
- * hover tooltip. Proposals/Runs have no framework definition
- * (catalyst-ui-only conventions) and are deliberately absent here — they
- * simply get no tooltip.
+ * hover tooltip.
  */
 export const SECTION_ENTITY_TYPES: Partial<Record<TreeSectionKind, string[]>> = {
   requirement: ["requirement"],
@@ -205,8 +192,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     folderName: string,
     projectRoot: string,
     model: ChainModel,
-    proposals: Proposal[],
-    runs: Run[],
     users: IamUser[],
     roles: IamRole[],
   ): void {
@@ -215,11 +200,8 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       folderName,
       projectRoot,
       model,
-      proposals,
-      runs,
       users,
       roles,
-      pendingTargets: openProposalsByTarget(proposals),
     });
     this.changeEmitter.fire();
   }
@@ -244,16 +226,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   getFolderName(corpusRoot: string): string | undefined {
     return this.deployments.get(corpusRoot)?.folderName;
-  }
-
-  /** Every known proposal for this deployment, any status — the pool `nextProposalId` must never reuse from. */
-  getAllProposals(corpusRoot: string): Proposal[] {
-    return this.deployments.get(corpusRoot)?.proposals ?? [];
-  }
-
-  /** Target id -> open (non-`applied`) proposals against it, for this deployment — for pending badges and refusing a duplicate Quick Fix. */
-  getPendingTargets(corpusRoot: string): Map<string, Proposal[]> {
-    return this.deployments.get(corpusRoot)?.pendingTargets ?? new Map<string, Proposal[]>();
   }
 
   /** Every registered user for this deployment — for the Users section and IAM cross-referencing. */
@@ -324,37 +296,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       item.iconPath = this.iconUris("roadmap");
       return item;
     }
-    if (element.type === "proposal-section") {
-      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("proposals");
-      return item;
-    }
-    if (element.type === "proposal") {
-      const item = new vscode.TreeItem(
-        `${element.proposal.id} — ${element.proposal.intent} (${element.proposal.status})`,
-        vscode.TreeItemCollapsibleState.None,
-      );
-      item.iconPath = this.iconUris("proposals");
-      return item;
-    }
-    if (element.type === "run-section") {
-      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("runs");
-      return item;
-    }
-    if (element.type === "run") {
-      const item = new vscode.TreeItem(formatRunLabel(element.run), vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("runs");
-      return item;
-    }
-    if (element.type === "run-step") {
-      return new vscode.TreeItem(formatStepLabel(element.step), vscode.TreeItemCollapsibleState.None);
-    }
-    if (element.type === "run-ledger-entry") {
-      const item = new vscode.TreeItem(element.text, vscode.TreeItemCollapsibleState.None);
-      item.iconPath = this.iconUris("ledger");
-      return item;
-    }
     if (element.type === "user-section") {
       const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("users");
@@ -414,9 +355,8 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       return item;
     }
 
-    const pendingMark = element.pending ? "⏳ " : "";
     const item = new vscode.TreeItem(
-      `${pendingMark}${formatNodeLabel(element.node)}`,
+      formatNodeLabel(element.node),
       this.hasChildNodes(element.corpusRoot, element.node)
         ? vscode.TreeItemCollapsibleState.Collapsed
         : vscode.TreeItemCollapsibleState.None,
@@ -489,7 +429,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         type: "node" as const,
         corpusRoot,
         node: childNode,
-        pending: false,
       }));
   }
 
@@ -517,16 +456,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       type: "roadmap-section",
       corpusRoot: view.corpusRoot,
       section: buildRoadmapSection(roadmapNodes),
-    });
-    sections.push({
-      type: "proposal-section",
-      corpusRoot: view.corpusRoot,
-      section: buildProposalSection(view.proposals),
-    });
-    sections.push({
-      type: "run-section",
-      corpusRoot: view.corpusRoot,
-      section: buildRunSection(view.runs),
     });
     sections.push({
       type: "user-section",
@@ -634,21 +563,17 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       }));
     }
     if (element.type === "rule-type-section") {
-      const pendingTargets = this.getPendingTargets(element.corpusRoot);
       return element.section.nodes.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,
         node,
-        pending: pendingTargets.has(node.id),
       }));
     }
     if (element.type === "section") {
-      const pendingTargets = this.getPendingTargets(element.corpusRoot);
       return element.section.nodes.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,
         node,
-        pending: pendingTargets.has(node.id),
       }));
     }
     if (element.type === "roadmap-section") {
@@ -659,35 +584,11 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       }));
     }
     if (element.type === "roadmap-group") {
-      const pendingTargets = this.getPendingTargets(element.corpusRoot);
       return element.group.items.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,
         node,
-        pending: pendingTargets.has(node.id),
       }));
-    }
-    if (element.type === "proposal-section") {
-      return element.section.proposals.map((proposal) => ({
-        type: "proposal",
-        corpusRoot: element.corpusRoot,
-        proposal,
-      }));
-    }
-    if (element.type === "run-section") {
-      return element.section.runs.map((run) => ({
-        type: "run",
-        corpusRoot: element.corpusRoot,
-        run,
-      }));
-    }
-    if (element.type === "run") {
-      const stepItems: InspectorTreeItem[] = element.run.steps.map((step) => ({
-        type: "run-step",
-        step,
-      }));
-      const ledgerItems: InspectorTreeItem[] = element.run.ledger.map((text) => ({ type: "run-ledger-entry", text }));
-      return [...stepItems, ...ledgerItems];
     }
     if (element.type === "user-section") {
       return element.section.users.map((user) => ({
