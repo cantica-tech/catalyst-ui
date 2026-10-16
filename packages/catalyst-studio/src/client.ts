@@ -108,6 +108,29 @@ export interface EntityView {
   [field: string]: unknown;
 }
 
+/** One entity `impact` reached: how far, and the link that reached it. */
+export interface Reached {
+  id: string;
+  type: string;
+  title: string;
+  status: string | null;
+  depth: number;
+  /** `id`: the entity one step nearer; `field`: the reference field; `on`: the entity carrying it. */
+  via: { id: string; field: string; on: string };
+}
+
+/** `GET /v1/impact/<id>`: what an entity rests on and what rests on it, transitively. */
+export interface Impact {
+  id: string;
+  type: string;
+  title: string;
+  status: string | null;
+  upstream?: Reached[];
+  downstream?: Reached[];
+  mentions: string[];
+  mentioned_by: string[];
+}
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -172,6 +195,10 @@ export class StudioClient {
 
   graph(): Promise<Graph> {
     return this.get<Graph>("graph");
+  }
+
+  impact(id: string): Promise<Impact> {
+    return this.get<Impact>(`impact/${encodeURIComponent(id)}`);
   }
 
   view(id: string): Promise<EntityView> {

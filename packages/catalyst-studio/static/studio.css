@@ -269,3 +269,13 @@ caption {
 details summary {
   cursor: pointer;
 }
+
+.trace {
+  list-style: none;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border);
+}
+
+.trace > li {
+  padding: var(--space-1) 0;
+}
