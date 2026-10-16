@@ -11,6 +11,7 @@ import { Roadmap } from "./Roadmap.js";
 import { Rules } from "./Rules.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
+import { Team } from "./Team.js";
 import { TypeMap } from "./TypeMap.js";
 
 /** The browser entry: connects to catalyst, then mounts the shell into `#studio`. */
@@ -77,6 +78,11 @@ function mount(): void {
                 id: "journal",
                 label: "Journal",
                 render: () => <Journal client={client} />,
+              },
+              {
+                id: "team",
+                label: "Team",
+                render: () => <Team client={client} />,
               },
               {
                 id: "commands",

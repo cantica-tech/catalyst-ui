@@ -203,6 +203,16 @@ export interface Impact {
   mentioned_by: string[];
 }
 
+/** One registered user, as `catalyst list users --json` gives them. */
+export interface User {
+  name: string;
+  userid: string;
+  roles: string[];
+  active: boolean;
+  registered?: string;
+  notes?: string;
+}
+
 /** One part of a command with parts (`/create bug`): read on its own. */
 export interface CommandPart {
   part: string;
@@ -303,6 +313,11 @@ export class StudioClient {
 
   history(id: string): Promise<History> {
     return this.get<History>(`history/${encodeURIComponent(id)}`);
+  }
+
+  /** The registered users (`GET /v1/list?type=users`). */
+  users(): Promise<User[]> {
+    return this.get<User[]>("list?type=users");
   }
 
   /** The deployment's commands (catalyst >= 0.75.0). */

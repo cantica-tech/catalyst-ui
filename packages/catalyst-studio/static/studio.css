@@ -544,3 +544,14 @@ article input[type="text"] {
 progress {
   accent-color: var(--ok);
 }
+
+.person {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.person h3 {
+  margin-top: 0;
+}

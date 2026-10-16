@@ -16,6 +16,7 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type User,
   type GraphDomain,
   type GraphRule,
   type History,
@@ -58,3 +59,4 @@ export {
   type PlacedMap,
 } from "./TypeMap.js";
 export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTable } from "./Roadmap.js";
+export { activity, Team, TeamView, type Activity } from "./Team.js";
