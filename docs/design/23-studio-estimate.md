@@ -14,7 +14,7 @@
 > **R6.2 done (2026-10-16, UI 0.41.0, REQ-000022, rule `studio-SHELL-000001`):** `packages/catalyst-studio`: design
 > tokens, light and dark themes, an accessible shell (axe clean, every text colour at 4.5:1), a client that reads catalyst
 > only over HTTP (token from the fragment, events through `fetch`) and a live overview; the same bundle under
-> `catalyst serve --static` and, in VS Code, *Open Studio* framing its own server's page. Next: R6.7, the entity page.
+> `catalyst serve --static` and, in VS Code, _Open Studio_ framing its own server's page. Next: R6.7, the entity page.
 >
 > **R6.1 done (2026-10-16, UI repository REQ-000021):** `extension.ts` split into modules (2,256 → 931 lines); a
 > `HostPort` in `catalyst-core` with its VS Code adapter, every VS Code-bound module under `src/vscode/` (a test keeps
@@ -34,16 +34,16 @@
 
 ## 1. What exists (measured)
 
-| Area | Found in the code | Against R6 |
-|---|---|---|
-| Reading | `catalyst-core` reads through `catalyst serve --local` (`graph`, `check`, `events`, `journal`); the TS parser is gone (REQ-000020) | R6's data path is in place |
-| Engine version | the UI's own deployment is at kernel 0.56.0; `impact`, `history`, `inbox` and `--static` need 0.61.0 to 0.64.0 | a sync to 0.68.0 comes first |
-| VS Code host | `extension.ts`, 2,256 lines, 186 `vscode.` uses; four more files use `vscode` | R6.1 is still the whole split |
-| Views, VS Code | one tree (the chain inspector, five slots, its validation section as the "health board"); webview panels from `catalyst-ui`: node detail, IAM detail, journal, backlog, kernel-version header (React 18, esbuild) | the five panels are reusable; none is a dashboard, an inbox or a graph |
-| Views, Electron | a graph view and an agent window, its own state; argv launch (B-01 fixed) | a prototype; nothing shared with VS Code |
-| Module knowledge | `DevArtifactType` (bug, requirement, house-keeping, test) hard-coded: 16 uses in 6 files | R6.7 has to remove it |
-| UI-only entities | `PROP-` proposals and `RUN-` runs written by the UI, outside the journal | `09` §1's Law-1 gap is still open |
-| Tests | about 460 cases (vitest) | a base to keep green through the split |
+| Area             | Found in the code                                                                                                                                                                                                 | Against R6                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Reading          | `catalyst-core` reads through `catalyst serve --local` (`graph`, `check`, `events`, `journal`); the TS parser is gone (REQ-000020)                                                                                | R6's data path is in place                                             |
+| Engine version   | the UI's own deployment is at kernel 0.56.0; `impact`, `history`, `inbox` and `--static` need 0.61.0 to 0.64.0                                                                                                    | a sync to 0.68.0 comes first                                           |
+| VS Code host     | `extension.ts`, 2,256 lines, 186 `vscode.` uses; four more files use `vscode`                                                                                                                                     | R6.1 is still the whole split                                          |
+| Views, VS Code   | one tree (the chain inspector, five slots, its validation section as the "health board"); webview panels from `catalyst-ui`: node detail, IAM detail, journal, backlog, kernel-version header (React 18, esbuild) | the five panels are reusable; none is a dashboard, an inbox or a graph |
+| Views, Electron  | a graph view and an agent window, its own state; argv launch (B-01 fixed)                                                                                                                                         | a prototype; nothing shared with VS Code                               |
+| Module knowledge | `DevArtifactType` (bug, requirement, house-keeping, test) hard-coded: 16 uses in 6 files                                                                                                                          | R6.7 has to remove it                                                  |
+| UI-only entities | `PROP-` proposals and `RUN-` runs written by the UI, outside the journal                                                                                                                                          | `09` §1's Law-1 gap is still open                                      |
+| Tests            | about 460 cases (vitest)                                                                                                                                                                                          | a base to keep green through the split                                 |
 
 The README's "proposal loop", "composer" and "run monitor" are small: 56, 36 and 36 lines over the tree.
 
@@ -53,17 +53,17 @@ In working sessions of one developer with an agent, the unit this project has sh
 engine additions with tests and schemas, took about four sessions. UI work costs more per item: visual review,
 accessibility, two hosts.
 
-| Item | Work | Sessions |
-|---|---|---|
-| R6.0 | Sync the UI's deployment to kernel 0.68.0; its client reads the 0.61.0 to 0.64.0 routes | 1 |
-| R6.1 | Split `extension.ts` into adapters; a `HostPort` (notify, pick, input, openExternal, clipboard, trust); `@catalyst/app-model` with the selectors; `PROP-`/`RUN-` through catalyst verbs or dropped | 4–6 |
-| R6.2 | `packages/studio`: tokens, light and dark, status as icon, word and colour, keyboard and screen reader, axe in CI; the same bundle under `serve --static` and in a VS Code webview | 5–8 |
-| R6.7 | Entity page from the module's types (fields, sections, transitions, guards); `DevArtifactType` removed | 3–4 |
-| R6.5 + R6.6 | Dashboard and drift, one page: check health, unrecorded changes, open work, versions, each with its fixing verb | 2–3 |
-| R6.3 | Traceability explorer: tree first, then a graph with a layout library | 3–4 |
-| R6.4 | Inbox, read side; settling per decision 3 | 2–3 |
-| R6.8 | Command palette from `catalyst spec`; the agent console waits for R5.5 | 2 (+2–3 after R5.5) |
-| **Total** | R6.A 10–15, R6.B 12–16 | **22–31** |
+| Item        | Work                                                                                                                                                                                               | Sessions            |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| R6.0        | Sync the UI's deployment to kernel 0.68.0; its client reads the 0.61.0 to 0.64.0 routes                                                                                                            | 1                   |
+| R6.1        | Split `extension.ts` into adapters; a `HostPort` (notify, pick, input, openExternal, clipboard, trust); `@catalyst/app-model` with the selectors; `PROP-`/`RUN-` through catalyst verbs or dropped | 4–6                 |
+| R6.2        | `packages/studio`: tokens, light and dark, status as icon, word and colour, keyboard and screen reader, axe in CI; the same bundle under `serve --static` and in a VS Code webview                 | 5–8                 |
+| R6.7        | Entity page from the module's types (fields, sections, transitions, guards); `DevArtifactType` removed                                                                                             | 3–4                 |
+| R6.5 + R6.6 | Dashboard and drift, one page: check health, unrecorded changes, open work, versions, each with its fixing verb                                                                                    | 2–3                 |
+| R6.3        | Traceability explorer: tree first, then a graph with a layout library                                                                                                                              | 3–4                 |
+| R6.4        | Inbox, read side; settling per decision 3                                                                                                                                                          | 2–3                 |
+| R6.8        | Command palette from `catalyst spec`; the agent console waits for R5.5                                                                                                                             | 2 (+2–3 after R5.5) |
+| **Total**   | R6.A 10–15, R6.B 12–16                                                                                                                                                                             | **22–31**           |
 
 That is five to seven weeks at a steady pace, for R6.A and R6.B only. `06`'s "6+ weeks" for all of R6 is low: R6.C
 (eleven views) and R6.D (desktop and brand) come on top. The folder's 61 person-weeks assumed a team and a new

@@ -325,20 +325,20 @@ Each mockup should drive the creation of:
 
 **Total mockups in this roadmap: 12**
 
-| # | Name | Document | Lines | Visual Type |
-|---|------|----------|-------|------------|
-| 1 | System Architecture | 00-EXEC | 30 | ASCII diagram |
-| 2 | Dashboard | 02-FUNC | 35 | ASCII layout |
-| 3 | Traceability Tree | 03-PATTERNS | 40 | ASCII tree |
-| 4 | Dependency Graph | 03-PATTERNS | 35 | ASCII graph |
-| 5 | Judgment Inbox | 02-FUNC | 50 | ASCII feed |
-| 6 | Command Palette + Console | 02-FUNC | 60 | ASCII forms + output |
-| 7 | Drift Dashboard | 02-FUNC | 70 | ASCII alerts |
-| 8 | Journal Timeline | 02-FUNC | 55 | ASCII timeline |
-| 9 | Impact Analysis | 02-FUNC | 60 | ASCII preview |
-| 10 | Roadmap Gantt | 02-FUNC | 50 | ASCII chart |
-| 11 | Five Laws | 01-PHIL | 25 | ASCII grid |
-| 12 | Phase Comparison | 05-IMPL | 60 | ASCII table |
+| #   | Name                      | Document    | Lines | Visual Type          |
+| --- | ------------------------- | ----------- | ----- | -------------------- |
+| 1   | System Architecture       | 00-EXEC     | 30    | ASCII diagram        |
+| 2   | Dashboard                 | 02-FUNC     | 35    | ASCII layout         |
+| 3   | Traceability Tree         | 03-PATTERNS | 40    | ASCII tree           |
+| 4   | Dependency Graph          | 03-PATTERNS | 35    | ASCII graph          |
+| 5   | Judgment Inbox            | 02-FUNC     | 50    | ASCII feed           |
+| 6   | Command Palette + Console | 02-FUNC     | 60    | ASCII forms + output |
+| 7   | Drift Dashboard           | 02-FUNC     | 70    | ASCII alerts         |
+| 8   | Journal Timeline          | 02-FUNC     | 55    | ASCII timeline       |
+| 9   | Impact Analysis           | 02-FUNC     | 60    | ASCII preview        |
+| 10  | Roadmap Gantt             | 02-FUNC     | 50    | ASCII chart          |
+| 11  | Five Laws                 | 01-PHIL     | 25    | ASCII grid           |
+| 12  | Phase Comparison          | 05-IMPL     | 60    | ASCII table          |
 
 **Total lines of mockups: ~575**
 

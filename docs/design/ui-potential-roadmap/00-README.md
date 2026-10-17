@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-08  
 **Scope:** Innovative UI design beyond entity display  
-**Philosophy:** Make "persistent, verifiable project memory" *visible* and *delightful*
+**Philosophy:** Make "persistent, verifiable project memory" _visible_ and _delightful_
 
 ---
 
@@ -15,29 +15,29 @@ This exploration reimagines **Catalyst Studio** (the UI) as a **source of truth 
 - **Discover drift** in real-time with visual feedback (not just CLI errors)
 - **Collaborate** with agents and humans in the same interface (blurred lines)
 - **Measure impact** of decisions and changes across the entire system
-- **Understand *why* catalyst matters** without reading 30 pages of documentation
+- **Understand _why_ catalyst matters** without reading 30 pages of documentation
 
 ---
 
 ## Core Insight: Catalyst is About **Context**
 
-Unlike GitHub (repositories), Linear (tasks), or Notion (documents), **catalyst** is fundamentally about *preserving the reasoning* behind decisions. The UI should make this obvious in every interaction.
+Unlike GitHub (repositories), Linear (tasks), or Notion (documents), **catalyst** is fundamentally about _preserving the reasoning_ behind decisions. The UI should make this obvious in every interaction.
 
 **Today:** Users see lists of entities and must mentally construct the chain.  
-**Goal:** The chain is the UI, and entities are explored *through* it.
+**Goal:** The chain is the UI, and entities are explored _through_ it.
 
 ---
 
 ## The Roadmap Structure
 
-| File | Scope | Highlights |
-|---|---|---|
-| **01-ui-philosophy.md** | Core design principles | 5 laws for catalyst UI; why "context is king" |
-| **02-innovative-functionalities.md** | Beyond entity display | 15+ features: dependency graphs, impact analysis, time travel, drift detection, collaboration blurs |
-| **03-visualization-patterns.md** | How to render the Record | Tree, graph, timeline, board, inbox, diff, audit trail — each revealing a different dimension |
-| **04-modern-reference-analysis.md** | What others are doing | Studying GitHub, Linear, Figma, Notion, Loom, VS Code, Miro — what works and why |
-| **05-interactive-experiences.md** | Delight and discovery | Animations, gestures, shortcuts, easter eggs that make catalyst *fun* |
-| **06-implementation-roadmap.md** | How to build it | Phased plan: MVP (P0), richer (P1), advanced (P2) over R5–R7 |
+| File                                 | Scope                    | Highlights                                                                                          |
+| ------------------------------------ | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| **01-ui-philosophy.md**              | Core design principles   | 5 laws for catalyst UI; why "context is king"                                                       |
+| **02-innovative-functionalities.md** | Beyond entity display    | 15+ features: dependency graphs, impact analysis, time travel, drift detection, collaboration blurs |
+| **03-visualization-patterns.md**     | How to render the Record | Tree, graph, timeline, board, inbox, diff, audit trail — each revealing a different dimension       |
+| **04-modern-reference-analysis.md**  | What others are doing    | Studying GitHub, Linear, Figma, Notion, Loom, VS Code, Miro — what works and why                    |
+| **05-interactive-experiences.md**    | Delight and discovery    | Animations, gestures, shortcuts, easter eggs that make catalyst _fun_                               |
+| **06-implementation-roadmap.md**     | How to build it          | Phased plan: MVP (P0), richer (P1), advanced (P2) over R5–R7                                        |
 
 ---
 
@@ -47,7 +47,7 @@ Unlike GitHub (repositories), Linear (tasks), or Notion (documents), **catalyst*
    Every entity entry point should ask "why?" — show the chain up and down the tree before showing properties.
 
 2. **Law 2: Causality is visual**  
-   Dependencies, imports, and causality should be graphical (not text lists). Make the *shape* of the system obvious.
+   Dependencies, imports, and causality should be graphical (not text lists). Make the _shape_ of the system obvious.
 
 3. **Law 3: Context compounds**  
    Layers of detail reveal progressively (zoom in, expand, drill down). Start with the high-level story.
@@ -56,7 +56,7 @@ Unlike GitHub (repositories), Linear (tasks), or Notion (documents), **catalyst*
    Health status, rule violations, stale references, unjournaled changes — not hidden in a panel, but woven into every view.
 
 5. **Law 5: Decisions are first-class**  
-   ADRs, owner decisions, rules, and constraints are *not* documentation — they're active players in the UI, not footnotes.
+   ADRs, owner decisions, rules, and constraints are _not_ documentation — they're active players in the UI, not footnotes.
 
 ---
 
@@ -94,9 +94,9 @@ The UI should make it instantly clear: **"This isn't a task tracker or document 
 
 When a user opens Catalyst Studio for the first time:
 
-1. They see a visual *map* of the project (not a spreadsheet)
+1. They see a visual _map_ of the project (not a spreadsheet)
 2. They pick a rule or requirement and follow the chain in any direction
-3. They see a real-time *impact* visualization if they changed something
+3. They see a real-time _impact_ visualization if they changed something
 4. They understand: "Oh, I can trust this because everything is traced and journaled."
 
 ---
@@ -138,6 +138,6 @@ When a user opens Catalyst Studio for the first time:
 
 ## Philosophy Summary
 
-**Catalyst Studio is not another task tracker. It's the visual interface to *verifiable project memory.*  Every decision, every constraint, every rule is visible, traced, and *justified* — not just stored.**
+**Catalyst Studio is not another task tracker. It's the visual interface to _verifiable project memory._ Every decision, every constraint, every rule is visible, traced, and _justified_ — not just stored.**
 
-The UI should make this so clear that new users say: *"I didn't know projects could have memory like this."*
+The UI should make this so clear that new users say: _"I didn't know projects could have memory like this."_

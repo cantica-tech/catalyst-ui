@@ -17,7 +17,7 @@
 
 **Users ask:** "Where am I in this system? How do all these pieces relate? Why does this rule exist?"
 
-**Result:** The product's unique value — *verifiable project memory* — is invisible.
+**Result:** The product's unique value — _verifiable project memory_ — is invisible.
 
 ---
 
@@ -25,10 +25,10 @@
 
 Catalyst isn't a task tracker, document manager, or even a governance tool. It's a **memory system** that answers:
 
-- *Why* does this rule exist?
-- *What* depends on this decision?
-- *Who* approved this change and when?
-- *How* is the system drifting from its declared state?
+- _Why_ does this rule exist?
+- _What_ depends on this decision?
+- _Who_ approved this change and when?
+- _How_ is the system drifting from its declared state?
 
 **The UI should make this obvious in every interaction.** The traceability chain (rule → feature → requirement → step → test → code → journal) is the UI, not something you drill down to find.
 
@@ -123,7 +123,7 @@ Health status, violations, and inconsistencies shouldn't be hidden in a diagnost
 - Flowing in like notifications (Inbox pattern from Linear/GitHub)
 - Actionable with one click (propose fix, acknowledge, defer)
 
-**Example:** A rule that no longer constrains any work should appear *faded* across the entire system, not just in a "stale entities" report.
+**Example:** A rule that no longer constrains any work should appear _faded_ across the entire system, not just in a "stale entities" report.
 
 ### Law 5: Decisions are First-Class
 
@@ -175,7 +175,7 @@ Result: **"Oh, I can trust this because everything is traced and journaled. I ca
 ### Principle 1: Show, Don't Tell
 
 - Use visual indicators (color, position, size, animation) before text labels
-- Let users *see* the shape of the system, not read a description
+- Let users _see_ the shape of the system, not read a description
 
 ### Principle 2: Reduce Cognitive Load
 
@@ -191,13 +191,13 @@ Result: **"Oh, I can trust this because everything is traced and journaled. I ca
 
 ### Principle 4: Respect the Traceability Chain
 
-- Every edit, creation, or state change is recorded with *why*
+- Every edit, creation, or state change is recorded with _why_
 - Never let an entity exist without knowing its origin
 - "Unjournaled changes" are a first-class alert, not an afterthought
 
 ### Principle 5: Make Drift Visible by Default
 
-- Rule violations and inconsistencies should appear *in the views users care about*, not hidden in a separate panel
+- Rule violations and inconsistencies should appear _in the views users care about_, not hidden in a separate panel
 - Use color, badges, and highlights; never bury warnings
 - "Orphaned" entities (nothing depends on them) should fade visually
 
@@ -211,35 +211,35 @@ Result: **"Oh, I can trust this because everything is traced and journaled. I ca
 
 ## Design Goals (Measurable)
 
-| Goal | Target | How to measure |
-|---|---|---|
-| **Time to understanding** | <1 min for new users | Onboarding flow + user testing |
-| **Clicks to take action** | ≤3 clicks for 90% of workflows | Telemetry + usability testing |
-| **Token cost reduction** | CLI ≤ 3k tokens vs. 72k today | Token meter in UI + measurements |
-| **Drift visibility** | 100% of violations visible in main views | Coverage audit (every view includes drift) |
-| **Traceability completeness** | Every entity shows its chain on first load | Data completeness audit |
-| **Module portability** | Second module works with zero UI changes | Implement a test module (e.g., legal-review) |
+| Goal                          | Target                                     | How to measure                               |
+| ----------------------------- | ------------------------------------------ | -------------------------------------------- |
+| **Time to understanding**     | <1 min for new users                       | Onboarding flow + user testing               |
+| **Clicks to take action**     | ≤3 clicks for 90% of workflows             | Telemetry + usability testing                |
+| **Token cost reduction**      | CLI ≤ 3k tokens vs. 72k today              | Token meter in UI + measurements             |
+| **Drift visibility**          | 100% of violations visible in main views   | Coverage audit (every view includes drift)   |
+| **Traceability completeness** | Every entity shows its chain on first load | Data completeness audit                      |
+| **Module portability**        | Second module works with zero UI changes   | Implement a test module (e.g., legal-review) |
 
 ---
 
 ## What Changes from Today
 
-| Aspect | Today | After These Laws |
-|---|---|---|
-| **Entity view** | Text list of properties | Visual graph with context chain |
-| **Navigation** | "See related items" list | Highlighted cascade of dependencies |
-| **Error handling** | Problems panel with ID codes | Drift alerts in-context with one-click fixes |
-| **Judgment requests** | Agent prompt ("approve this?") | UI pre-assembles brief + human clicks button |
-| **Module data** | Hard-coded fields (SE module only) | Schema-driven (works for any module) |
-| **Agent integration** | Fire-and-forget chat injection | Structured dispatch with run history + cost meter |
-| **Onboarding** | 30-minute read of BOOTSTRAP | 3-minute dashboard + interactive walkthrough |
+| Aspect                | Today                              | After These Laws                                  |
+| --------------------- | ---------------------------------- | ------------------------------------------------- |
+| **Entity view**       | Text list of properties            | Visual graph with context chain                   |
+| **Navigation**        | "See related items" list           | Highlighted cascade of dependencies               |
+| **Error handling**    | Problems panel with ID codes       | Drift alerts in-context with one-click fixes      |
+| **Judgment requests** | Agent prompt ("approve this?")     | UI pre-assembles brief + human clicks button      |
+| **Module data**       | Hard-coded fields (SE module only) | Schema-driven (works for any module)              |
+| **Agent integration** | Fire-and-forget chat injection     | Structured dispatch with run history + cost meter |
+| **Onboarding**        | 30-minute read of BOOTSTRAP        | 3-minute dashboard + interactive walkthrough      |
 
 ---
 
 ## Summary
 
 **Catalyst Studio is not another task tracker or document manager.**  
-It's the visual interface to *verifiable project memory.*
+It's the visual interface to _verifiable project memory._
 
 Every decision, constraint, and rule is visible, traced, and justified.  
 Users don't ask "what do I do?"—the UI makes it obvious.  

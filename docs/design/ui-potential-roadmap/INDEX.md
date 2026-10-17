@@ -54,15 +54,15 @@
 
 ## Document Breakdown
 
-| # | Title | Audience | Length | Key Content |
-|---|-------|----------|--------|------------|
-| **00-EXECUTIVE-SUMMARY** | One-page brief | C-level, Product | 272 lines | Vision, 5 laws, 16 features, 3 phases, success metrics |
-| **00-README** | Navigation guide | All | 136 lines | How to use this roadmap, document structure |
-| **01-ui-philosophy** | Design principles | Designers, PM | 204 lines | 5 laws, design principles, goals, "aha" moment |
-| **02-innovative-functionalities** | Feature specs | PM, Engineers | 373 lines | 16 features grouped by category (Discovery/Action/Visualization/Collaboration/Learning) |
-| **03-visualization-patterns** | UI patterns | Designers, UX | 473 lines | 7 core patterns with mockups, use cases, inspiration sources |
-| **04-modern-reference-analysis** | Competitive intel | Designers, Strategy | 358 lines | 8 products analyzed, synthesized principles, Catalyst adaptations |
-| **05-implementation-roadmap** | Execution plan | Tech Lead, PM | 271 lines | 3 phases, effort estimates, resources, risks, success criteria, milestones |
+| #                                 | Title             | Audience            | Length    | Key Content                                                                             |
+| --------------------------------- | ----------------- | ------------------- | --------- | --------------------------------------------------------------------------------------- |
+| **00-EXECUTIVE-SUMMARY**          | One-page brief    | C-level, Product    | 272 lines | Vision, 5 laws, 16 features, 3 phases, success metrics                                  |
+| **00-README**                     | Navigation guide  | All                 | 136 lines | How to use this roadmap, document structure                                             |
+| **01-ui-philosophy**              | Design principles | Designers, PM       | 204 lines | 5 laws, design principles, goals, "aha" moment                                          |
+| **02-innovative-functionalities** | Feature specs     | PM, Engineers       | 373 lines | 16 features grouped by category (Discovery/Action/Visualization/Collaboration/Learning) |
+| **03-visualization-patterns**     | UI patterns       | Designers, UX       | 473 lines | 7 core patterns with mockups, use cases, inspiration sources                            |
+| **04-modern-reference-analysis**  | Competitive intel | Designers, Strategy | 358 lines | 8 products analyzed, synthesized principles, Catalyst adaptations                       |
+| **05-implementation-roadmap**     | Execution plan    | Tech Lead, PM       | 271 lines | 3 phases, effort estimates, resources, risks, success criteria, milestones              |
 
 **Total:** ~2,087 lines, ~56,000 words
 
@@ -87,25 +87,13 @@
 3. Traceability Explorer — bi-directional chain
 4. Drift Dashboard — centralized health monitor
 
-**Action (3):**
-5. Judgment Inbox — decision requests
-6. Command Palette + Agent Console — search + dispatch + run history
-7. Batch Operations — multi-select bulk work
+**Action (3):** 5. Judgment Inbox — decision requests 6. Command Palette + Agent Console — search + dispatch + run history 7. Batch Operations — multi-select bulk work
 
-**Visualization (3):**
-8. Journal Timeline + Diff — rich change history
-9. Impact Analysis — red cascades of affected items
-10. Roadmap Timeline — Gantt view with dependencies
+**Visualization (3):** 8. Journal Timeline + Diff — rich change history 9. Impact Analysis — red cascades of affected items 10. Roadmap Timeline — Gantt view with dependencies
 
-**Collaboration (3):**
-11. Approval Workflows — gate definition + multi-reviewer sign-off
-12. Entity Change History & Rollback — time-travel for any entity
-13. Team Visibility — activity feed
+**Collaboration (3):** 11. Approval Workflows — gate definition + multi-reviewer sign-off 12. Entity Change History & Rollback — time-travel for any entity 13. Team Visibility — activity feed
 
-**Learning (3):**
-14. Rule Browser — searchable gallery
-15. Analysis & Findings Dashboard — triage and propose fixes
-16. Module Administration — install, upgrade, remove
+**Learning (3):** 14. Rule Browser — searchable gallery 15. Analysis & Findings Dashboard — triage and propose fixes 16. Module Administration — install, upgrade, remove
 
 ---
 
@@ -123,11 +111,11 @@
 
 ## Three Implementation Phases
 
-| Phase | Name | Timeline | Focus | Go-live |
-|-------|------|----------|-------|---------|
-| P0 | MVP | R5 (Q1–Q2 2027) | Core: Dashboard, Explorer, Inbox, Drift | Browser + VS Code + Desktop |
-| P1 | Polish | R6 (Q2–Q3 2027) | All 16 features + multiple views | Module portability proven |
-| P2 | Advanced | R7 (Q3–Q4 2027) | Cost telemetry, analysis, sandbox, embeds | Compliance audit ready |
+| Phase | Name     | Timeline        | Focus                                     | Go-live                     |
+| ----- | -------- | --------------- | ----------------------------------------- | --------------------------- |
+| P0    | MVP      | R5 (Q1–Q2 2027) | Core: Dashboard, Explorer, Inbox, Drift   | Browser + VS Code + Desktop |
+| P1    | Polish   | R6 (Q2–Q3 2027) | All 16 features + multiple views          | Module portability proven   |
+| P2    | Advanced | R7 (Q3–Q4 2027) | Cost telemetry, analysis, sandbox, embeds | Compliance audit ready      |
 
 **Key Milestones:**
 

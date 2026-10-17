@@ -97,7 +97,7 @@
 - **Click behavior:** Highlight paths (e.g., click Rule → trace all features it constrains), jump to browser filtered by type
 
 **UX Pattern:** Figma's design system panel, Miro's asset browser, Obsidian's graph view  
-**Why:** Users grasp the system's *structure* before diving into instances.
+**Why:** Users grasp the system's _structure_ before diving into instances.
 
 ---
 
@@ -544,7 +544,7 @@ After clicking RUN:
   - [ ] 1 ADR conflicts with this
 - **Visual:** Entities affected light up in red across all open views
 - **Drill-down:** Click each category to see which specific items break
-- **Simulation mode:** Make the change *locally* and see the impact before committing
+- **Simulation mode:** Make the change _locally_ and see the impact before committing
 - **Approve:** Once verified, click "Approve" and the system journals the change with impact notes
 
 **UX Pattern:** Figma's constraint solver and layout warnings, Excel's formula dependencies, Terraform's plan output  
@@ -783,24 +783,24 @@ After clicking RUN:
 
 ## Summary Table
 
-| # | Feature | Category | Impact | Effort |
-|---|---------|----------|--------|--------|
-| 1 | Dashboard | Discovery | High | Medium |
-| 2 | Studio Map | Discovery | High | Medium |
-| 3 | Traceability Explorer | Discovery | Critical | High |
-| 4 | Drift Dashboard | Discovery | Critical | Medium |
-| 5 | Judgment Inbox | Action | Critical | Medium |
-| 6 | Command Palette + Console | Action | High | Medium |
-| 7 | Batch Operations | Action | Medium | Low |
-| 8 | Journal Timeline + Diff | Visualization | High | High |
-| 9 | Impact Analysis | Visualization | Critical | High |
-| 10 | Roadmap Timeline | Visualization | Medium | High |
-| 11 | Approval Workflows | Collaboration | High | Medium |
-| 12 | Change History & Rollback | Collaboration | Medium | Low |
-| 13 | Rule Browser | Learning | High | Low |
-| 14 | Analysis & Findings | Learning | High | Medium |
-| 15 | Module Administration | Learning | Medium | Low |
-| 16 | Team Visibility | Collaboration | Medium | Medium |
+| #   | Feature                   | Category      | Impact   | Effort |
+| --- | ------------------------- | ------------- | -------- | ------ |
+| 1   | Dashboard                 | Discovery     | High     | Medium |
+| 2   | Studio Map                | Discovery     | High     | Medium |
+| 3   | Traceability Explorer     | Discovery     | Critical | High   |
+| 4   | Drift Dashboard           | Discovery     | Critical | Medium |
+| 5   | Judgment Inbox            | Action        | Critical | Medium |
+| 6   | Command Palette + Console | Action        | High     | Medium |
+| 7   | Batch Operations          | Action        | Medium   | Low    |
+| 8   | Journal Timeline + Diff   | Visualization | High     | High   |
+| 9   | Impact Analysis           | Visualization | Critical | High   |
+| 10  | Roadmap Timeline          | Visualization | Medium   | High   |
+| 11  | Approval Workflows        | Collaboration | High     | Medium |
+| 12  | Change History & Rollback | Collaboration | Medium   | Low    |
+| 13  | Rule Browser              | Learning      | High     | Low    |
+| 14  | Analysis & Findings       | Learning      | High     | Medium |
+| 15  | Module Administration     | Learning      | Medium   | Low    |
+| 16  | Team Visibility           | Collaboration | Medium   | Medium |
 
 ---
 
@@ -808,6 +808,6 @@ After clicking RUN:
 
 **Phase P0 (MVP, R5):** Dashboard, Inbox, Traceability Explorer, Drift Dashboard  
 **Phase P1 (Polish, R6):** Journal Timeline, Command Palette, Approval Workflows, Rule Browser  
-**Phase P2 (Advanced, R7):** Impact Analysis, Roadmap Timeline, Analysis Findings, Module Admin  
+**Phase P2 (Advanced, R7):** Impact Analysis, Roadmap Timeline, Analysis Findings, Module Admin
 
 Each builds on the philosophy (01) and visualizations (03).

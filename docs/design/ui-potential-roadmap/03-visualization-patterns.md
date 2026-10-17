@@ -8,7 +8,7 @@
 
 ## The Challenge
 
-Catalyst's unique value is *traceability*: every rule, requirement, step, and piece of code is connected by a causal chain (why it exists, what depends on it). But today's UI shows lists. Lists hide the chain.
+Catalyst's unique value is _traceability_: every rule, requirement, step, and piece of code is connected by a causal chain (why it exists, what depends on it). But today's UI shows lists. Lists hide the chain.
 
 **This section:** Visual patterns that make causality the primary interface, not something you drill down to find.
 
@@ -112,7 +112,7 @@ Rule: "All API endpoints must have rate limiting"
 
 ### Use Case
 
-Seeing the *shape* of the system: tight clusters, loose coupling, bottlenecks, dependencies at a glance.
+Seeing the _shape_ of the system: tight clusters, loose coupling, bottlenecks, dependencies at a glance.
 
 ### How It Works
 
@@ -175,12 +175,12 @@ Visual layout (force-directed or hierarchical):
   - Color = status (green passing, red failing, yellow in progress, gray orphaned)
   - Shape = entity type (octagon for rules, rectangle for requirements, diamond for steps, circle for tests)
   - Icon = domain (API, security, testing, etc.)
-  
+
 - **Edge styling:**
   - Solid line = "constrains" / "depends on"
   - Dashed line = "suggested" / "optional"
   - Color = relationship type (blue for "requires," red for "conflicts with," green for "validates")
-  
+
 - **Interaction:**
   - Hover node → highlights all incoming/outgoing edges (cascade)
   - Click node → open detail panel (doesn't leave the graph)
@@ -188,7 +188,7 @@ Visual layout (force-directed or hierarchical):
   - Drag to pan, scroll to zoom
   - Click "expand all" or collapse to fold large subgraphs
   - Filter nodes by type, domain, status (checkbox panel on the left)
-  
+
 - **Layout modes:**
   - Hierarchical (left-to-right by layer: decisions → rules → requirements → steps → tests → code)
   - Force-directed (organic, shows clusters and tight coupling)
@@ -548,15 +548,15 @@ Entity: REQ-42 "API must handle 10k RPS"
 
 ## Summary: Which Pattern to Use When
 
-| Situation | Pattern | Why |
-|-----------|---------|-----|
-| "Why does this exist?" | Traceability Tree | Shows the causal chain directly |
-| "What's the system structure?" | Dependency Graph | Reveals clusters, coupling, bottlenecks |
-| "Are we on track?" | Timeline/Gantt | Shows progress and blocking dependencies |
-| "What's in progress right now?" | Board/Kanban | Shows state transitions and WIP |
-| "What needs my attention?" | Inbox/Feed | Highlights decisions and alerts |
-| "What exactly changed?" | Diff/Comparison | Side-by-side before/after |
-| "Who did what and when?" | Audit Trail | Full forensic record |
+| Situation                       | Pattern           | Why                                      |
+| ------------------------------- | ----------------- | ---------------------------------------- |
+| "Why does this exist?"          | Traceability Tree | Shows the causal chain directly          |
+| "What's the system structure?"  | Dependency Graph  | Reveals clusters, coupling, bottlenecks  |
+| "Are we on track?"              | Timeline/Gantt    | Shows progress and blocking dependencies |
+| "What's in progress right now?" | Board/Kanban      | Shows state transitions and WIP          |
+| "What needs my attention?"      | Inbox/Feed        | Highlights decisions and alerts          |
+| "What exactly changed?"         | Diff/Comparison   | Side-by-side before/after                |
+| "Who did what and when?"        | Audit Trail       | Full forensic record                     |
 
 ## Next Steps
 

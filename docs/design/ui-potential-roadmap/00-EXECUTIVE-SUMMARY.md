@@ -8,7 +8,7 @@
 
 ## The Opportunity
 
-Catalyst is unique: it's the only tool that gives projects *verifiable memory* — a complete, traced, journaled record of why the system is the way it is. But today's UI doesn't make this obvious.
+Catalyst is unique: it's the only tool that gives projects _verifiable memory_ — a complete, traced, journaled record of why the system is the way it is. But today's UI doesn't make this obvious.
 
 **Current catalyst-ui:** A VS Code extension (2,567-line file) + 5 basic React views. Users see lists and properties, not traceability.
 
@@ -157,12 +157,12 @@ These are the rules that guide every UI decision through R5–R7:
 
 **Deliverable:** One engine, three shells (browser, VS Code, desktop), four core features.
 
-| Feature | Solves |
-|---------|--------|
-| **Dashboard** | "Where am I?" — health, open work, alerts at a glance |
-| **Traceability Explorer** | "Why does this exist?" — show the causal chain |
-| **Judgment Inbox** | "What needs me?" — proposals, approvals, drift alerts |
-| **Drift Dashboard** | "Are we consistent?" — violations and unjournaled changes |
+| Feature                   | Solves                                                    |
+| ------------------------- | --------------------------------------------------------- |
+| **Dashboard**             | "Where am I?" — health, open work, alerts at a glance     |
+| **Traceability Explorer** | "Why does this exist?" — show the causal chain            |
+| **Judgment Inbox**        | "What needs me?" — proposals, approvals, drift alerts     |
+| **Drift Dashboard**       | "Are we consistent?" — violations and unjournaled changes |
 
 **Success:** Portability proven (same bundle in 3 shells), module-agnostic rendering, 50% token reduction.
 
@@ -195,25 +195,13 @@ Beyond the current 5 React views, Catalyst Studio adds 16 capabilities:
 3. Traceability Explorer — bi-directional dependency chain
 4. Drift Dashboard — centralized health monitor
 
-**Action (3):**
-5. Judgment Inbox — decision requests with previewed evidence
-6. Command Palette + Agent Console — search + dispatch + run history + token meter
-7. Batch Operations — multi-select for bulk work
+**Action (3):** 5. Judgment Inbox — decision requests with previewed evidence 6. Command Palette + Agent Console — search + dispatch + run history + token meter 7. Batch Operations — multi-select for bulk work
 
-**Visualization (3):**
-8. Journal Timeline + Diff — rich change history with side-by-side comparisons
-9. Impact Analysis — change a field, see red cascade of affected items
-10. Roadmap Timeline — Gantt view with milestones and dependencies
+**Visualization (3):** 8. Journal Timeline + Diff — rich change history with side-by-side comparisons 9. Impact Analysis — change a field, see red cascade of affected items 10. Roadmap Timeline — Gantt view with milestones and dependencies
 
-**Collaboration (3):**
-11. Approval Workflows — gate definition + multi-reviewer sign-off
-12. Entity Change History & Rollback — time-travel for any entity
-13. (Team Visibility — activity feed showing who's doing what)
+**Collaboration (3):** 11. Approval Workflows — gate definition + multi-reviewer sign-off 12. Entity Change History & Rollback — time-travel for any entity 13. (Team Visibility — activity feed showing who's doing what)
 
-**Learning (3):**
-14. Rule Browser — searchable gallery of all rules with lineage
-15. Analysis & Findings Dashboard — triage and propose fixes for defects
-16. Module Administration — install, upgrade, remove modules with impact analysis
+**Learning (3):** 14. Rule Browser — searchable gallery of all rules with lineage 15. Analysis & Findings Dashboard — triage and propose fixes for defects 16. Module Administration — install, upgrade, remove modules with impact analysis
 
 ---
 
@@ -331,15 +319,15 @@ Catalyst Studio SPA (React + design system)
 
 After R7, Catalyst Studio will be:
 
-| Aspect | Today | After R7 |
-|--------|-------|----------|
-| **Value proposition** | Hidden (users see lists) | Obvious (traceability is visible) |
-| **Time to competence** | 30+ min (docs) | <3 min (dashboard) |
-| **Platform** | VS Code only | Browser + VS Code + desktop |
-| **Module flexibility** | Hard-coded SE module only | Any module, zero code changes |
-| **Token cost** | 72k per session | ≤25k (50% reduction) |
-| **Collaboration** | Async threads | Inbox + approval gates + audit trail |
-| **Visibility** | List views | 7 visualization patterns + impact analysis |
+| Aspect                 | Today                     | After R7                                   |
+| ---------------------- | ------------------------- | ------------------------------------------ |
+| **Value proposition**  | Hidden (users see lists)  | Obvious (traceability is visible)          |
+| **Time to competence** | 30+ min (docs)            | <3 min (dashboard)                         |
+| **Platform**           | VS Code only              | Browser + VS Code + desktop                |
+| **Module flexibility** | Hard-coded SE module only | Any module, zero code changes              |
+| **Token cost**         | 72k per session           | ≤25k (50% reduction)                       |
+| **Collaboration**      | Async threads             | Inbox + approval gates + audit trail       |
+| **Visibility**         | List views                | 7 visualization patterns + impact analysis |
 
 ---
 
@@ -368,9 +356,9 @@ After R7, Catalyst Studio will be:
 
 **Catalyst's tagline is "persistent, verifiable project memory."**
 
-After R7, that tagline should be *visible* in every screen, every interaction, and every decision.
+After R7, that tagline should be _visible_ in every screen, every interaction, and every decision.
 
-Users shouldn't need to read it; they should *see* it:
+Users shouldn't need to read it; they should _see_ it:
 
 - The chain shows persistence (nothing is forgotten)
 - The journal shows verification (every change is recorded and attributed)

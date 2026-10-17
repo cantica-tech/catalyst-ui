@@ -24,13 +24,13 @@ For each product below, I examined:
 
 ### Core Value
 
-Distributed version control with a trace of *who changed what and why* (commits, code review, blame).
+Distributed version control with a trace of _who changed what and why_ (commits, code review, blame).
 
 ### Key Patterns We Can Steal
 
 **1.1 Branch Protection + Approval Gates**
 
-- A rule (e.g., "main requires 2 approvals before merge") is *enforceable* and visible
+- A rule (e.g., "main requires 2 approvals before merge") is _enforceable_ and visible
 - Users see the gate upfront; proposals are rejected at the gate, not silently
 - Lesson: **Catalyst should enforce approval gates visibly.** If a rule change needs 2 approvals, the UI should show the gate and require approvers. (See 02-functionalities, feature #11.)
 
@@ -43,13 +43,13 @@ Distributed version control with a trace of *who changed what and why* (commits,
 **1.3 Blame View**
 
 - Hover any line → see who wrote it, when, and the commit message (why)
-- The *reason* is always one click away
+- The _reason_ is always one click away
 - Lesson: **Catalyst should support "blame" or "lineage" on any field.** Click a rule's status → see who changed it, when, why (from the journal entry reason).
 
 **1.4 PR Review Flow**
 
 - Propose a change → reviewers see a diff → they comment on specific lines → conversation lives in one place → approval gates the merge
-- The *decision process* is captured, not just the final decision
+- The _decision process_ is captured, not just the final decision
 - Lesson: **Catalyst's approval workflows should capture the full decision thread.** Comments, approvals, requests for changes—all journaled together.
 
 **1.5 Notifications & Inbox**
@@ -374,17 +374,17 @@ Notes are connected through links and backlinks; the graph is the primary interf
 
 Across all these products, a few themes emerge:
 
-| Principle | Products | Application to Catalyst |
-|-----------|----------|------------------------|
-| **Show, don't tell** | GitHub (blame), Figma (properties), VS Code (outline) | Display inline lineage, impact cascades, related entities |
-| **Progressive disclosure** | VS Code (breadcrumb → outline → file → line), Figma (select → info panel → properties) | Start with dashboard; drill to detail; show complexity on demand |
-| **Multiple views** | Notion (table/board/timeline/graph), Figma (layers/inspect), GitHub (PR/commit/blame) | Same data: traceability tree view, graph view, timeline, diff view |
-| **Relationships are explicit** | Notion (relation fields), Obsidian (backlinks), Figma (component variants) | Rules and work are linked; make links bidirectional and visible |
-| **Decision threads** | GitHub (PR review), Linear (comments), Figma (comment pins) | Every decision lives in one thread with full context |
-| **Real-time presence** | Figma (multiplayer cursors), Linear (comments) | Show who's editing what, stream approvals and changes |
-| **Async collaboration** | Miro (comments/reactions), Linear (inbox), GitHub (PR discussions) | Don't require real-time; support comment threads, reactions, "snooze" |
-| **Search & discovery** | VS Code (command palette), Linear (filters), Obsidian (graph search) | Command palette + fuzzy search + graph navigation |
-| **Undo/history** | Figma (version history), Notion (version history), GitHub (commits) | Full journaling with revert; time-travel is always available |
+| Principle                      | Products                                                                               | Application to Catalyst                                               |
+| ------------------------------ | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **Show, don't tell**           | GitHub (blame), Figma (properties), VS Code (outline)                                  | Display inline lineage, impact cascades, related entities             |
+| **Progressive disclosure**     | VS Code (breadcrumb → outline → file → line), Figma (select → info panel → properties) | Start with dashboard; drill to detail; show complexity on demand      |
+| **Multiple views**             | Notion (table/board/timeline/graph), Figma (layers/inspect), GitHub (PR/commit/blame)  | Same data: traceability tree view, graph view, timeline, diff view    |
+| **Relationships are explicit** | Notion (relation fields), Obsidian (backlinks), Figma (component variants)             | Rules and work are linked; make links bidirectional and visible       |
+| **Decision threads**           | GitHub (PR review), Linear (comments), Figma (comment pins)                            | Every decision lives in one thread with full context                  |
+| **Real-time presence**         | Figma (multiplayer cursors), Linear (comments)                                         | Show who's editing what, stream approvals and changes                 |
+| **Async collaboration**        | Miro (comments/reactions), Linear (inbox), GitHub (PR discussions)                     | Don't require real-time; support comment threads, reactions, "snooze" |
+| **Search & discovery**         | VS Code (command palette), Linear (filters), Obsidian (graph search)                   | Command palette + fuzzy search + graph navigation                     |
+| **Undo/history**               | Figma (version history), Notion (version history), GitHub (commits)                    | Full journaling with revert; time-travel is always available          |
 
 ---
 
@@ -407,4 +407,4 @@ Each of these is described in detail in [02-innovative-functionalities.md](02-in
 
 ## Next Steps
 
-These patterns are the *reference*. The next document (05-interactive-experiences.md) shows *how* to make them delightful and memorable for Catalyst-specific workflows.
+These patterns are the _reference_. The next document (05-interactive-experiences.md) shows _how_ to make them delightful and memorable for Catalyst-specific workflows.
