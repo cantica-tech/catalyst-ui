@@ -94,7 +94,8 @@ export function activate(context: vscode.ExtensionContext): void {
     panels.forEach((panel, index) => {
       const root = roots[index];
       panel.provider.corpusRoot = root;
-      panel.view.description = root ? targets.get(root)?.name : undefined;
+      const name = root ? targets.get(root)?.name : undefined;
+      panel.view.title = name ? `${name} (chain inspector)` : "Chain Inspector";
       void vscode.commands.executeCommand("setContext", `catalyst.inspectorSlot${index}`, index === 0 || !!root);
     });
     if (roots.length > panels.length && !warnedTooMany) {
