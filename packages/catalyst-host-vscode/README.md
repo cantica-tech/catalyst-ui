@@ -22,9 +22,11 @@ goes through the governing agent, never straight from the UI.
 - **Studio** — _Catalyst: Open Studio_ opens the project's dashboard,
   inbox, board, journal, trace, rules and approvals in an editor tab.
   What waits for a person (an unrecorded change, a reconciliation case,
-  a version a declared approval gate still needs approved) is settled
+  a version a declared approval gate still needs approved, a proposed
+  change shown beside the current text) is settled
   from there: the editor shows the exact catalyst command and runs it
-  only on your yes. Approval gates need catalyst 0.80.0 or later.
+  only on your yes. Approval gates need catalyst 0.80.0 or later,
+  proposals 0.81.0.
 - **Health board** — diagnostics, gutter marks, and CodeLens surface
   drift (orphaned artifacts, missing rule targets, dangling references)
   directly in the editor, with click-to-jump from a problem straight to

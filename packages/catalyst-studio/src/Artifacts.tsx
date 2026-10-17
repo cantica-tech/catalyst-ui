@@ -12,6 +12,7 @@ import type {
 } from "./client.js";
 import { DriftBadge, DriftSection } from "./drift.js";
 import { GatesSection } from "./Gates.js";
+import { ProposalDiff } from "./Proposals.js";
 import { ImpactBar, ImpactMark } from "./impact.js";
 import { EntityHistory } from "./History.js";
 import { ruleStatus } from "./Rules.js";
@@ -150,6 +151,8 @@ export function EntityPage({
       <DriftSection id={entity.id} />
 
       <GatesSection report={approvals} />
+
+      <ProposalDiff proposal={entity.proposal} />
 
       {text(entity.text) && (
         <section aria-labelledby="entity-text">
