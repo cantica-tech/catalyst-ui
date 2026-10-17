@@ -22,6 +22,8 @@ export {
   type GraphDomain,
   type GraphRule,
   type History,
+  type ApprovalGate,
+  type ApprovalsReport,
   type HistoryEntry,
   type JournalEntry,
   type Command,
@@ -63,6 +65,7 @@ export {
 export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTable } from "./Roadmap.js";
 export { activity, Team, TeamView, type Activity } from "./Team.js";
 export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";
+export { gateCount, gateCovers, GatesSection } from "./Gates.js";
 export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
 export {
   connectHost,

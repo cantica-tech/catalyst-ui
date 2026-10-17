@@ -13,7 +13,8 @@ export type StudioAction =
   | { verb: "journal-adopt"; commit: string; intent: string; tier: string; target?: string }
   | { verb: "journal-append"; path: string; intent: string; tier: string; target?: string; artifact?: string }
   | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string }
-  | { verb: "restore"; id: string; to: string; intent: string; tier?: string };
+  | { verb: "restore"; id: string; to: string; intent: string; tier?: string }
+  | { verb: "approve"; id: string; gate: string; intent: string };
 
 export class ActionError extends Error {}
 
@@ -21,6 +22,8 @@ const ENTITY = /^[A-Za-z][A-Za-z0-9.]*(-[A-Za-z0-9.]+)+$/;
 const STATE = /^[A-Za-z][A-Za-z0-9 _-]{0,40}$/;
 const COMMIT = /^[0-9a-f]{7,40}$/;
 const TIER = /^[a-z][a-z-]{0,20}$/;
+/** A gate's id in `IAM/gates.json` (catalyst >= 0.80.0). */
+const GATE = /^[a-z][a-z0-9-]{0,40}$/;
 const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
 /** A version of an entity: its Nth change (`#3`) or an ISO time (`2026-10-16T08:00:00Z`). */
 const VERSION = /^(#[1-9][0-9]{0,5}|\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?Z?)?)$/;
@@ -129,6 +132,14 @@ export function actionArgs(action: unknown): string[] {
         `--to=${field(a.to, "to", (v) => VERSION.test(v), "a change (#N) or a time")}`,
         intent(),
         ...optional(a.tier, tier, "--tier"),
+        "--json",
+      ];
+    case "approve":
+      return [
+        "approve",
+        entity(a.id, "id"),
+        `--gate=${field(a.gate, "gate", (v) => GATE.test(v), "not a gate's id")}`,
+        intent(),
         "--json",
       ];
     default:
