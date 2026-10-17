@@ -86,3 +86,34 @@ export function diffStat(lines: DiffLine[]): { removed: number; added: number } 
     added: lines.filter((l) => l.kind === "add").length,
   };
 }
+
+/** One row of a side-by-side diff: the line before (left) and the line after (right), either absent. */
+export interface SideRow {
+  left?: DiffLine;
+  right?: DiffLine;
+}
+
+/**
+ * A hunk's lines as side-by-side rows: an unchanged line on both sides; a
+ * run of removals paired, in order, with the run of additions that follows
+ * it; what has no pair stands alone.
+ */
+export function sideBySide(lines: DiffLine[]): SideRow[] {
+  const rows: SideRow[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].kind === "same") {
+      rows.push({ left: lines[i], right: lines[i] });
+      i++;
+      continue;
+    }
+    const dels: DiffLine[] = [];
+    const adds: DiffLine[] = [];
+    while (i < lines.length && lines[i].kind === "del") dels.push(lines[i++]);
+    while (i < lines.length && lines[i].kind === "add") adds.push(lines[i++]);
+    for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
+      rows.push({ ...(k < dels.length ? { left: dels[k] } : {}), ...(k < adds.length ? { right: adds[k] } : {}) });
+    }
+  }
+  return rows;
+}

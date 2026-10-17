@@ -118,6 +118,13 @@ export async function layoutMap(map: { nodes: MapNode[]; edges: MapEdge[] }): Pr
   };
 }
 
+/** A type's tint (R6.35): none open, some open, or most of its work open. */
+export function tint(n: MapNode): "map-tint-none" | "map-tint-some" | "map-tint-most" {
+  const all = n.open + n.closed;
+  if (all === 0 || n.open === 0) return "map-tint-none";
+  return n.open / all > 0.5 ? "map-tint-most" : "map-tint-some";
+}
+
 function counts(n: MapNode): string {
   return n.closed > 0 ? `${String(n.open)} open · ${String(n.closed)} closed` : String(n.open);
 }
@@ -125,6 +132,27 @@ function counts(n: MapNode): string {
 /** The drawn map: each type a box, a type with a board a keyboard-operable button opening it. */
 export function TypeMapDrawing({ placed, onOpen }: { placed: PlacedMap; onOpen: (prefix: string) => void }) {
   const pad = 8;
+  const [focus, setFocus] = useState<string | null>(null);
+  const edgeClass = (e: { from: string; to: string }) =>
+    focus === null
+      ? "trace-edge"
+      : e.from === focus || e.to === focus
+        ? "trace-edge map-edge-on"
+        : "trace-edge map-edge-off";
+  const hover = (id: string) => ({
+    onMouseEnter: () => {
+      setFocus(id);
+    },
+    onMouseLeave: () => {
+      setFocus(null);
+    },
+    onFocus: () => {
+      setFocus(id);
+    },
+    onBlur: () => {
+      setFocus(null);
+    },
+  });
   return (
     <svg
       className="type-map"
@@ -142,7 +170,7 @@ export function TypeMapDrawing({ placed, onOpen }: { placed: PlacedMap; onOpen: 
         {placed.edges.map((e) => (
           <g key={e.id}>
             <polyline
-              className="trace-edge"
+              className={edgeClass(e)}
               markerEnd="url(#map-arrow)"
               points={e.points.map((p) => `${String(p.x)},${String(p.y)}`).join(" ")}
             />
@@ -168,8 +196,9 @@ export function TypeMapDrawing({ placed, onOpen }: { placed: PlacedMap; onOpen: 
           return n.board ? (
             <g
               key={n.id}
-              className="trace-node map-node"
+              className={`trace-node map-node ${tint(n)}`}
               transform={`translate(${String(n.x)} ${String(n.y)})`}
+              {...hover(n.id)}
               role="button"
               tabIndex={0}
               aria-label={`Open the board of ${n.label}`}
@@ -188,8 +217,9 @@ export function TypeMapDrawing({ placed, onOpen }: { placed: PlacedMap; onOpen: 
           ) : (
             <g
               key={n.id}
-              className="trace-node map-node map-node-static"
+              className={`trace-node map-node map-node-static ${tint(n)}`}
               transform={`translate(${String(n.x)} ${String(n.y)})`}
+              {...hover(n.id)}
             >
               {body}
             </g>
@@ -309,7 +339,12 @@ export function TypeMap({ client }: { client: StudioClient }) {
           {load.placed && (
             <figure className="trace-figure">
               <TypeMapDrawing placed={load.placed} onOpen={open} />
-              <figcaption className="muted">Each arrow is a reference field, from the type that carries it.</figcaption>
+              <figcaption className="muted">
+                Each arrow is a reference field, from the type that carries it; pointing at a type lights its arrows.
+                Tint: <span className="map-key map-tint-most">most work open</span>{" "}
+                <span className="map-key map-tint-some">some open</span>{" "}
+                <span className="map-key map-tint-none">none open</span>
+              </figcaption>
             </figure>
           )}
           <TypeMapTable map={typeMap(load.graph)} onOpen={open} />
