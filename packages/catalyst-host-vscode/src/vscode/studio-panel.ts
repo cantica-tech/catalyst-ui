@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 
-import { catalystCommand, startAgentRun, startLocalServe, type CatalystServer } from "catalyst-core";
+import { catalystCommand, runAction, startAgentRun, startLocalServe, type CatalystServer } from "catalyst-core";
 import * as vscode from "vscode";
 
 import { studioPanelHtml } from "../studio-html.js";
@@ -47,6 +47,7 @@ export async function openStudio(
   const runs = new StudioRuns({
     confirm: async (question) => (await vscode.window.showWarningMessage(question, { modal: true }, "Run")) === "Run",
     start: (command, args, onEvent) => startAgentRun(projectRoot, command, args, onEvent),
+    act: (args) => runAction(projectRoot, args),
     post: (message) => {
       void panel.webview.postMessage(message);
     },

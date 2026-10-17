@@ -1,4 +1,4 @@
-# Catalyst framework
+# Catalyst Studio — rules, journal and traceability for AI-assisted development
 
 A VS Code extension for projects governed by the [catalyst
 framework](https://github.com/oliben67/catalyst) — the agent-installed

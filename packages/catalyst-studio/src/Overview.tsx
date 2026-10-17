@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Backlog, CheckReport, Head, InboxReport, JournalEntry, StudioClient } from "./client.js";
 import { describeEvidence } from "./evidence.js";
+import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
 /** What the dashboard shows, as catalyst reports it (catalyst roadmap R6.5, R6.6). */
@@ -65,6 +66,7 @@ function Health({ check }: { check: CheckReport }) {
 }
 
 function Drift({ inbox }: { inbox: InboxReport }) {
+  const navigate = useNavigate();
   return (
     <section aria-labelledby="drift">
       <h3 id="drift">Waiting for you</h3>
@@ -82,6 +84,15 @@ function Drift({ inbox }: { inbox: InboxReport }) {
               <li key={`${item.kind}:${item.id}`}>
                 <strong>{item.title}</strong> <span className="muted">({item.kind})</span>
                 {describeEvidence(item) && <div className="muted">{describeEvidence(item)}</div>}
+                <button
+                  type="button"
+                  className="link-button"
+                  onClick={() => {
+                    navigate("inbox", `${item.kind}:${item.id}`);
+                  }}
+                >
+                  Settle…
+                </button>
                 {item.settle.length > 0 && (
                   <div>
                     Settle with:{" "}

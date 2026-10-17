@@ -1,7 +1,9 @@
 import { useEffect, useId, useState } from "react";
 
 import type { EntityType, Graph, GraphArtifact, StudioClient } from "./client.js";
+import { ActionForm } from "./ActionForm.js";
 import { clipboardCopy, CopyButton } from "./Copy.js";
+import { useHost, type HostRuns } from "./host.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -61,16 +63,32 @@ function Card({
   type,
   state,
   copy,
+  selected,
+  onSelect,
 }: {
   artifact: GraphArtifact;
   type: EntityType;
   state: string;
   copy: (text: string) => Promise<void>;
+  /** Whether the card is in the selection, when the host can act on several (R6.17). */
+  selected?: boolean;
+  onSelect?: (on: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const host = useHost();
   const moves = movesFrom(type, state);
   return (
     <li className="card">
+      {onSelect && (
+        <input
+          type="checkbox"
+          aria-label={`Select ${artifact.id}`}
+          checked={selected === true}
+          onChange={(e) => {
+            onSelect(e.target.checked);
+          }}
+        />
+      )}{" "}
       <button
         type="button"
         className="link-button"
@@ -89,7 +107,17 @@ function Card({
               const command = `catalyst status set ${artifact.id} ${to}`;
               return (
                 <li key={to}>
-                  <code>{command}</code> <CopyButton text={command} copy={copy} />
+                  {host?.act ? (
+                    <ActionForm
+                      host={host}
+                      label={`Move to ${to}`}
+                      action={{ verb: "status-set", id: artifact.id, state: to }}
+                    />
+                  ) : (
+                    <>
+                      <code>{command}</code> <CopyButton text={command} copy={copy} />
+                    </>
+                  )}
                 </li>
               );
             })}
@@ -97,6 +125,87 @@ function Card({
         </details>
       )}
     </li>
+  );
+}
+
+/**
+ * The selected cards moved to one state with one reason (R6.17): one dialog
+ * in the host lists each command; each move is its own journaled change, and
+ * catalyst checks each against its type's transitions and guards.
+ */
+export function BatchMove({
+  host,
+  ids,
+  states,
+  onDone,
+}: {
+  host: HostRuns;
+  ids: string[];
+  states: string[];
+  /** Called with what happened, once the host answered; the board says it (the form leaves with the selection). */
+  onDone: (said: string) => void;
+}) {
+  const [to, setTo] = useState(states[0] ?? "");
+  const [why, setWhy] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState("");
+  const toId = useId();
+  const whyId = useId();
+  const actBatch = host.actBatch;
+  if (!actBatch) return null;
+  return (
+    <form
+      className="action-form batch"
+      aria-label="Move the selected cards"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setBusy(true);
+        setSaid("");
+        void actBatch(ids.map((id) => ({ verb: "status-set", id, state: to, intent: why.trim() }))).then((r) => {
+          setBusy(false);
+          if (r.declined) setSaid("Not done: you declined");
+          else if (r.error) setSaid(r.error);
+          else {
+            const failed = r.results.filter((x) => !x.ok);
+            onDone(
+              failed.length === 0
+                ? `${String(r.results.length)} moved; catalyst journaled each`
+                : `${String(r.results.length - failed.length)} moved, ${String(failed.length)} refused: ${failed.map((f) => f.error).join("; ")}`,
+            );
+          }
+        });
+      }}
+    >
+      <strong>{ids.length} selected</strong> <label htmlFor={toId}>Move to</label>{" "}
+      <select
+        id={toId}
+        value={to}
+        onChange={(e) => {
+          setTo(e.target.value);
+        }}
+      >
+        {states.map((s) => (
+          <option key={s} value={s}>
+            {s}
+          </option>
+        ))}
+      </select>{" "}
+      <label htmlFor={whyId}>Why</label>{" "}
+      <input
+        id={whyId}
+        type="text"
+        required
+        maxLength={500}
+        value={why}
+        onChange={(e) => {
+          setWhy(e.target.value);
+        }}
+      />{" "}
+      <button type="submit" disabled={busy || !why.trim()}>
+        Move the selected
+      </button>{" "}
+      <span aria-live="polite">{busy ? "Waiting for your confirmation in the editor" : said}</span>
+    </form>
   );
 }
 
@@ -111,7 +220,11 @@ export function BoardView({
   initialType?: string;
 }) {
   const types = boardTypes(graph);
+  const host = useHost();
   const [prefix, setPrefix] = useState(initialType ?? (types.length > 0 ? types[0].prefix : ""));
+  const [selection, setSelection] = useState<string[]>([]);
+  const [moved, setMoved] = useState("");
+  const batchable = host?.actBatch !== undefined;
   const pickId = useId();
   const chosen = types.find((t) => t.prefix === prefix) ?? (types.length > 0 ? types[0] : undefined);
   if (!chosen) {
@@ -145,13 +258,41 @@ export function BoardView({
       <p className="muted">
         A move is the command shown on its card; catalyst checks the type&apos;s guards when it runs.
       </p>
+      {host && batchable && selection.length > 0 && (
+        <BatchMove
+          host={host}
+          ids={selection}
+          states={chosen.type.states}
+          onDone={(said) => {
+            setSelection([]);
+            setMoved(said);
+          }}
+        />
+      )}
+      <p className="muted" aria-live="polite">
+        {moved}
+      </p>
       <div className="board">
         {columns.map((c) => {
           const headingId = `${pickId}-${c.state}`;
           const list = (
             <ul className="cards">
               {c.cards.map((a) => (
-                <Card key={a.id} artifact={a} type={chosen.type} state={c.state} copy={copy} />
+                <Card
+                  key={a.id}
+                  artifact={a}
+                  type={chosen.type}
+                  state={c.state}
+                  copy={copy}
+                  selected={selection.includes(a.id)}
+                  onSelect={
+                    batchable
+                      ? (on) => {
+                          setSelection((s) => (on ? [...s, a.id] : s.filter((x) => x !== a.id)));
+                        }
+                      : undefined
+                  }
+                />
               ))}
             </ul>
           );
