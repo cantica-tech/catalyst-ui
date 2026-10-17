@@ -51,6 +51,15 @@ describe("actionArgs (studio-SHELL-000016)", () => {
       expect(() => actionArgs({ verb: "restore", id: "REQ-000001", to, intent: "x" })).toThrow("to:");
   });
 
+  it("approves an entity's current version under a gate (catalyst >= 0.80.0)", () => {
+    expect(
+      actionArgs({ verb: "approve", id: "br-AUTH-000001-Ab3xR9pQ", gate: "auth-rules", intent: "Reviewed" }),
+    ).toEqual(["approve", "br-AUTH-000001-Ab3xR9pQ", "--gate=auth-rules", "--intent=Reviewed", "--json"]);
+    for (const gate of ["", "Auth", "a b", "--force", "x;rm"])
+      expect(() => actionArgs({ verb: "approve", id: "REQ-000001", gate, intent: "x" })).toThrow("gate:");
+    expect(() => actionArgs({ verb: "approve", id: "-x", gate: "g", intent: "x" })).toThrow("id:");
+  });
+
   it("keeps a reason that looks like an option a value", () => {
     expect(actionArgs({ verb: "status-set", id: "REQ-000001", state: "Done", intent: "--force" })).toContain(
       "--intent=--force",

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { Graph, GraphArtifact, StudioClient, User } from "./client.js";
+import type { Graph, GraphArtifact, InboxItem, StudioClient, User } from "./client.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -66,8 +66,12 @@ export function signers(graph: Graph, users: User[]): Signer[] {
   return [...out.values()].sort((a, b) => b.signed - a.signed || a.name.localeCompare(b.name));
 }
 
-/** The approvals (studio-SHELL-000014): reconciliation cases and sign-offs, read-only. */
-export function ApprovalsView({ graph, users }: { graph: Graph; users: User[] }) {
+/**
+ * The approvals (studio-SHELL-000014): reconciliation cases and sign-offs,
+ * read-only, and what waits for an approval under a gate (studio-SHELL-000018,
+ * catalyst >= 0.80.0), each opening the entity, whose page approves it.
+ */
+export function ApprovalsView({ graph, users, waiting = [] }: { graph: Graph; users: User[]; waiting?: InboxItem[] }) {
   const navigate = useNavigate();
   const cases = reconciliationCases(graph);
   const open = cases.filter((c) => !c.closed);
@@ -86,6 +90,38 @@ export function ApprovalsView({ graph, users }: { graph: Graph; users: User[] })
   return (
     <>
       <h2>Approvals</h2>
+      {waiting.length > 0 && (
+        <section aria-labelledby="gates-waiting">
+          <h3 id="gates-waiting">Waiting for an approval</h3>
+          <p>
+            <Status tone="warn" label={`${String(waiting.length)} waiting`} />{" "}
+            <span className="muted">
+              Approved by a person holding the gate&apos;s role, never the version&apos;s author.
+            </span>
+          </p>
+          <table>
+            <caption className="muted">Each gated change, with what its current version lacks</caption>
+            <thead>
+              <tr>
+                <th scope="col">Entity</th>
+                <th scope="col">Gate</th>
+                <th scope="col">Approvals</th>
+              </tr>
+            </thead>
+            <tbody>
+              {waiting.map((w) => (
+                <tr key={`${w.id}:${w.evidence.gate ?? ""}`}>
+                  <td>{link(w.id)}</td>
+                  <td>
+                    <code>{w.evidence.gate}</code>
+                  </td>
+                  <td>{w.title}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
       <section aria-labelledby="cases">
         <h3 id="cases">Reconciliation cases</h3>
         {cases.length === 0 ? (
@@ -161,7 +197,9 @@ export function ApprovalsView({ graph, users }: { graph: Graph; users: User[] })
 }
 
 type Load =
-  { state: "loading" } | { state: "ready"; graph: Graph; users: User[] } | { state: "failed"; message: string };
+  | { state: "loading" }
+  | { state: "ready"; graph: Graph; users: User[]; waiting: InboxItem[] }
+  | { state: "failed"; message: string };
 
 /** The Approvals view, reloaded after each change catalyst announces. */
 export function Approvals({ client }: { client: StudioClient }) {
@@ -182,9 +220,13 @@ export function Approvals({ client }: { client: StudioClient }) {
 
   useEffect(() => {
     let live = true;
-    Promise.all([client.graph(), client.users()]).then(
-      ([graph, users]) => {
-        if (live) setLoad({ state: "ready", graph, users });
+    const inbox = client.inbox().then(
+      (r) => r.items.filter((i) => i.kind === "approval"),
+      () => [] as InboxItem[], // without the inbox, the cases and sign-offs still show
+    );
+    Promise.all([client.graph(), client.users(), inbox]).then(
+      ([graph, users, waiting]) => {
+        if (live) setLoad({ state: "ready", graph, users, waiting });
       },
       (err: unknown) => {
         if (live) setLoad({ state: "failed", message: String(err) });
@@ -195,7 +237,7 @@ export function Approvals({ client }: { client: StudioClient }) {
     };
   }, [client, batch]);
 
-  if (load.state === "ready") return <ApprovalsView graph={load.graph} users={load.users} />;
+  if (load.state === "ready") return <ApprovalsView graph={load.graph} users={load.users} waiting={load.waiting} />;
   return (
     <>
       <h2>Approvals</h2>
