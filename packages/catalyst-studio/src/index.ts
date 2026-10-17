@@ -45,7 +45,7 @@ export {
 export { diffStat, hunks, lineDiff, type DiffLine, type Hunk } from "./diff.js";
 export { changeKind, DiffView, EntityHistory } from "./History.js";
 export { byDay, filterJournal, fileKind, Journal, JournalTimeline } from "./Journal.js";
-export { Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
+export { BatchMove, Board, boardColumns, boardTypes, BoardView, movesFrom, type Column } from "./Board.js";
 export { clipboardCopy, CopyButton } from "./Copy.js";
 export { citers, groupRules, ruleDocument, RuleBrowser, Rules, ruleStatus, searchRules } from "./Rules.js";
 export {
@@ -62,5 +62,16 @@ export { Roadmap, roadmapTables, RoadmapView, type RoadmapItem, type RoadmapTabl
 export { activity, Team, TeamView, type Activity } from "./Team.js";
 export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";
 export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
-export { connectHost, type HostRuns, type RunEvent, type RunHandle } from "./host.js";
+export {
+  connectHost,
+  HostContext,
+  useHost,
+  type ActionResult,
+  type BatchResult,
+  type HostRuns,
+  type RunEvent,
+  type RunHandle,
+  type StudioAction,
+} from "./host.js";
+export { ActionForm, TIERS } from "./ActionForm.js";
 export { RunConsole, runSummary } from "./RunConsole.js";

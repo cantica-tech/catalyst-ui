@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type KeyboardEvent } from "react";
 
 import { ApiError, type Command, type CommandSpec, type StudioClient } from "./client.js";
 import { clipboardCopy, CopyButton } from "./Copy.js";
-import type { HostRuns, RunEvent, RunHandle } from "./host.js";
+import { useHost, type HostRuns, type RunEvent, type RunHandle } from "./host.js";
 import { RunConsole } from "./RunConsole.js";
 import { Status } from "./Status.js";
 
@@ -279,6 +279,8 @@ export function Commands({
   copy?: (text: string) => Promise<void>;
   host?: HostRuns | null;
 }) {
+  const contextHost = useHost();
+  const runsWith = host === undefined ? contextHost : host;
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [open, setOpen] = useState<PaletteEntry | null>(null);
   const [spec, setSpec] = useState<CommandSpec | undefined>(undefined);
@@ -328,7 +330,7 @@ export function Commands({
         entry={open}
         spec={spec}
         copy={copy}
-        host={host}
+        host={runsWith}
         onBack={() => {
           setOpen(null);
         }}

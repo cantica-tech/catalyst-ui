@@ -219,7 +219,7 @@ export function EntityPage({
       <section aria-labelledby="entity-journal">
         <h3 id="entity-journal">{history ? "History" : "Journal"}</h3>
         {history ? (
-          <EntityHistory entries={history.entries} />
+          <EntityHistory entries={history.entries} id={entity.id} />
         ) : entity.journal.length === 0 ? (
           <p className="muted">No entry names it.</p>
         ) : (
