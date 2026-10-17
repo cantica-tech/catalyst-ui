@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { EntityType, EntityView, Graph, GraphArtifact, History, Impact, StudioClient } from "./client.js";
+import { DriftBadge, DriftSection } from "./drift.js";
 import { EntityHistory } from "./History.js";
 import { ruleStatus } from "./Rules.js";
 import { Status, type StatusTone } from "./Status.js";
@@ -56,7 +57,8 @@ export function ArtifactList({ graph, onOpen }: { graph: Graph; onOpen: (id: str
                   >
                     <code>{a.id}</code> {a.title}
                   </button>{" "}
-                  {text(a.Status) && <Status tone={statusTone(type, text(a.Status))} label={text(a.Status)} />}
+                  {text(a.Status) && <Status tone={statusTone(type, text(a.Status))} label={text(a.Status)} />}{" "}
+                  <DriftBadge id={a.id} />
                 </li>
               ))}
             </ul>
@@ -129,6 +131,8 @@ export function EntityPage({
           </>
         )}
       </p>
+
+      <DriftSection id={entity.id} />
 
       {text(entity.text) && (
         <section aria-labelledby="entity-text">

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 
 import type { Graph, GraphRule, StudioClient } from "./client.js";
+import { DriftBadge } from "./drift.js";
 import { useNavigate } from "./Shell.js";
 import { Status, type StatusTone } from "./Status.js";
 
@@ -123,7 +124,8 @@ export function RuleBrowser({ graph }: { graph: Graph }) {
                         <code>{r.id}</code> {r.title.replace(/^🗑\s*/, "")}
                       </button>{" "}
                       <Status tone={st.tone} label={st.label} />{" "}
-                      <span className="muted">{n === 0 ? "cited by nothing" : `cited by ${String(n)}`}</span>
+                      <span className="muted">{n === 0 ? "cited by nothing" : `cited by ${String(n)}`}</span>{" "}
+                      <DriftBadge id={r.id} />
                     </li>
                   );
                 })}

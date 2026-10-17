@@ -595,3 +595,7 @@ progress {
   border-radius: var(--radius);
   padding: var(--space-1) var(--space-2);
 }
+
+.drift-badge {
+  white-space: nowrap;
+}

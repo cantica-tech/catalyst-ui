@@ -16,6 +16,8 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type Finding,
+  type RunRecord,
   type User,
   type GraphDomain,
   type GraphRule,
@@ -75,3 +77,5 @@ export {
 } from "./host.js";
 export { ActionForm, TIERS } from "./ActionForm.js";
 export { RunConsole, runSummary } from "./RunConsole.js";
+export { DriftBadge, driftOf, DriftSection, useDrift, WithDrift, type Drift } from "./drift.js";
+export { costByCommand, RunHistory } from "./RunHistory.js";
