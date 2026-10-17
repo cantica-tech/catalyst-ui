@@ -2,6 +2,8 @@ import { useEffect, useId, useState } from "react";
 
 import type { EntityType, Graph, GraphArtifact, StudioClient } from "./client.js";
 import { ActionForm } from "./ActionForm.js";
+import { DriftBadge } from "./drift.js";
+import { ImpactBar, ImpactMark } from "./impact.js";
 import { clipboardCopy, CopyButton } from "./Copy.js";
 import { useHost, type HostRuns } from "./host.js";
 import { useNavigate } from "./Shell.js";
@@ -98,7 +100,7 @@ function Card({
       >
         <code>{artifact.id}</code>
       </button>{" "}
-      {artifact.title}
+      {artifact.title} <DriftBadge id={artifact.id} /> <ImpactMark id={artifact.id} />
       {moves.length > 0 && (
         <details>
           <summary className="muted">Move to…</summary>
@@ -272,6 +274,7 @@ export function BoardView({
       <p className="muted" aria-live="polite">
         {moved}
       </p>
+      <ImpactBar />
       <div className="board">
         {columns.map((c) => {
           const headingId = `${pickId}-${c.state}`;

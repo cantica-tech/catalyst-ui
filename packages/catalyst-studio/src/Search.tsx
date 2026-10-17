@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 
 import type { Graph, StudioClient } from "./client.js";
+import { DriftBadge } from "./drift.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -131,7 +132,7 @@ export function SearchView({ graph }: { graph: Graph }) {
                     <code>{f.id}</code> {f.title}
                   </>
                 )}
-                {f.status && <span className="muted"> · {f.status.slice(0, 60)}</span>}
+                {f.status && <span className="muted"> · {f.status.slice(0, 60)}</span>} <DriftBadge id={f.id} />
               </li>
             ))}
           </ul>

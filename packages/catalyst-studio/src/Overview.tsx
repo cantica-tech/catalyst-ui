@@ -151,6 +151,18 @@ function OpenWork({ backlog, typeNames }: { backlog: Backlog; typeNames: Record<
           <span className="muted">{backlog.missing_links.map((m) => `${m.id} (${m.field})`).join(", ")}</span>
         </p>
       )}
+      {backlog.coverage && backlog.coverage.rules > 0 && (
+        <p>
+          <Status
+            tone={backlog.coverage.cited === backlog.coverage.rules ? "ok" : "info"}
+            label={`${String(backlog.coverage.cited)} of ${String(backlog.coverage.rules)} project rules cited`}
+          />{" "}
+          <span className="muted">
+            ({String(Math.round((100 * backlog.coverage.cited) / backlog.coverage.rules))}% have an artifact grounded on
+            them)
+          </span>
+        </p>
+      )}
       {backlog.rules_without_open_work.length > 0 && (
         <p className="muted">{plural(backlog.rules_without_open_work.length, "rule")} with no open work.</p>
       )}

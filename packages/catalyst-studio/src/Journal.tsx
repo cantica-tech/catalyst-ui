@@ -32,12 +32,25 @@ export function filterJournal(entries: JournalEntry[], actor: string, words: str
 
 /** The entries by day, newest day and entry first. */
 export function byDay(entries: JournalEntry[]): { day: string; entries: JournalEntry[] }[] {
-  const days = new Map<string, JournalEntry[]>();
-  for (const e of [...entries].reverse()) {
-    const day = (e.timestamp ?? "").slice(0, 10) || "undated";
-    days.set(day, [...(days.get(day) ?? []), e]);
-  }
-  return [...days.entries()].map(([day, list]) => ({ day, entries: list }));
+  return groupJournal(entries, "day").map((g) => ({ day: g.key, entries: g.entries }));
+}
+
+export type Grouping = "day" | "type" | "tier";
+
+/** The entity type an entry is labelled with: its ID's prefix, or "other" for a free label. */
+function typeOf(e: JournalEntry): string {
+  const a = e.artifact ?? "";
+  return ENTITY_ID.test(a) ? a.split("-")[0] : "other";
+}
+
+/** The entries in groups (R6.38): by day, by entity type or by tier; newest entry first in each. */
+export function groupJournal(entries: JournalEntry[], by: Grouping): { key: string; entries: JournalEntry[] }[] {
+  const key = (e: JournalEntry): string =>
+    by === "day" ? (e.timestamp ?? "").slice(0, 10) || "undated" : by === "type" ? typeOf(e) : (e.tier ?? "no tier");
+  const groups = new Map<string, JournalEntry[]>();
+  for (const e of [...entries].reverse()) groups.set(key(e), [...(groups.get(key(e)) ?? []), e]);
+  const out = [...groups.entries()].map(([k, list]) => ({ key: k, entries: list }));
+  return by === "day" ? out : out.sort((a, b) => b.entries.length - a.entries.length || a.key.localeCompare(b.key));
 }
 
 function Entry({ entry }: { entry: JournalEntry }) {
@@ -96,6 +109,8 @@ export function JournalTimeline({
 }) {
   const [actor, setActor] = useState("");
   const [words, setWords] = useState("");
+  const [grouping, setGrouping] = useState<Grouping>("day");
+  const groupId = useId();
   const actorId = useId();
   const wordsId = useId();
   const actors = [...new Set(entries.map((e) => e.actor ?? "").filter(Boolean))].sort();
@@ -127,14 +142,28 @@ export function JournalTimeline({
           onChange={(event) => {
             setWords(event.target.value);
           }}
-        />
+        />{" "}
+        <label htmlFor={groupId}>Group by</label>{" "}
+        <select
+          id={groupId}
+          value={grouping}
+          onChange={(event) => {
+            setGrouping(event.target.value as Grouping);
+          }}
+        >
+          <option value="day">day</option>
+          <option value="type">entity type</option>
+          <option value="tier">tier</option>
+        </select>
       </div>
       <p className="muted" aria-live="polite">
         {kept.length} of {entries.length} entries since {since}
       </p>
-      {byDay(kept).map((d) => (
-        <section key={d.day} aria-labelledby={`day-${d.day}`}>
-          <h3 id={`day-${d.day}`}>{d.day}</h3>
+      {groupJournal(kept, grouping).map((d) => (
+        <section key={d.key} aria-labelledby={`group-${d.key}`}>
+          <h3 id={`group-${d.key}`}>
+            {d.key} <span className="muted">({d.entries.length})</span>
+          </h3>
           <ol className="journal">
             {d.entries.map((e) => (
               <Entry key={e.at} entry={e} />
