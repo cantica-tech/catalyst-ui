@@ -595,3 +595,77 @@ progress {
   border-radius: var(--radius);
   padding: var(--space-1) var(--space-2);
 }
+
+.drift-badge {
+  white-space: nowrap;
+}
+
+.diff-side {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.diff-side td {
+  padding: 0 var(--space-2);
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-left: 1px solid var(--border);
+}
+
+.diff-side .diff-empty {
+  background: var(--surface);
+}
+
+.map-tint-most rect {
+  fill: color-mix(in srgb, var(--warn) 22%, var(--surface));
+}
+
+.map-tint-some rect {
+  fill: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+
+.map-edge-on {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.map-edge-off {
+  opacity: 0.25;
+}
+
+.map-key {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.map-key.map-tint-most {
+  background: color-mix(in srgb, var(--warn) 22%, var(--surface));
+}
+
+.map-key.map-tint-some {
+  background: color-mix(in srgb, var(--warn) 10%, var(--surface));
+}
+
+.trace-dim > span,
+.trace-dim > button {
+  opacity: 0.55;
+}
+
+.impact-mark {
+  white-space: nowrap;
+  color: var(--accent);
+  font-size: var(--text-sm);
+}
+
+.impact-bar {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+}

@@ -6,6 +6,8 @@ import { Artifacts } from "./Artifacts.js";
 import { Board } from "./Board.js";
 import { connectionFromPage, StudioClient } from "./client.js";
 import { COMMAND_SEARCH_ID, Commands } from "./Commands.js";
+import { WithDrift } from "./drift.js";
+import { WithImpact } from "./impact.js";
 import { connectHost, HostContext, type HostRuns } from "./host.js";
 import { Inbox } from "./Inbox.js";
 import { Journal } from "./Journal.js";
@@ -42,90 +44,94 @@ function mount(): void {
   const hostReady = connectHost(); // the page renders now; the run appears when a host answers
   createRoot(host).render(
     <WithHost hostReady={hostReady}>
-      <Shell
-        project="catalyst Studio"
-        views={[
-          {
-            id: "overview",
-            label: "Overview",
-            render: () =>
-              client ? (
-                <Overview client={client} />
-              ) : (
-                <>
-                  <h2>Overview</h2>
-                  <p>
-                    <Status tone="info" label="Not connected" />{" "}
-                    <span className="muted">
-                      Open the page URL that <code>catalyst serve --local --static</code> prints.
-                    </span>
-                  </p>
-                </>
-              ),
-          },
-          ...(client
-            ? [
-                {
-                  id: "inbox",
-                  label: "Inbox",
-                  render: (target?: string) => <Inbox client={client} target={target} />,
-                },
-                {
-                  id: "artifacts",
-                  label: "Artifacts",
-                  render: (target?: string) => <Artifacts client={client} target={target} />,
-                },
-                {
-                  id: "board",
-                  label: "Board",
-                  render: (target?: string) => <Board client={client} target={target} />,
-                },
-                {
-                  id: "map",
-                  label: "Map",
-                  render: () => <TypeMap client={client} />,
-                },
-                {
-                  id: "roadmap",
-                  label: "Roadmap",
-                  render: () => <Roadmap client={client} />,
-                },
-                {
-                  id: "rules",
-                  label: "Rules",
-                  render: () => <Rules client={client} />,
-                },
-                {
-                  id: "journal",
-                  label: "Journal",
-                  render: () => <Journal client={client} />,
-                },
-                {
-                  id: "approvals",
-                  label: "Approvals",
-                  render: () => <Approvals client={client} />,
-                },
-                {
-                  id: "team",
-                  label: "Team",
-                  render: () => <Team client={client} />,
-                },
-                {
-                  id: "search",
-                  label: "Search",
-                  render: () => <Search client={client} />,
-                  shortcut: { key: "/", focus: SEARCH_ID },
-                },
-                {
-                  id: "commands",
-                  label: "Commands",
-                  render: () => <Commands client={client} />,
-                  shortcut: { key: "k", focus: COMMAND_SEARCH_ID },
-                },
-              ]
-            : []),
-        ]}
-      />
+      <WithDrift client={client}>
+        <WithImpact>
+          <Shell
+            project="catalyst Studio"
+            views={[
+              {
+                id: "overview",
+                label: "Overview",
+                render: () =>
+                  client ? (
+                    <Overview client={client} />
+                  ) : (
+                    <>
+                      <h2>Overview</h2>
+                      <p>
+                        <Status tone="info" label="Not connected" />{" "}
+                        <span className="muted">
+                          Open the page URL that <code>catalyst serve --local --static</code> prints.
+                        </span>
+                      </p>
+                    </>
+                  ),
+              },
+              ...(client
+                ? [
+                    {
+                      id: "inbox",
+                      label: "Inbox",
+                      render: (target?: string) => <Inbox client={client} target={target} />,
+                    },
+                    {
+                      id: "artifacts",
+                      label: "Artifacts",
+                      render: (target?: string) => <Artifacts client={client} target={target} />,
+                    },
+                    {
+                      id: "board",
+                      label: "Board",
+                      render: (target?: string) => <Board client={client} target={target} />,
+                    },
+                    {
+                      id: "map",
+                      label: "Map",
+                      render: () => <TypeMap client={client} />,
+                    },
+                    {
+                      id: "roadmap",
+                      label: "Roadmap",
+                      render: () => <Roadmap client={client} />,
+                    },
+                    {
+                      id: "rules",
+                      label: "Rules",
+                      render: () => <Rules client={client} />,
+                    },
+                    {
+                      id: "journal",
+                      label: "Journal",
+                      render: () => <Journal client={client} />,
+                    },
+                    {
+                      id: "approvals",
+                      label: "Approvals",
+                      render: () => <Approvals client={client} />,
+                    },
+                    {
+                      id: "team",
+                      label: "Team",
+                      render: () => <Team client={client} />,
+                    },
+                    {
+                      id: "search",
+                      label: "Search",
+                      render: () => <Search client={client} />,
+                      shortcut: { key: "/", focus: SEARCH_ID },
+                    },
+                    {
+                      id: "commands",
+                      label: "Commands",
+                      render: () => <Commands client={client} />,
+                      shortcut: { key: "k", focus: COMMAND_SEARCH_ID },
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </WithImpact>
+      </WithDrift>
     </WithHost>,
   );
 }

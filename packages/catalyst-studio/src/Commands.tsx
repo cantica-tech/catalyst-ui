@@ -4,6 +4,7 @@ import { ApiError, type Command, type CommandSpec, type StudioClient } from "./c
 import { clipboardCopy, CopyButton } from "./Copy.js";
 import { useHost, type HostRuns, type RunEvent, type RunHandle } from "./host.js";
 import { RunConsole } from "./RunConsole.js";
+import { RunHistory } from "./RunHistory.js";
 import { Status } from "./Status.js";
 
 /** One entry the palette offers: a command, or one part of a command with parts. */
@@ -355,6 +356,7 @@ export function Commands({
         </p>
       )}
       {load.state === "ready" && <PaletteSearch entries={load.entries} onPick={setOpen} inputId={COMMAND_SEARCH_ID} />}
+      <RunHistory client={client} />
     </>
   );
 }

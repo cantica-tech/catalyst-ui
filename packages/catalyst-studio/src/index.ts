@@ -16,6 +16,8 @@ export {
   type Evidence,
   type InboxItem,
   type InboxReport,
+  type Finding,
+  type RunRecord,
   type User,
   type GraphDomain,
   type GraphRule,
@@ -28,7 +30,7 @@ export {
 } from "./client.js";
 export { Overview, OverviewView, type OverviewData } from "./Overview.js";
 export { ArtifactList, Artifacts, EntityPage, statusTone } from "./Artifacts.js";
-export { Trace, traceTree, type TraceNode } from "./Trace.js";
+export { pruneTree, Trace, traceTree, type TraceNode } from "./Trace.js";
 export { layoutTrace, TraceGraph, TraceGraphView, type TraceLayout } from "./TraceGraph.js";
 export { fileChange, Inbox, inboxGroups, InboxItemPage, InboxList, isCommand } from "./Inbox.js";
 export { describeEvidence } from "./evidence.js";
@@ -75,3 +77,6 @@ export {
 } from "./host.js";
 export { ActionForm, TIERS } from "./ActionForm.js";
 export { RunConsole, runSummary } from "./RunConsole.js";
+export { DriftBadge, driftOf, DriftSection, useDrift, WithDrift, type Drift } from "./drift.js";
+export { costByCommand, RunHistory } from "./RunHistory.js";
+export { ImpactBar, ImpactMark, useImpact, WithImpact, type ImpactMarks } from "./impact.js";

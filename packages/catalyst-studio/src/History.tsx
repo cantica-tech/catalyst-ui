@@ -1,6 +1,8 @@
 import { ActionForm } from "./ActionForm.js";
 import type { HistoryEntry } from "./client.js";
-import { diffStat, hunks, lineDiff, type DiffLine } from "./diff.js";
+import { useState } from "react";
+
+import { diffStat, hunks, lineDiff, sideBySide, type DiffLine } from "./diff.js";
 import { useHost } from "./host.js";
 
 function plural(n: number, word: string): string {
@@ -20,6 +22,7 @@ const MARK: Record<DiffLine["kind"], { sign: string; said: string }> = {
  * screen reader.
  */
 export function DiffView({ before, after, label }: { before: string | null; after: string | null; label: string }) {
+  const [side, setSide] = useState(false);
   const lines = lineDiff(before, after);
   const runs = hunks(lines);
   const { removed, added } = diffStat(lines);
@@ -27,32 +30,139 @@ export function DiffView({ before, after, label }: { before: string | null; afte
   return (
     <figure className="diff">
       <figcaption className="muted">
-        {label}: {plural(removed, "line")} removed, {plural(added, "line")} added
+        {label}: {plural(removed, "line")} removed, {plural(added, "line")} added{" "}
+        <span className="theme-switch" role="group" aria-label="How the change is shown">
+          <button
+            type="button"
+            aria-pressed={!side}
+            onClick={() => {
+              setSide(false);
+            }}
+          >
+            Inline
+          </button>
+          <button
+            type="button"
+            aria-pressed={side}
+            onClick={() => {
+              setSide(true);
+            }}
+          >
+            Side by side
+          </button>
+        </span>
       </figcaption>
-      {runs.map((h, i) => (
-        <pre key={i} className="diff-hunk">
-          {h.lines.map((l, k) => (
-            <span key={k} className={`diff-line diff-${l.kind}`}>
-              <span className="diff-num" aria-hidden="true">
-                {l.kind === "add" ? "" : String(l.before ?? "")}
+      {side && runs.map((h, i) => <SideBySide key={i} lines={h.lines} />)}
+      {!side &&
+        runs.map((h, i) => (
+          <pre key={i} className="diff-hunk">
+            {h.lines.map((l, k) => (
+              <span key={k} className={`diff-line diff-${l.kind}`}>
+                <span className="diff-num" aria-hidden="true">
+                  {l.kind === "add" ? "" : String(l.before ?? "")}
+                </span>
+                <span className="diff-num" aria-hidden="true">
+                  {l.kind === "del" ? "" : String(l.after ?? "")}
+                </span>
+                <span aria-hidden="true">{MARK[l.kind].sign} </span>
+                {l.kind !== "same" && <span className="visually-hidden">{MARK[l.kind].said}</span>}
+                {l.text}
+                {"\n"}
               </span>
-              <span className="diff-num" aria-hidden="true">
-                {l.kind === "del" ? "" : String(l.after ?? "")}
-              </span>
-              <span aria-hidden="true">{MARK[l.kind].sign} </span>
-              {l.kind !== "same" && <span className="visually-hidden">{MARK[l.kind].said}</span>}
-              {l.text}
-              {"\n"}
-            </span>
-          ))}
-        </pre>
-      ))}
+            ))}
+          </pre>
+        ))}
     </figure>
   );
 }
 
 function intentOf(e: { intent?: string | string[] | null }): string {
   return Array.isArray(e.intent) ? e.intent.join("; ") : (e.intent ?? "");
+}
+
+function Cell({ line, side }: { line?: DiffLine; side: "before" | "after" }) {
+  if (!line) return <td className="diff-empty" />;
+  const changed = line.kind !== "same";
+  return (
+    <td className={`diff-${line.kind}`}>
+      <span className="diff-num" aria-hidden="true">
+        {String((side === "before" ? line.before : line.after) ?? "")}
+      </span>
+      {changed && <span className="visually-hidden">{MARK[line.kind].said}</span>}
+      {line.text}
+    </td>
+  );
+}
+
+/** One hunk as a two-column table: the file before on the left, after on the right. */
+function SideBySide({ lines }: { lines: DiffLine[] }) {
+  return (
+    <table className="diff-side">
+      <thead>
+        <tr>
+          <th scope="col">Before</th>
+          <th scope="col">After</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sideBySide(lines).map((r, i) => (
+          <tr key={i}>
+            <Cell line={r.left} side="before" />
+            <Cell line={r.right} side="after" />
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * Any two versions of an entity compared (R6.37): those catalyst still
+ * holds, each named by its place in the history and its date.
+ */
+export function CompareVersions({ entries }: { entries: HistoryEntry[] }) {
+  const versions = entries
+    .map((e, i) => ({ n: i + 1, e }))
+    .filter(({ e }) => !e.redacted && e.after !== null && e.content_after !== null);
+  const [from, setFrom] = useState(versions.length >= 2 ? versions[versions.length - 2].n : 0);
+  const [to, setTo] = useState(versions.length >= 1 ? versions[versions.length - 1].n : 0);
+  if (versions.length < 2) return null;
+  const pick = (n: number) => versions.find((v) => v.n === n)?.e.content_after ?? null;
+  const option = (v: { n: number; e: HistoryEntry }) => (
+    <option key={v.n} value={v.n}>
+      #{v.n} · {v.e.timestamp}
+    </option>
+  );
+  return (
+    <section aria-labelledby="compare-versions">
+      <h4 id="compare-versions">Compare two versions</h4>
+      <p className="filters">
+        <label>
+          From{" "}
+          <select
+            value={from}
+            onChange={(e) => {
+              setFrom(Number(e.target.value));
+            }}
+          >
+            {versions.map(option)}
+          </select>
+        </label>{" "}
+        <label>
+          to{" "}
+          <select
+            value={to}
+            onChange={(e) => {
+              setTo(Number(e.target.value));
+            }}
+          >
+            {versions.map(option)}
+          </select>
+        </label>
+      </p>
+      <DiffView before={pick(from)} after={pick(to)} label={`From #${String(from)} to #${String(to)}`} />
+    </section>
+  );
 }
 
 /** What one change did to the file, in a word. */
@@ -81,29 +191,32 @@ export function EntityHistory({ entries, id }: { entries: HistoryEntry[]; id?: s
   if (entries.length === 0) return <p className="muted">No entry changed its file.</p>;
   const last = entries.length;
   return (
-    <ol className="history">
-      {[...entries].reverse().map((e, i) => {
-        const n = last - i; // its position in the history, from the first change: `#n`
-        const restorable = id && host?.act && n < last && !e.redacted && e.after !== null && e.content_after !== null;
-        return (
-          <li key={`${e.timestamp ?? ""}-${String(i)}`}>
-            <details>
-              <summary>
-                <time>{e.timestamp}</time> {e.actor} · {e.action ?? e.command} · {changeKind(e)}
-                {e.tier && <span className="muted"> ({e.tier})</span>}: {intentOf(e)}
-              </summary>
-              <ChangeBody entry={e} />
-              {restorable && (
-                <ActionForm
-                  host={host}
-                  label="Restore this version"
-                  action={{ verb: "restore", id, to: `#${String(n)}` }}
-                />
-              )}
-            </details>
-          </li>
-        );
-      })}
-    </ol>
+    <>
+      <CompareVersions entries={entries} />
+      <ol className="history">
+        {[...entries].reverse().map((e, i) => {
+          const n = last - i; // its position in the history, from the first change: `#n`
+          const restorable = id && host?.act && n < last && !e.redacted && e.after !== null && e.content_after !== null;
+          return (
+            <li key={`${e.timestamp ?? ""}-${String(i)}`}>
+              <details>
+                <summary>
+                  <time>{e.timestamp}</time> {e.actor} · {e.action ?? e.command} · {changeKind(e)}
+                  {e.tier && <span className="muted"> ({e.tier})</span>}: {intentOf(e)}
+                </summary>
+                <ChangeBody entry={e} />
+                {restorable && (
+                  <ActionForm
+                    host={host}
+                    label="Restore this version"
+                    action={{ verb: "restore", id, to: `#${String(n)}` }}
+                  />
+                )}
+              </details>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 }

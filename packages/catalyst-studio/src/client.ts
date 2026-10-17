@@ -10,11 +10,19 @@ export interface Connection {
   token: string;
 }
 
+/** One error or warning of `check`, with the entity it is about (catalyst >= 0.78.0). */
+export interface Finding {
+  level: "error" | "warning";
+  text: string;
+  entity: string | null;
+}
+
 /** `GET /v1/check`: `catalyst check --json`. */
 export interface CheckReport {
   ok: boolean;
   errors: string[];
   warnings: string[];
+  findings?: Finding[];
 }
 
 /** One file an unrecorded commit changed: its content hash before and after (null when absent). */
@@ -60,6 +68,23 @@ export interface Backlog {
   open: Record<string, Record<string, string[]>>;
   missing_links: { id: string; field: string }[];
   rules_without_open_work: string[];
+  /** The project's active rules and how many an artifact cites (catalyst >= 0.78.0). */
+  coverage?: { rules: number; cited: number };
+}
+
+/** One logged agent run, as `catalyst agent runs --json` gives it (catalyst >= 0.78.0). */
+export interface RunRecord {
+  timestamp: string;
+  actor: string;
+  agent: string;
+  command: string;
+  arguments: string;
+  ok: boolean;
+  turns: number;
+  usage: { input: number; output: number; cache_read: number; cache_write: number };
+  cost_usd: number | null;
+  duration_ms: number | null;
+  denied: string[];
 }
 
 /** `GET /v1/head` (local): the change counter, and what the deployment runs (catalyst >= 0.74.0). */
@@ -318,6 +343,11 @@ export class StudioClient {
   /** The registered users (`GET /v1/list?type=users`). */
   users(): Promise<User[]> {
     return this.get<User[]>("list?type=users");
+  }
+
+  /** This user's logged agent runs for the project, oldest first (catalyst >= 0.78.0, local mode). */
+  async runs(): Promise<RunRecord[]> {
+    return (await this.get<{ runs: RunRecord[] }>("runs")).runs;
   }
 
   /** The deployment's commands (catalyst >= 0.75.0). */
