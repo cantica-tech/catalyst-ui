@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { ActionError, actionArgs, describeAction, runAction } from "../actions.js";
+import { ActionError, actionArgs, describeAction, runAction, tryArgs } from "../actions.js";
 
 describe("actionArgs (studio-SHELL-000016)", () => {
   it("builds each allow-listed verb's arguments, options as --name=value", () => {
@@ -58,6 +58,20 @@ describe("actionArgs (studio-SHELL-000016)", () => {
     for (const gate of ["", "Auth", "a b", "--force", "x;rm"])
       expect(() => actionArgs({ verb: "approve", id: "REQ-000001", gate, intent: "x" })).toThrow("gate:");
     expect(() => actionArgs({ verb: "approve", id: "-x", gate: "g", intent: "x" })).toThrow("id:");
+  });
+
+  it("tries the same arguments with catalyst try (studio-SHELL-000020)", () => {
+    expect(tryArgs({ verb: "status-set", id: "REQ-000001", state: "Done", intent: "x" })).toEqual([
+      "try",
+      "--json",
+      "status",
+      "set",
+      "REQ-000001",
+      "Done",
+      "--intent=x",
+      "--json",
+    ]);
+    expect(() => tryArgs({ verb: "rm" })).toThrow(ActionError);
   });
 
   it("keeps a reason that looks like an option a value", () => {

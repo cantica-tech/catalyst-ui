@@ -43,6 +43,11 @@ export interface HostRuns {
   act?: (action: StudioAction) => Promise<ActionResult>;
   /** Asks for several in one confirmation (R6.17), each its own journaled change; with `act`. */
   actBatch?: (actions: StudioAction[]) => Promise<BatchResult>;
+  /**
+   * Tries an action first (studio-SHELL-000020): `catalyst try --json` on a
+   * scratch copy, no dialog; `output` is its report. Undefined: this host offers none.
+   */
+  tryIt?: (action: StudioAction) => Promise<ActionResult>;
 }
 
 interface Incoming {
@@ -51,6 +56,7 @@ interface Incoming {
   id?: string;
   runs?: boolean;
   actions?: boolean;
+  tries?: boolean;
   event?: RunEvent;
   ok?: boolean;
   output?: string;
@@ -73,6 +79,7 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
   const listeners = new Map<string, { onEvent: (e: RunEvent) => void; onDeclined: () => void }>();
   const pending = new Map<string, (result: ActionResult) => void>();
   const batches = new Map<string, (result: BatchResult) => void>();
+  const tries = new Map<string, (result: ActionResult) => void>();
   return new Promise((resolve) => {
     let answered = false;
     const timer = setTimeout(() => {
@@ -85,10 +92,15 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       if (data.type === "hello" && !answered) {
         answered = true;
         clearTimeout(timer);
-        resolve(data.runs ? { run, ...(data.actions ? { act, actBatch } : {}) } : null);
+        resolve(
+          data.runs ? { run, ...(data.actions ? { act, actBatch } : {}), ...(data.tries ? { tryIt } : {}) } : null,
+        );
       } else if (data.type === "run-event" && data.id && data.event) {
         listeners.get(data.id)?.onEvent(data.event);
         if (data.event.event === "end") listeners.delete(data.id);
+      } else if (data.type === "try-result" && data.id) {
+        tries.get(data.id)?.({ ok: data.ok === true, output: data.output ?? "", error: data.error ?? "" });
+        tries.delete(data.id);
       } else if (data.type === "action-result" && data.id) {
         pending.get(data.id)?.({
           ok: data.ok === true,
@@ -117,6 +129,14 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       return new Promise((done) => {
         pending.set(id, done);
         parent.postMessage({ catalyst: "studio", type: "action", id, action }, "*");
+      });
+    }
+
+    function tryIt(action: StudioAction): Promise<ActionResult> {
+      const id = newId();
+      return new Promise((done) => {
+        tries.set(id, done);
+        parent.postMessage({ catalyst: "studio", type: "try", id, action }, "*");
       });
     }
 
