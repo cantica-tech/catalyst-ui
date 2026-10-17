@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.48.1";
+export const VERSION = "0.49.0";
 
 export {
   KERNEL_VERSION_FLOOR,
