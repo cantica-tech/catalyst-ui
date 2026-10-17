@@ -36,7 +36,8 @@ export interface ChangedFile {
  * What catalyst shows for an item, by kind: a commit's sha, author and files
  * (`unrecorded-commit`), a path (`unrecorded-change`), a case's status and
  * entity (`reconciliation`), an analysis's status and scope (`analysis`),
- * a gate's count for the current version (`approval`, catalyst >= 0.80.0).
+ * a gate's count for the current version (`approval`, catalyst >= 0.80.0),
+ * a proposal's entity, file, blobs and author (`proposal`, catalyst >= 0.81.0).
  */
 export interface Evidence {
   commit?: string;
@@ -52,6 +53,8 @@ export interface Evidence {
   counted?: string[];
   missing?: number;
   version?: string;
+  base?: string | null;
+  proposed?: string | null;
   [key: string]: unknown;
 }
 
@@ -214,6 +217,18 @@ export interface Graph {
 }
 
 /** `GET /v1/view/<id>`: one artifact, with what an entity page shows (catalyst >= 0.73.0). */
+/** A proposal case's change, as `view` gives it (catalyst >= 0.81.0). */
+export interface ProposalView {
+  entity: string;
+  path: string | null;
+  base: string | null;
+  proposed: string | null;
+  /** Who wrote the proposed version. */
+  author: string | null;
+  content_base: string | null;
+  content_proposed: string | null;
+}
+
 export interface EntityView {
   id: string;
   type: string;
@@ -229,6 +244,8 @@ export interface EntityView {
   }[];
   sections?: { heading: string; text: string }[];
   next?: { state: string; blocked_by: string[] }[];
+  /** On a proposal case (catalyst >= 0.81.0). */
+  proposal?: ProposalView;
   [field: string]: unknown;
 }
 

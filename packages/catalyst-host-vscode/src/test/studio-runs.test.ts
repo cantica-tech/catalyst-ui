@@ -47,7 +47,7 @@ describe("StudioRuns (studio-SHELL-000015)", () => {
   it("says it runs, when the Studio asks", async () => {
     const h = harness(true);
     await h.runs.handle({ catalyst: "studio", type: "hello" });
-    assert.deepStrictEqual(h.posted, [{ catalyst: "host", type: "hello", runs: true, actions: false }]); // no `act`: no actions
+    assert.deepStrictEqual(h.posted, [{ catalyst: "host", type: "hello", runs: true, actions: false, tries: false }]); // no `act`: no actions
   });
 
   it("asks the person, then runs and streams each event back under the run's id", async () => {
@@ -118,7 +118,7 @@ describe("StudioRuns actions (studio-SHELL-000016)", () => {
   it("says it acts when it can, and asks with the exact command before running it", async () => {
     const h = actHarness(true);
     await h.runs.handle({ catalyst: "studio", type: "hello" });
-    assert.deepStrictEqual(h.posted[0], { catalyst: "host", type: "hello", runs: true, actions: true });
+    assert.deepStrictEqual(h.posted[0], { catalyst: "host", type: "hello", runs: true, actions: true, tries: true });
     await h.runs.handle({
       catalyst: "studio",
       type: "action",
@@ -239,5 +239,57 @@ describe("StudioRuns batches (R6.17)", () => {
     assert.deepStrictEqual(h.posted, [
       { catalyst: "host", type: "batch-result", id: "b4", results: [], error: "", declined: true },
     ]);
+  });
+});
+
+describe("StudioRuns' tries (studio-SHELL-000020)", () => {
+  function tryHarness() {
+    const posted: HostMessage[] = [];
+    const asked: string[] = [];
+    const ran: string[][] = [];
+    const runs = new StudioRuns({
+      confirm: (q) => {
+        asked.push(q);
+        return Promise.resolve(true);
+      },
+      start: () => ({ cancel: () => undefined, done: new Promise<RunEvent>(() => undefined) }),
+      post: (m) => posted.push(m),
+      act: (args) => {
+        ran.push(args);
+        return Promise.resolve({ ok: true, output: '{"change":"catalyst status set …"}', error: "" });
+      },
+    });
+    return { runs, posted, asked, ran };
+  }
+
+  it("tries an action with catalyst try, with no dialog, and returns its report", async () => {
+    const h = tryHarness();
+    await h.runs.handle({
+      catalyst: "studio",
+      type: "try",
+      id: "t1",
+      action: { verb: "status-set", id: "REQ-000001", state: "Done", intent: "Trying it" },
+    });
+    assert.deepStrictEqual(h.asked, []); // a try changes only a scratch copy
+    assert.deepStrictEqual(h.ran, [
+      ["try", "--json", "status", "set", "REQ-000001", "Done", "--intent=Trying it", "--json"],
+    ]);
+    assert.deepStrictEqual(h.posted, [
+      {
+        catalyst: "host",
+        type: "try-result",
+        id: "t1",
+        ok: true,
+        output: '{"change":"catalyst status set …"}',
+        error: "",
+      },
+    ]);
+  });
+
+  it("tries nothing whose fields fail the action's own checks", async () => {
+    const h = tryHarness();
+    await h.runs.handle({ catalyst: "studio", type: "try", id: "t2", action: { verb: "rm", path: "x" } });
+    assert.deepStrictEqual(h.ran, []);
+    assert.strictEqual((h.posted[0] as { error: string }).error.startsWith("Not tried: "), true);
   });
 });

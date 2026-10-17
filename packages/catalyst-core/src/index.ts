@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.49.0";
+export const VERSION = "0.50.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -125,4 +125,12 @@ export {
   watchCatalyst,
   watchProject,
 } from "./catalyst-source.js";
-export { ActionError, actionArgs, describeAction, runAction, type ActionResult, type StudioAction } from "./actions.js";
+export {
+  ActionError,
+  actionArgs,
+  describeAction,
+  runAction,
+  tryArgs,
+  type ActionResult,
+  type StudioAction,
+} from "./actions.js";

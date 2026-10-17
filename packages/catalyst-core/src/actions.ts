@@ -147,6 +147,15 @@ export function actionArgs(action: unknown): string[] {
   }
 }
 
+/**
+ * The same action tried first (studio-SHELL-000020, catalyst >= 0.82.0):
+ * `catalyst try --json <the action's arguments>`, made on a scratch copy of
+ * the criterion, so nothing the person owns changes.
+ */
+export function tryArgs(action: unknown): string[] {
+  return ["try", "--json", ...actionArgs(action)];
+}
+
 /** The command as the person reads it in the host's dialog. */
 export function describeAction(args: string[]): string {
   return ["catalyst", ...args.map((x) => (/^[\w./:=@-]+$/.test(x) ? x : JSON.stringify(x)))].join(" ");

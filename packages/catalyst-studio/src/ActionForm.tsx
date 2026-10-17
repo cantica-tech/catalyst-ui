@@ -2,6 +2,7 @@ import { useId, useState } from "react";
 
 import type { ActionResult, HostRuns, StudioAction } from "./host.js";
 import { Status } from "./Status.js";
+import { TryOutcome } from "./Trial.js";
 
 /** The tiers catalyst knows by default (a module may declare others; the host and catalyst check them). */
 export const TIERS = ["chore", "fix", "feature"] as const;
@@ -37,19 +38,31 @@ export function ActionForm({
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
+  const [tried, setTried] = useState<ActionResult | null>(null);
+  const [trying, setTrying] = useState(false);
   if (!host.act) return null;
   const act = host.act;
+  const full = (reason: string): StudioAction => ({
+    ...action,
+    intent: reason,
+    ...(journals ? { tier } : {}),
+    ...(journals && target.trim() ? { target: target.trim() } : {}),
+    ...(textLabel ? { text: text.trim() } : {}),
+  });
+  const tryIt = host.tryIt;
+  const tryFirst = () => {
+    if (!tryIt) return;
+    setTrying(true);
+    setTried(null);
+    void tryIt(full(why.trim() || "Trying it")).then((r) => {
+      setTrying(false);
+      setTried(r);
+    });
+  };
   const submit = () => {
     setBusy(true);
     setResult(null);
-    const full: StudioAction = {
-      ...action,
-      intent: why.trim(),
-      ...(journals ? { tier } : {}),
-      ...(journals && target.trim() ? { target: target.trim() } : {}),
-      ...(textLabel ? { text: text.trim() } : {}),
-    };
-    void act(full).then((r) => {
+    void act(full(why.trim())).then((r) => {
       setBusy(false);
       setResult(r);
       onDone?.(r);
@@ -119,7 +132,16 @@ export function ActionForm({
       <button type="submit" disabled={busy || !why.trim() || (textLabel !== undefined && !text.trim())}>
         {label}
       </button>{" "}
+      {tryIt && (
+        <>
+          <button type="button" disabled={trying || busy} onClick={tryFirst}>
+            Try it
+          </button>{" "}
+        </>
+      )}
       <span aria-live="polite">
+        {trying && <Status tone="info" label="Trying it on a scratch copy" />}
+        {tried && !trying && <TryOutcome result={tried} />}
         {busy && <Status tone="info" label="Waiting for your confirmation in the editor" />}
         {result?.declined && <Status tone="info" label="Not done: you declined" />}
         {result && !result.declined && result.ok && <Status tone="ok" label="Done; catalyst journaled it" />}

@@ -5,6 +5,7 @@ import { clipboardCopy, CopyButton } from "./Copy.js";
 import { ActionForm } from "./ActionForm.js";
 import { describeEvidence } from "./evidence.js";
 import { gateCount } from "./Gates.js";
+import { ProposalDiff } from "./Proposals.js";
 import { useHost } from "./host.js";
 import { Status } from "./Status.js";
 
@@ -15,6 +16,7 @@ const KINDS: { kind: string; heading: string }[] = [
   { kind: "reconciliation", heading: "Reconciliation cases" },
   { kind: "analysis", heading: "Analyses being decided" },
   { kind: "approval", heading: "Approvals waiting" },
+  { kind: "proposal", heading: "Proposals to decide" },
 ];
 
 function plural(n: number, word: string): string {
@@ -230,6 +232,7 @@ export function InboxItemPage({
         <code>{item.id}</code> {item.title}
       </h2>
       <p className="muted">{heading}</p>
+      {item.kind === "proposal" && <ProposalDiff proposal={artifact?.proposal} />}
       <Evidence item={item} artifact={artifact} />
       {host?.act && <SettleHere item={item} />}
       <section aria-labelledby="item-settle">
@@ -255,6 +258,17 @@ export function InboxItemPage({
 
 /** The decisions a reconciliation case takes (`catalyst reconcile`). */
 const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
+
+/**
+ * A proposal's decisions here (studio-SHELL-000019): accepting with edits
+ * needs the edited content, so it stays a command to copy.
+ */
+const PROPOSAL_DECISIONS: [string, string][] = [
+  ["accept", "Accept: write it to the entity"],
+  ["reject", "Reject"],
+  ["propose", "Propose a revision"],
+  ["close", "Withdraw (its author)"],
+];
 
 /**
  * Settling here, through the host (studio-SHELL-000016): an unrecorded
@@ -289,6 +303,19 @@ function SettleHere({ item }: { item: InboxItem }) {
               label={d}
               action={{ verb: "reconcile", case: item.id, decision: d }}
               textLabel={d === "propose" ? "The proposal" : undefined}
+            />
+          </li>
+        ))}
+      </ul>
+    ) : item.kind === "proposal" ? (
+      <ul className="settle">
+        {PROPOSAL_DECISIONS.map(([d, label]) => (
+          <li key={d}>
+            <ActionForm
+              host={host}
+              label={label}
+              action={{ verb: "reconcile", case: item.id, decision: d }}
+              textLabel={d === "propose" ? "The revision, in words" : undefined}
             />
           </li>
         ))}
@@ -356,8 +383,7 @@ export function Inbox({
   }, [client, batch]);
 
   const item = load.state === "ready" && open ? load.report.items.find((i) => `${i.kind}:${i.id}` === open) : undefined;
-  const viewable =
-    item && (item.kind === "reconciliation" || item.kind === "analysis" || item.kind === "approval") ? item.id : null;
+  const viewable = item && ["reconciliation", "analysis", "approval", "proposal"].includes(item.kind) ? item.id : null;
 
   useEffect(() => {
     setArtifact(undefined);
