@@ -26,7 +26,8 @@ goes through the governing agent, never straight from the UI.
   change shown beside the current text) is settled
   from there: the editor shows the exact catalyst command and runs it
   only on your yes. Approval gates need catalyst 0.80.0 or later,
-  proposals 0.81.0.
+  proposals 0.81.0; each action can be tried first, on a scratch copy,
+  with catalyst 0.82.0.
 - **Health board** — diagnostics, gutter marks, and CodeLens surface
   drift (orphaned artifacts, missing rule targets, dangling references)
   directly in the editor, with click-to-jump from a problem straight to

@@ -68,6 +68,7 @@ export { activity, Team, TeamView, type Activity } from "./Team.js";
 export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from "./Search.js";
 export { gateCount, gateCovers, GatesSection } from "./Gates.js";
 export { ProposalDiff } from "./Proposals.js";
+export { TryOutcome, tryReport, type TryFinding, type TryReport } from "./Trial.js";
 export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
 export {
   connectHost,

@@ -3,6 +3,7 @@ import {
   actionArgs,
   COMMAND_NAME,
   describeAction,
+  tryArgs,
   type ActionResult,
   type AgentRun,
   type RunEvent,
@@ -14,13 +15,15 @@ export type StudioMessage =
   | { catalyst: "studio"; type: "run"; id: string; command: string; arguments: string }
   | { catalyst: "studio"; type: "cancel"; id: string }
   | { catalyst: "studio"; type: "action"; id: string; action: unknown }
-  | { catalyst: "studio"; type: "batch"; id: string; actions: unknown };
+  | { catalyst: "studio"; type: "batch"; id: string; actions: unknown }
+  | { catalyst: "studio"; type: "try"; id: string; action: unknown };
 
 /** What the host tells the Studio. */
 export type HostMessage =
-  | { catalyst: "host"; type: "hello"; runs: boolean; actions: boolean; agent?: string }
+  | { catalyst: "host"; type: "hello"; runs: boolean; actions: boolean; tries?: boolean; agent?: string }
   | { catalyst: "host"; type: "run-event"; id: string; event: RunEvent }
   | { catalyst: "host"; type: "run-declined"; id: string }
+  | { catalyst: "host"; type: "try-result"; id: string; ok: boolean; output: string; error: string }
   | {
       catalyst: "host";
       type: "action-result";
@@ -71,6 +74,7 @@ export class StudioRuns {
         type: "hello",
         runs: true,
         actions: this.deps.act !== undefined,
+        tries: this.deps.act !== undefined,
         ...(this.deps.agent ? { agent: this.deps.agent } : {}),
       });
       return;
@@ -85,6 +89,10 @@ export class StudioRuns {
     }
     if (m.type === "action" && typeof m.id === "string") {
       await this.action(m.id, m.action);
+      return;
+    }
+    if (m.type === "try" && typeof m.id === "string") {
+      await this.tryAction(m.id, m.action);
       return;
     }
     if (m.type !== "run" || typeof m.id !== "string" || typeof m.command !== "string") return;
@@ -130,6 +138,27 @@ export class StudioRuns {
     }
     if (!(await this.deps.confirm(`Run this in the project?\n\n${describeAction(args)}`))) {
       reply(false, "", "", true);
+      return;
+    }
+    const result = await this.deps.act(args);
+    reply(result.ok, result.output, result.error);
+  }
+
+  /**
+   * An action tried (studio-SHELL-000020): its fields checked as for the
+   * action itself, then `catalyst try` run with no dialog — it changes only a
+   * scratch copy under catalyst's home — and its report returned.
+   */
+  private async tryAction(id: string, action: unknown): Promise<void> {
+    if (!this.deps.act) return;
+    const reply = (ok: boolean, output: string, error: string) => {
+      this.deps.post({ catalyst: "host", type: "try-result", id, ok, output, error });
+    };
+    let args: string[];
+    try {
+      args = tryArgs(action);
+    } catch (err) {
+      reply(false, "", err instanceof ActionError ? `Not tried: ${err.message}` : String(err));
       return;
     }
     const result = await this.deps.act(args);
