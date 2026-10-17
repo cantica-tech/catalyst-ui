@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 
-import type { EntityType, EntityView, Graph, GraphArtifact, History, Impact, StudioClient } from "./client.js";
+import type {
+  ApprovalsReport,
+  EntityType,
+  EntityView,
+  Graph,
+  GraphArtifact,
+  History,
+  Impact,
+  StudioClient,
+} from "./client.js";
 import { DriftBadge, DriftSection } from "./drift.js";
+import { GatesSection } from "./Gates.js";
 import { ImpactBar, ImpactMark } from "./impact.js";
 import { EntityHistory } from "./History.js";
 import { ruleStatus } from "./Rules.js";
@@ -77,6 +87,7 @@ export function EntityPage({
   type,
   impact,
   history,
+  approvals,
   onOpen,
   onBack,
 }: {
@@ -86,6 +97,8 @@ export function EntityPage({
   impact?: Impact;
   /** Every change to its file, when catalyst serves `history`; without it, the journal entries naming it. */
   history?: History;
+  /** The gates covering it, when catalyst serves `approvals` (>= 0.80.0). */
+  approvals?: ApprovalsReport;
   onOpen: (id: string) => void;
   onBack: () => void;
 }) {
@@ -135,6 +148,8 @@ export function EntityPage({
       </p>
 
       <DriftSection id={entity.id} />
+
+      <GatesSection report={approvals} />
 
       {text(entity.text) && (
         <section aria-labelledby="entity-text">
@@ -252,6 +267,7 @@ export function Artifacts({ client, target }: { client: StudioClient; target?: s
   const [entity, setEntity] = useState<Load<EntityView> | null>(null);
   const [impact, setImpact] = useState<Impact | undefined>(undefined);
   const [history, setHistory] = useState<History | undefined>(undefined);
+  const [approvals, setApprovals] = useState<ApprovalsReport | undefined>(undefined);
   const [batch, setBatch] = useState(0);
 
   useEffect(() => {
@@ -287,6 +303,13 @@ export function Artifacts({ client, target }: { client: StudioClient; target?: s
     setEntity({ state: "loading" });
     setImpact(undefined);
     setHistory(undefined);
+    setApprovals(undefined);
+    client.approvals(open).then(
+      (value) => {
+        if (live) setApprovals(value);
+      },
+      () => undefined, // an older catalyst serves no approvals: the page shows no gate
+    );
     client.history(open).then(
       (value) => {
         if (live) setHistory(value);
@@ -333,6 +356,7 @@ export function Artifacts({ client, target }: { client: StudioClient; target?: s
         type={typeOf(graph.value, entity.value.type)}
         impact={impact}
         history={history}
+        approvals={approvals}
         onOpen={setOpen}
         onBack={() => {
           setOpen(null);

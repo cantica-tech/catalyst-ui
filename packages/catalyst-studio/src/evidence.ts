@@ -28,6 +28,12 @@ export function describeEvidence(item: InboxItem): string {
       const about = words(e.entity) || words(e.scope);
       return [words(e.status), about && `about ${about}`].filter(Boolean).join(", ");
     }
+    case "approval": {
+      const missing = typeof e.missing === "number" ? e.missing : 0;
+      return [words(e.gate) && `gate ${words(e.gate)}`, missing > 0 && `${plural(missing, "approval")} missing`]
+        .filter(Boolean)
+        .join(", ");
+    }
     default:
       return Object.entries(e)
         .filter(([, v]) => typeof v === "string" && v.trim())

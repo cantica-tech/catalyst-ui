@@ -35,7 +35,8 @@ export interface ChangedFile {
 /**
  * What catalyst shows for an item, by kind: a commit's sha, author and files
  * (`unrecorded-commit`), a path (`unrecorded-change`), a case's status and
- * entity (`reconciliation`), an analysis's status and scope (`analysis`).
+ * entity (`reconciliation`), an analysis's status and scope (`analysis`),
+ * a gate's count for the current version (`approval`, catalyst >= 0.80.0).
  */
 export interface Evidence {
   commit?: string;
@@ -45,6 +46,12 @@ export interface Evidence {
   status?: string;
   entity?: string | null;
   scope?: string | null;
+  gate?: string;
+  role?: string;
+  approvals?: number;
+  counted?: string[];
+  missing?: number;
+  version?: string;
   [key: string]: unknown;
 }
 
@@ -125,6 +132,26 @@ export interface HistoryEntry {
   content_before: string | null;
   content_after: string | null;
   redacted: boolean;
+}
+
+/** One approval gate covering an entity, counted for its current version (catalyst >= 0.80.0). */
+export interface ApprovalGate {
+  gate: string;
+  role: string;
+  /** How many approvals the gate asks for. */
+  approvals: number;
+  covers: { rules: { domain: string } } | { type: string; to: string };
+  /** Who approved this version, each counting. */
+  counted: string[];
+  missing: number;
+}
+
+/** `GET /v1/approvals/<id>`: `catalyst approvals <id> --json` (catalyst >= 0.80.0). */
+export interface ApprovalsReport {
+  id: string;
+  /** The blob of the entity's file as it is now: the version approvals are of. */
+  version: string;
+  gates: ApprovalGate[];
 }
 
 /** `GET /v1/history/<id>`: every change to an entity's file, in the journal's order (catalyst >= 0.62.0). */
@@ -338,6 +365,11 @@ export class StudioClient {
 
   history(id: string): Promise<History> {
     return this.get<History>(`history/${encodeURIComponent(id)}`);
+  }
+
+  /** The gates covering an entity and what each lacks (catalyst >= 0.80.0). */
+  approvals(id: string): Promise<ApprovalsReport> {
+    return this.get<ApprovalsReport>(`approvals/${encodeURIComponent(id)}`);
   }
 
   /** The registered users (`GET /v1/list?type=users`). */

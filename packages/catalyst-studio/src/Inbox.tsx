@@ -4,6 +4,7 @@ import type { ChangedFile, EntityView, InboxItem, InboxReport, StudioClient } fr
 import { clipboardCopy, CopyButton } from "./Copy.js";
 import { ActionForm } from "./ActionForm.js";
 import { describeEvidence } from "./evidence.js";
+import { gateCount } from "./Gates.js";
 import { useHost } from "./host.js";
 import { Status } from "./Status.js";
 
@@ -13,6 +14,7 @@ const KINDS: { kind: string; heading: string }[] = [
   { kind: "unrecorded-change", heading: "Changes the journal does not record" },
   { kind: "reconciliation", heading: "Reconciliation cases" },
   { kind: "analysis", heading: "Analyses being decided" },
+  { kind: "approval", heading: "Approvals waiting" },
 ];
 
 function plural(n: number, word: string): string {
@@ -135,6 +137,35 @@ function Evidence({ item, artifact }: { item: InboxItem; artifact?: EntityView }
             </dd>
           </div>
         )}
+        {e.gate && (
+          <div>
+            <dt>Gate</dt>
+            <dd>
+              <code>{e.gate}</code>
+            </dd>
+          </div>
+        )}
+        {e.role && typeof e.approvals === "number" && (
+          <div>
+            <dt>Approvals</dt>
+            <dd>
+              {gateCount({
+                approvals: e.approvals,
+                role: e.role,
+                counted: Array.isArray(e.counted) ? e.counted : [],
+                missing: typeof e.missing === "number" ? e.missing : 0,
+              })}
+            </dd>
+          </div>
+        )}
+        {e.version && (
+          <div>
+            <dt>Version</dt>
+            <dd>
+              <code>{e.version.slice(0, 12)}</code> <span className="muted">(approvals are of this version)</span>
+            </dd>
+          </div>
+        )}
         {e.scope && (
           <div>
             <dt>Scope</dt>
@@ -227,8 +258,9 @@ const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
 
 /**
  * Settling here, through the host (studio-SHELL-000016): an unrecorded
- * commit adopted, a changed file journaled, a case decided. Reverting and
- * an analysis's decision stay commands to copy.
+ * commit adopted, a changed file journaled, a case decided, a gated
+ * version approved (studio-SHELL-000018). Reverting and an analysis's
+ * decision stay commands to copy.
  */
 function SettleHere({ item }: { item: InboxItem }) {
   const host = useHost();
@@ -261,6 +293,12 @@ function SettleHere({ item }: { item: InboxItem }) {
           </li>
         ))}
       </ul>
+    ) : item.kind === "approval" && item.evidence.gate ? (
+      <ActionForm
+        host={host}
+        label="Approve this version"
+        action={{ verb: "approve", id: item.id, gate: item.evidence.gate }}
+      />
     ) : null;
   if (!forms) return null;
   return (
@@ -318,7 +356,8 @@ export function Inbox({
   }, [client, batch]);
 
   const item = load.state === "ready" && open ? load.report.items.find((i) => `${i.kind}:${i.id}` === open) : undefined;
-  const viewable = item && (item.kind === "reconciliation" || item.kind === "analysis") ? item.id : null;
+  const viewable =
+    item && (item.kind === "reconciliation" || item.kind === "analysis" || item.kind === "approval") ? item.id : null;
 
   useEffect(() => {
     setArtifact(undefined);
