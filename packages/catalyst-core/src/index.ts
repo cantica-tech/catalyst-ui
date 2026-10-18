@@ -134,3 +134,4 @@ export {
   type ActionResult,
   type StudioAction,
 } from "./actions.js";
+export { BATCH_LIMIT, StudioRuns, type HostMessage, type RunDeps, type StudioMessage } from "./studio-host.js";

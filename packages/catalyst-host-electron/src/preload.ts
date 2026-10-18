@@ -2,18 +2,13 @@ import { contextBridge, ipcRenderer } from "electron";
 
 import type { GraphLayout } from "./graph.js";
 import type { TrackedProject } from "./state.js";
-import type { NodeDetailPayload, SlashCommandSpec } from "catalyst-core";
+import type { NodeDetailPayload } from "catalyst-core";
 
 export interface ProjectUpdate {
   projectId: string;
   nodeCount: number;
   errorCount: number;
   layout: GraphLayout;
-}
-
-export interface AgentOutputEvent {
-  projectId: string;
-  chunk: string;
 }
 
 const api = {
@@ -29,19 +24,8 @@ const api = {
     ipcRenderer.on("catalyst:project-update", handler);
     return () => ipcRenderer.removeListener("catalyst:project-update", handler);
   },
-  listSlashCommands: (projectId: string): Promise<SlashCommandSpec[]> =>
-    ipcRenderer.invoke("catalyst:listSlashCommands", projectId),
-  runSlashCommand: (projectId: string, name: string, args: string): Promise<string | null> =>
-    ipcRenderer.invoke("catalyst:runSlashCommand", projectId, name, args),
-  sendAgentInput: (projectId: string, text: string): Promise<void> =>
-    ipcRenderer.invoke("catalyst:sendAgentInput", projectId, text),
-  onAgentOutput: (listener: (event: AgentOutputEvent) => void): (() => void) => {
-    const handler = (_event: unknown, payload: AgentOutputEvent) => {
-      listener(payload);
-    };
-    ipcRenderer.on("catalyst:agent-output", handler);
-    return () => ipcRenderer.removeListener("catalyst:agent-output", handler);
-  },
+  /** Opens the project's Studio in its own window (R6.20); null, or why not. */
+  openStudio: (projectId: string): Promise<string | null> => ipcRenderer.invoke("catalyst:openStudio", projectId),
 };
 
 export type CatalystApi = typeof api;
