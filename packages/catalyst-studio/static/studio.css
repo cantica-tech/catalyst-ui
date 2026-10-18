@@ -189,6 +189,14 @@ main h2 {
   color: var(--text-muted);
 }
 
+/* A rule's strength (must / should / may): a word in a thin frame, not a status colour. */
+.strength {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 0.3em;
+  font-size: 0.9em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
