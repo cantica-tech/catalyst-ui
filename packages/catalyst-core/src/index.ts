@@ -19,7 +19,6 @@ export {
   type PickItem,
   type PickOptions,
 } from "./host-port.js";
-export * from "./module-loader.js";
 export {
   AGENT_PRESETS,
   declaresCommand,
@@ -34,8 +33,9 @@ export { isAllowedAgentId, resolveAgentCommand, resolveAgentLaunch } from "./age
 export type { AgentLaunch } from "./agent-launch.js";
 export {
   commandNames,
+  commandsFromCatalog,
   discoverSlashCommands,
-  parseSection4Commands,
+  type RunCatalyst,
   type SlashCommandSpec,
 } from "./commands-discovery.js";
 export { branchSafeName, suggestCriterionBranch } from "./criterion.js";
@@ -106,7 +106,7 @@ export {
   readProjectFile,
 } from "./project-file.js";
 export { coerceJournal, queryJournal } from "./journal.js";
-export { bulletItems, cleanRuleTitle, extractSlugFromRuleId, parseFieldTable, sectionLines } from "./markdown.js";
+export { cleanRuleTitle, parseFieldTable, sectionLines } from "./markdown.js";
 export {
   CATALYST_SERVE_FLOOR,
   type CatalystCheck,
