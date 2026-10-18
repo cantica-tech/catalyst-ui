@@ -1,6 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import type { IamRole, IamUser } from "./types.js";
 
 function isStringArray(value: unknown): value is string[] {
@@ -31,44 +28,23 @@ function coerceRole(value: unknown): IamRole | null {
 }
 
 /**
- * `IAM/users/users.json` — `{"users": [...]}`, managed only by `/user-*`
- * commands. Never thrown from: a missing, empty, or malformed file
- * degrades to `[]` rather than killing the watch cycle, the same
- * graceful-degradation posture as every other parser here.
+ * The registered users as catalyst lists them (`GET /v1/list?type=users`,
+ * R5.3: never read from the criterion's files here). Anything but a list of
+ * users degrades to `[]`, so a watch cycle never dies of it.
  */
-export function parseIamUsers(corpusRoot: string): IamUser[] {
-  const filePath = join(corpusRoot, "IAM", "users", "users.json");
-  if (!existsSync(filePath)) return [];
-
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
-    if (typeof parsed !== "object" || parsed === null) return [];
-    const users = (parsed as Record<string, unknown>).users;
-    if (!Array.isArray(users)) return [];
-    return users
-      .map(coerceUser)
-      .filter((u): u is IamUser => u !== null)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch {
-    return [];
-  }
+export function usersFrom(list: unknown): IamUser[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(coerceUser)
+    .filter((u): u is IamUser => u !== null)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** `IAM/roles/roles.json` — `{"roles": [...]}`, managed only by `/role-*` commands. Same degrade-to-`[]` posture as `parseIamUsers`. */
-export function parseIamRoles(corpusRoot: string): IamRole[] {
-  const filePath = join(corpusRoot, "IAM", "roles", "roles.json");
-  if (!existsSync(filePath)) return [];
-
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(filePath, "utf8"));
-    if (typeof parsed !== "object" || parsed === null) return [];
-    const roles = (parsed as Record<string, unknown>).roles;
-    if (!Array.isArray(roles)) return [];
-    return roles
-      .map(coerceRole)
-      .filter((r): r is IamRole => r !== null)
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch {
-    return [];
-  }
+/** The roles as catalyst lists them (`GET /v1/list?type=role`); the same degrade-to-`[]` posture. */
+export function rolesFrom(list: unknown): IamRole[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map(coerceRole)
+    .filter((r): r is IamRole => r !== null)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

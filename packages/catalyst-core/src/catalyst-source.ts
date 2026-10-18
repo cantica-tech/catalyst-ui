@@ -4,7 +4,7 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline";
 
-import { parseIamRoles, parseIamUsers } from "./iam.js";
+import { rolesFrom, usersFrom } from "./iam.js";
 import { buildShortFormIndex, resolveIdReference } from "./ids.js";
 import { sectionLines } from "./markdown.js";
 import type {
@@ -16,6 +16,7 @@ import type {
   ValidationIssue,
   ValidationReport,
   WatchUpdate,
+  EntityDefinition,
 } from "./types.js";
 import { coerceJournal } from "./journal.js";
 
@@ -348,6 +349,18 @@ export function startLocalServe(
   });
 }
 
+/** The served definitions, each with a slug and a description; anything else gives none. */
+export function definitionsFrom(served: unknown): EntityDefinition[] {
+  const list = (served as { definitions?: unknown } | null)?.definitions;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((d) => {
+    const r = d as Partial<EntityDefinition> | null;
+    return r && typeof r.slug === "string" && typeof r.description === "string" && r.description
+      ? [{ slug: r.slug, version: typeof r.version === "string" ? r.version : null, description: r.description }]
+      : [];
+  });
+}
+
 async function getJson(server: CatalystServer, path: string, signal?: AbortSignal): Promise<unknown> {
   const res = await fetch(`${server.url}/v1${path}`, { headers: { Authorization: `Bearer ${server.token}` }, signal });
   if (!res.ok) throw new Error(`catalyst serve ${path}: ${res.status}`);
@@ -360,18 +373,22 @@ export async function readThroughCatalyst(
   criterionRoot: string,
   signal?: AbortSignal,
 ): Promise<WatchUpdate> {
-  const [graph, check, journal] = await Promise.all([
+  const [graph, check, journal, users, roles, definitions] = await Promise.all([
     getJson(server, "/graph", signal),
     getJson(server, "/check", signal),
     getJson(server, "/journal", signal),
+    getJson(server, "/list?type=users", signal),
+    getJson(server, "/list?type=role", signal),
+    getJson(server, "/definitions", signal).catch(() => ({ definitions: [] })), // a catalyst before 0.88.0 has none
   ]);
   const model = modelFromGraph(graph as CatalystGraph, criterionRoot);
   return {
     model,
     report: reportFromCheck(check as CatalystCheck, criterionRoot, model),
     journal: coerceJournal(journal),
-    users: parseIamUsers(criterionRoot),
-    roles: parseIamRoles(criterionRoot),
+    users: usersFrom(users),
+    roles: rolesFrom(roles),
+    definitions: definitionsFrom(definitions),
   };
 }
 

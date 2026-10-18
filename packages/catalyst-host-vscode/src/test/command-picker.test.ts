@@ -10,9 +10,8 @@ const create: SlashCommandSpec = {
   name: "create",
   description: "create an artifact",
   argumentHint: "<type> <title>",
-  filePath: "CODE-OF-CONDUCT.md",
 };
-const help: SlashCommandSpec = { name: "help", description: "every command", filePath: "CODE-OF-CONDUCT.md" };
+const help: SlashCommandSpec = { name: "help", description: "every command" };
 
 describe("pickCommandAndArgs (through the host port)", () => {
   it("says so and picks nothing when no project has commands", async () => {

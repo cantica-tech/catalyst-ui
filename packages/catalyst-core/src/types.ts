@@ -194,6 +194,15 @@ export interface WatchUpdate {
   journal: JournalEntry[];
   users: IamUser[];
   roles: IamRole[];
+  /** The deployed definitions as catalyst serves them (catalyst >= 0.88.0; none before). */
+  definitions: EntityDefinition[];
+}
+
+/** One deployed definition (`definitions/<slug>.md`): what a type or a kernel record is, in a sentence or two. */
+export interface EntityDefinition {
+  slug: string;
+  version: string | null;
+  description: string;
 }
 
 /**

@@ -1,147 +1,75 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
-import { resolveCorpusRoot } from "./discover.js";
+import { catalystCommand } from "./catalyst-source.js";
 
 export interface SlashCommandSpec {
   /** The command's primary name, without the slash. */
   name: string;
-  /** Its §4 bullet text after the "—": first sentence, whitespace-collapsed. */
+  /** Its summary's first sentence, whitespace-collapsed. */
   description?: string;
-  /** What its bullet shows after the name in the code span, e.g. `<title>`; several bullets' are joined with " | ". */
+  /** What its usage shows after the name, e.g. `<title>`. */
   argumentHint?: string;
-  /** Other names its bullet gives it (`/create-req` or `/create-requirement`). */
+  /** Other names it answers to (`/create-<type>`). */
   aliases?: string[];
-  /** The `CODE-OF-CONDUCT.md` it was read from. */
-  filePath: string;
 }
 
-/** A bullet that defines a command: "- `/name". Same as catalyst's `spec.py` `BULLET_START`. */
-const BULLET_START = /^- `\/([a-z][a-z0-9-]*)/;
-/** `/name`, `/name <args>` and `/name: ...` all name a command. Same as `spec.py` `MENTION`. */
-const MENTION = /`\/([a-z][a-z0-9-]*)(?=[`\s:])/g;
-/** The first code span opening the bullet: "- `/name <args>`". */
-const FIRST_SPAN = /^- `\/[a-z][a-z0-9-]*([^`]*)`/;
+/** One command as `catalyst spec --json` (`GET /v1/commands`) gives it. */
+interface CatalogEntry {
+  name: string;
+  usage?: string;
+  summary?: string;
+  aliases?: string[];
+}
+
 const MAX_DESCRIPTION = 200;
 
-/** The lines of `## 4.` up to `## 5.` (or the end), or `null` with no §4. */
-function section4Lines(text: string): string[] | null {
-  const start = /^## 4\.[^\n]*\n/m.exec(text);
-  if (!start) return null;
-  const rest = text.slice(start.index + start[0].length);
-  const end = /^## 5\./m.exec(rest);
-  return (end ? rest.slice(0, end.index) : rest).split(/\r?\n/);
+function firstSentence(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  const end = flat.search(/[.;](\s|$)/);
+  const sentence = end >= 0 ? flat.slice(0, end + 1) : flat;
+  return sentence.length > MAX_DESCRIPTION ? `${sentence.slice(0, MAX_DESCRIPTION - 1)}…` : sentence;
 }
 
-/** The bullet blocks of §4: a "- `/name" line plus its indented continuation lines. */
-function bulletBlocks(lines: string[]): string[] {
-  const blocks: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    if (!BULLET_START.test(lines[i])) {
-      i += 1;
-      continue;
-    }
-    const block = [lines[i]];
-    i += 1;
-    while (i < lines.length && lines[i].startsWith("  ") && !BULLET_START.test(lines[i])) {
-      block.push(lines[i]);
-      i += 1;
-    }
-    blocks.push(block.join("\n"));
-  }
-  return blocks;
+/** The commands of catalyst's own catalogue, in its order (R5.3: read from catalyst, never parsed here). */
+export function commandsFromCatalog(catalog: unknown): SlashCommandSpec[] {
+  const list = (catalog as { commands?: unknown } | null)?.commands;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((c): c is CatalogEntry => typeof (c as CatalogEntry | null)?.name === "string")
+    .map((c) => {
+      const hint = (c.usage ?? "").replace(new RegExp(`^/${c.name}\\s*`), "").trim();
+      return {
+        name: c.name,
+        ...(c.summary ? { description: firstSentence(c.summary) } : {}),
+        ...(hint ? { argumentHint: hint } : {}),
+        ...(c.aliases && c.aliases.length > 0 ? { aliases: c.aliases } : {}),
+      };
+    });
 }
 
-function summarize(bullet: string): string | undefined {
-  const flat = bullet.replace(/\s+/g, " ").trim();
-  const dash = flat.indexOf("—");
-  if (dash < 0) return undefined;
-  const text = flat.slice(dash + 1).trim();
-  if (text.length === 0) return undefined;
-  // First sentence: a stop followed by a capital (so "e.g. foo" doesn't end it).
-  const sentence = /^(.*?[.!?])(?=\s+[A-Z`(]|$)/.exec(text);
-  const first = sentence ? sentence[1] : text;
-  return first.length <= MAX_DESCRIPTION ? first : `${first.slice(0, MAX_DESCRIPTION - 1).trimEnd()}…`;
-}
-
-function argumentHintOf(bullet: string): string | undefined {
-  const hint = FIRST_SPAN.exec(bullet)?.[1]?.trim();
-  return hint ? hint : undefined;
-}
-
-/**
- * The commands of a composed `CODE-OF-CONDUCT.md` §4 — mirrors catalyst's
- * `scripts/catalyst/spec.py` (`section4_text`, `BULLET_START`, `MENTION`,
- * `parse`): a command is a bullet starting "- `/name"; further `/x`
- * mentions before its "—" are aliases. A command with several bullets
- * (one per subcommand) is one entry. Sorted by name; `[]` with no §4.
- */
-export function parseSection4Commands(text: string, filePath = "CODE-OF-CONDUCT.md"): SlashCommandSpec[] {
-  const lines = section4Lines(text);
-  if (!lines) return [];
-
-  const byName = new Map<string, { description?: string; hints: string[]; aliases: string[] }>();
-  const aliasOf = new Map<string, string>();
-  for (const bullet of bulletBlocks(lines)) {
-    const head = `${bullet.split("—", 1)[0]} `;
-    const names = [...head.matchAll(MENTION)].map((m) => m[1]);
-    // e.g. "`/x|y`" names no command: skip it, never fail the parse.
-    if (names.length === 0) continue;
-    const [primary, ...aliases] = names;
-    let entry = byName.get(primary);
-    if (!entry) {
-      entry = { description: summarize(bullet), hints: [], aliases: [] };
-      byName.set(primary, entry);
-    }
-    const hint = argumentHintOf(bullet);
-    if (hint && !entry.hints.includes(hint)) entry.hints.push(hint);
-    for (const alias of aliases) {
-      if (alias === primary || aliasOf.has(alias)) continue;
-      aliasOf.set(alias, primary);
-      entry.aliases.push(alias);
-    }
-  }
-
-  return [...byName.entries()]
-    .filter(([name]) => !aliasOf.has(name))
-    .map(([name, entry]): SlashCommandSpec => {
-      const spec: SlashCommandSpec = { name, filePath };
-      if (entry.description) spec.description = entry.description;
-      if (entry.hints.length > 0) spec.argumentHint = entry.hints.join(" | ");
-      if (entry.aliases.length > 0) spec.aliases = entry.aliases;
-      return spec;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/** Every name a command answers to — primaries and aliases — e.g. for an allow-list. */
 export function commandNames(specs: readonly SlashCommandSpec[]): string[] {
   return specs.flatMap((spec) => [spec.name, ...(spec.aliases ?? [])]);
 }
 
+/** Runs catalyst; the default spawns it with no shell, from the project, for at most 15 seconds. */
+export type RunCatalyst = (args: string[], cwd: string) => { status: number | null; stdout: string };
+
+const runCatalyst: RunCatalyst = (args, cwd) => {
+  const [cmd, ...pre] = catalystCommand();
+  const out = spawnSync(cmd, [...pre, ...args], { cwd, encoding: "utf8", timeout: 15_000, shell: false });
+  return { status: out.status, stdout: out.stdout };
+};
+
 /**
- * The catalyst commands of a project: §4 of its criterion's composed
- * `CODE-OF-CONDUCT.md` (the criterion resolved by `resolveCorpusRoot`),
- * the same list catalyst's MCP server (`catalyst mcp`) offers as prompts.
- * catalyst writes no command files into the project, so nothing under
- * the project's own tree is read. `[]` when no criterion resolves or it
- * has no readable `CODE-OF-CONDUCT.md`.
+ * The catalyst commands of a project, as catalyst gives them (`catalyst spec
+ * --json`): the same list its MCP server offers as prompts. `[]` when
+ * catalyst cannot be run or the project has no deployment.
  */
-export function discoverSlashCommands(projectRoot: string): SlashCommandSpec[] {
-  let corpusRoot: string | null;
+export function discoverSlashCommands(projectRoot: string, run: RunCatalyst = runCatalyst): SlashCommandSpec[] {
   try {
-    corpusRoot = resolveCorpusRoot(projectRoot);
+    const out = run(["--project", projectRoot, "spec", "--json"], projectRoot);
+    return out.status === 0 ? commandsFromCatalog(JSON.parse(out.stdout)) : [];
   } catch {
     return [];
   }
-  if (!corpusRoot) return [];
-  const filePath = join(corpusRoot, "CODE-OF-CONDUCT.md");
-  let text: string;
-  try {
-    text = readFileSync(filePath, "utf8");
-  } catch {
-    return [];
-  }
-  return parseSection4Commands(text, filePath);
 }

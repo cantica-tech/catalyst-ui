@@ -27,22 +27,12 @@
       "count": 1
     }
   },
-  "packages/catalyst-core/src/commands-discovery.ts": {
-    "@typescript-eslint/prefer-nullish-coalescing": {
-      "count": 1
-    }
-  },
   "packages/catalyst-core/src/join-criterion.ts": {
     "no-useless-assignment": {
       "count": 1
     },
     "preserve-caught-error": {
       "count": 1
-    }
-  },
-  "packages/catalyst-core/src/module-loader.ts": {
-    "@typescript-eslint/no-unnecessary-condition": {
-      "count": 3
     }
   },
   "packages/catalyst-core/src/remote-module-store.ts": {

@@ -18,7 +18,6 @@ import {
   meetsRequiredKernelVersion,
   readCatalystPointer,
   readDeployedKernelVersion,
-  readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
   workingCopyState,
@@ -236,46 +235,6 @@ describe("meetsRequiredKernelVersion", () => {
 
   it("treats null (can't safely compare) as satisfying the requirement", () => {
     expect(meetsRequiredKernelVersion(null)).toBe(true);
-  });
-});
-
-describe("readEntityDefinition", () => {
-  function writeDefinition(root: string, entityType: string, body: string) {
-    mkdirSync(join(root, "definitions"), { recursive: true });
-    writeFileSync(join(root, "definitions", `${entityType}.md`), body);
-  }
-
-  it("reads a definition's version and description", () => {
-    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeDefinition(
-      projectRoot,
-      "rule",
-      "# `rule` — entity definition (v1)\n\n" +
-        "| Field | Value |\n|---|---|\n" +
-        "| **Entity type** | `rule` |\n| **Version** | 1 |\n\n" +
-        "## Description\n\nA rule is the unit implementation is measured against.\n",
-    );
-    expect(readEntityDefinition(projectRoot, "rule")).toEqual({
-      version: "1",
-      description: "A rule is the unit implementation is measured against.",
-    });
-  });
-
-  it("returns null when definitions/<type>.md doesn't exist", () => {
-    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
-  });
-
-  it("returns null when the Version field is missing", () => {
-    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeDefinition(projectRoot, "rule", "# `rule`\n\n## Description\n\nA rule.\n");
-    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
-  });
-
-  it("returns null when the Description section is missing", () => {
-    projectRoot = mkdtempSync(join(tmpdir(), "catalyst-core-discover-"));
-    writeDefinition(projectRoot, "rule", "# `rule`\n\n| Field | Value |\n|---|---|\n| **Version** | 1 |\n");
-    expect(readEntityDefinition(projectRoot, "rule")).toBeNull();
   });
 });
 
