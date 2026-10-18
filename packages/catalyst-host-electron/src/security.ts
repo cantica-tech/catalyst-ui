@@ -63,6 +63,17 @@ export function validateAgentInput(projectId: unknown, text: unknown): Checked<{
  * bundled renderer, by nonce), no plugins, frames, forms or base rewrite.
  * Inline `style` is allowed because React views set style attributes.
  */
+/**
+ * The same page with its script inline: a `data:` page may not load a `file:`
+ * script (the packaged app's), so the code goes in under the nonce; a
+ * `</script` in it is escaped so it cannot end the element.
+ */
+export function renderInlineHtml(code: string, nonce: string): string {
+  const body = `<script nonce="${nonce}">${code.replace(/<\/script/gi, () => "<\\/script")}</script>`;
+  // a function, so `$&` and the like in the code are kept as written, never read as patterns
+  return renderIndexHtml("", nonce).replace(`<script nonce="${nonce}" src=""></script>`, () => body);
+}
+
 export function renderIndexHtml(scriptSrc: string, nonce: string): string {
   const csp = [
     "default-src 'none'",

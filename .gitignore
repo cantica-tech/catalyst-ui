@@ -7,3 +7,6 @@ out/
 .DS_Store
 .env
 
+# the desktop app: its packaged directory and the builds (R6.20)
+packages/catalyst-host-electron/app/
+packages/catalyst-host-electron/release/

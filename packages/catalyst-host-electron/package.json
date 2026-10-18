@@ -8,7 +8,9 @@
     "build": "tsc --build --force",
     "prebuild": "npm run build:renderer",
     "build:renderer": "esbuild src/renderer-entry.tsx --bundle --minify --outfile=dist/renderer.js --format=iife --platform=browser --jsx=automatic",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bundle": "node scripts/bundle.mjs",
+    "dist": "npm run bundle && electron-builder --publish never"
   },
   "dependencies": {
     "catalyst-core": "*",
@@ -22,6 +24,7 @@
     "@types/react-dom": "^18.2.0",
     "electron": "^30.0.0",
     "esbuild": "^0.21.5",
-    "vitest": "^1.4.0"
+    "vitest": "^1.4.0",
+    "electron-builder": "^25.1.8"
   }
 }
