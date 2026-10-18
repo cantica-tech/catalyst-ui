@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-
 /**
  * Small Markdown helpers for the files this package still reads itself
  * (proposals, runs, a deployment's discovery) and for display (a rule's
@@ -21,23 +19,6 @@ export function cleanRuleTitle(raw: string): string {
     .replace(/^[\u2014\u2013/.:,\s-]+|[\u2014\u2013/.:,\s-]+$/g, "")
     .trim();
   return s;
-}
-
-/** `| **Field** | Value |` rows in one artifact file, plus its raw text for reference scanning. */
-export function parseFieldTable(filePath: string): {
-  fields: Map<string, string>;
-  text: string;
-} {
-  const text = readFileSync(filePath, "utf8");
-  const fields = new Map<string, string>();
-  const rowRe = /^\|\s*\*\*([A-Za-z-]+)\*\*\s*\|\s*(.*?)\s*\|\s*$/;
-
-  for (const line of text.split("\n")) {
-    const match = rowRe.exec(line);
-    if (match) fields.set(match[1], match[2]);
-  }
-
-  return { fields, text };
 }
 
 /** Trimmed, non-empty lines under one `## Heading` section, up to the next `##`. */

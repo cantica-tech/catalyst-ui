@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 
-import type { ChainModel, ChainNode, IamRole, IamUser, ModuleType, RowNode } from "catalyst-core";
-import { readEntityDefinition } from "catalyst-core";
+import type { ChainModel, ChainNode, EntityDefinition, IamRole, IamUser, ModuleType, RowNode } from "catalyst-core";
 import * as vscode from "vscode";
 import {
   OPEN_BACKLOG_COMMAND,
@@ -28,6 +27,8 @@ export interface DeploymentView {
   model: ChainModel;
   users: IamUser[];
   roles: IamRole[];
+  /** The deployed definitions, as catalyst serves them. */
+  definitions: EntityDefinition[];
 }
 
 export type InspectorTreeItem =
@@ -60,18 +61,18 @@ export const ENTITY_TYPE_LABELS: Partial<Record<string, string>> = {
 
 /**
  * Builds a root section's hover tooltip from its entity type(s)'
- * deployed definitions — `undefined` (tooltip left unset, falling back to
+ * definitions as catalyst serves them (R5.3) — `undefined` (tooltip left unset, falling back to
  * the label) if none are found, e.g. a deployment that predates INV-23
  * and hasn't migrated yet.
  */
 export function sectionTooltip(
-  corpusRoot: string,
+  definitions: readonly EntityDefinition[],
   entityTypes: string[],
   label?: string,
 ): vscode.MarkdownString | undefined {
   const blocks: string[] = [];
   for (const entityType of entityTypes) {
-    const definition = readEntityDefinition(corpusRoot, entityType);
+    const definition = definitions.find((d) => d.slug === entityType);
     if (!definition) continue;
     const shown = label ?? ENTITY_TYPE_LABELS[entityType] ?? entityType;
     blocks.push(`**${shown}**\n\n${definition.description}`);
@@ -158,6 +159,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     model: ChainModel,
     users: IamUser[],
     roles: IamRole[],
+    definitions: EntityDefinition[] = [],
   ): void {
     this.deployments.set(corpusRoot, {
       corpusRoot,
@@ -166,6 +168,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       model,
       users,
       roles,
+      definitions,
     });
     this.changeEmitter.fire();
   }
@@ -202,6 +205,11 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return this.deployments.get(corpusRoot)?.roles ?? [];
   }
 
+  /** The deployment's definitions, as catalyst served them; none before it answers. */
+  private definitionsOf(corpusRoot: string): EntityDefinition[] {
+    return this.deployments.get(corpusRoot)?.definitions ?? [];
+  }
+
   /** Every currently-registered deployment's corpus root, in insertion order. */
   getCorpusRoots(): string[] {
     return [...this.deployments.keys()];
@@ -229,7 +237,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         vscode.TreeItemCollapsibleState.Collapsed,
       );
       item.iconPath = this.iconUris("rule");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["rule"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["rule"]);
       return item;
     }
     if (element.type === "type-section") {
@@ -240,7 +248,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       const model = this.getModel(element.corpusRoot);
       if (model) item.iconPath = this.typeIcon(model, element.section.typePrefix);
       const type = model?.types?.get(element.section.typePrefix);
-      if (type) item.tooltip = sectionTooltip(element.corpusRoot, [typeSlug(type.name)], type.name);
+      if (type) item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), [typeSlug(type.name)], type.name);
       return item;
     }
     if (element.type === "domain-section") {
@@ -249,7 +257,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         vscode.TreeItemCollapsibleState.Collapsed,
       );
       item.iconPath = this.iconUris("domain");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["domain"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["domain"]);
       return item;
     }
     if (element.type === "row-section") {
@@ -257,7 +265,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       const model = this.getModel(element.corpusRoot);
       if (model) item.iconPath = this.typeIcon(model, element.section.typePrefix);
       const type = model?.types?.get(element.section.typePrefix);
-      if (type) item.tooltip = sectionTooltip(element.corpusRoot, [typeSlug(type.name)], type.name);
+      if (type) item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), [typeSlug(type.name)], type.name);
       return item;
     }
     if (element.type === "row-group") {
@@ -274,7 +282,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     if (element.type === "user-section") {
       const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("users");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["user"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["user"]);
       return item;
     }
     if (element.type === "user") {
@@ -291,7 +299,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     if (element.type === "role-section") {
       const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
       item.iconPath = this.iconUris("roles");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["role"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["role"]);
       return item;
     }
     if (element.type === "role") {
@@ -315,7 +323,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("journal");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["journal"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["journal"]);
       return item;
     }
     if (element.type === "backlog-entry") {
@@ -326,7 +334,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         arguments: [element.corpusRoot],
       };
       item.iconPath = this.iconUris("backlog");
-      item.tooltip = sectionTooltip(element.corpusRoot, ["backlog"]);
+      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["backlog"]);
       return item;
     }
 

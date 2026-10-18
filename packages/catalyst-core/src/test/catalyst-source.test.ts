@@ -210,6 +210,9 @@ describe.skipIf(!canServe)("through catalyst serve --local", () => {
       expect([...kinds].sort()).toEqual(expect.arrayContaining(["artifact", "domain", "rule"]));
       expect(Array.isArray(first.journal)).toBe(true);
       expect(first.report.nodeCount).toBe(first.model.nodes.size);
+      // users and roles as catalyst lists them (R5.3), not read from the criterion here
+      expect(first.users.map((u) => u.name)).toEqual(["Test User"]);
+      expect(Array.isArray(first.roles)).toBe(true);
       const bug = join(criterion, "development", "bugs", "BUG-000001-beta.md");
       const text = readFileSync(bug, "utf8");
       expect(text).toContain("| **Status** | Fixed |");

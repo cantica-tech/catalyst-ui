@@ -45,14 +45,13 @@ export {
   meetsRequiredKernelVersion,
   readCatalystPointer,
   readDeployedKernelVersion,
-  readEntityDefinition,
   REQUIRED_KERNEL_VERSION,
   resolveCorpusRoot,
   workingCopyState,
 } from "./discover.js";
 export type { WorkingCopyState } from "./discover.js";
 export { BACKTICK_ENTITY_ID_RE, BACKTICK_RULE_ID_RE } from "./ids.js";
-export { parseIamUsers, parseIamRoles } from "./iam.js";
+export { rolesFrom, usersFrom } from "./iam.js";
 export {
   CRITERION_GITIGNORE_ENTRY,
   defaultAgentSource,
@@ -106,7 +105,7 @@ export {
   readProjectFile,
 } from "./project-file.js";
 export { coerceJournal, queryJournal } from "./journal.js";
-export { cleanRuleTitle, parseFieldTable, sectionLines } from "./markdown.js";
+export { cleanRuleTitle, sectionLines } from "./markdown.js";
 export {
   CATALYST_SERVE_FLOOR,
   type CatalystCheck,
@@ -119,6 +118,7 @@ export {
   catalystCommand,
   modelFromGraph,
   readThroughCatalyst,
+  definitionsFrom,
   reportFromCheck,
   startAgentRun,
   startLocalServe,
