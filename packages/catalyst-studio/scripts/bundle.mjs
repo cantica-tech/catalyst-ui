@@ -15,5 +15,15 @@ await build({
   outfile: `${out}/studio.js`,
   logLevel: "warning",
 });
+// the web component other sites embed (owner decision B8): no React, its own small file
+await build({
+  entryPoints: ["src/embed.ts"],
+  bundle: true,
+  minify: true,
+  format: "iife",
+  platform: "browser",
+  outfile: `${out}/embed.js`,
+  logLevel: "warning",
+});
 for (const file of ["index.html", "studio.css"]) copyFileSync(`static/${file}`, `${out}/${file}`);
 console.log(`studio bundle written to ${out}`);
