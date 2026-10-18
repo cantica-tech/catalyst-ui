@@ -17,7 +17,7 @@ The app needs `catalyst` on the machine (`catalyst serve --local` is its sidecar
 
 ```sh
 npm ci
-npm run build --workspace catalyst-core
+npx tsc --build
 npm run build --workspace catalyst-studio
 cd packages/catalyst-host-electron
 npm run bundle
