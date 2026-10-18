@@ -19,6 +19,8 @@ export function ActionForm({
   action,
   journals = false,
   textLabel,
+  tryable = true,
+  reasonLabel = "Why",
   onDone,
 }: {
   host: HostRuns;
@@ -29,6 +31,10 @@ export function ActionForm({
   journals?: boolean;
   /** Asks for a `text` field too, under this label (a reconciliation's proposal). */
   textLabel?: string;
+  /** Whether `catalyst try` can make it (its writing verbs only; not IAM or sharing). */
+  tryable?: boolean;
+  /** Names the reason's field (default "Why"). */
+  reasonLabel?: string;
   onDone?: (result: ActionResult) => void;
 }) {
   const ids = { why: useId(), tier: useId(), target: useId(), text: useId() };
@@ -49,7 +55,7 @@ export function ActionForm({
     ...(journals && target.trim() ? { target: target.trim() } : {}),
     ...(textLabel ? { text: text.trim() } : {}),
   });
-  const tryIt = host.tryIt;
+  const tryIt = tryable ? host.tryIt : undefined;
   const tryFirst = () => {
     if (!tryIt) return;
     setTrying(true);
@@ -76,7 +82,7 @@ export function ActionForm({
         submit();
       }}
     >
-      <label htmlFor={ids.why}>Why</label>{" "}
+      <label htmlFor={ids.why}>{reasonLabel}</label>{" "}
       <input
         id={ids.why}
         type="text"

@@ -319,6 +319,26 @@ export interface InstalledModule {
   actual: string | null;
 }
 
+/** One role as IAM holds it (`GET /v1/list?type=role`). */
+export interface Role {
+  name: string;
+  actions: string[];
+  reconciliation: string;
+}
+
+/** The criterion's sharing state (`GET /v1/share`, local mode, catalyst >= 0.90.0). */
+export interface ShareStatus {
+  /** `local` (not shared), `git` or `serve`. */
+  driver: string;
+  location: string | null;
+  branch: string | null;
+  /** The criterion's files changed and not yet published. */
+  dirty: string[];
+  ahead: number | null;
+  behind: number | null;
+  mode: string | null;
+}
+
 /** A module's releases at its recorded repository (`GET /v1/modules/<id>/available`). */
 export interface ModuleReleases {
   id: string;
@@ -541,6 +561,16 @@ export class StudioClient {
   /** What upgrading a module to one of its releases would change, written nowhere (catalyst >= 0.86.0). */
   modulePlan(id: string, tag: string): Promise<ModulePlan> {
     return this.get<ModulePlan>(`modules/${encodeURIComponent(id)}/plan?to=${encodeURIComponent(tag)}`);
+  }
+
+  /** Where the criterion is shared and what is not published yet; `fetch` asks the shared copy first (catalyst >= 0.90.0). */
+  share(fetch = false): Promise<ShareStatus> {
+    return this.get<ShareStatus>(fetch ? "share?fetch=1" : "share");
+  }
+
+  /** The roles (`GET /v1/list?type=role`). */
+  roles(): Promise<Role[]> {
+    return this.get<Role[]>("list?type=role");
   }
 
   /** The registered users (`GET /v1/list?type=users`). */

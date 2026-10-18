@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
-import type { Graph, JournalEntry, StudioClient, User } from "./client.js";
+import { ActionForm } from "./ActionForm.js";
+import type { Graph, JournalEntry, Role, StudioClient, User } from "./client.js";
+import { useHost } from "./host.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -90,7 +92,118 @@ function intentOf(e: JournalEntry): string {
   return Array.isArray(e.intent) ? e.intent.join("; ") : (e.intent ?? "");
 }
 
-function Person({ name, user, act, work = [] }: { name: string; user?: User; act?: Activity; work?: OpenItem[] }) {
+/** A registered user's changes, inside a host that acts (R6.25): another role, or deactivation. */
+function PersonAdmin({ user, roles }: { user: User; roles: Role[] }) {
+  const host = useHost();
+  const roleId = useId();
+  const others = roles.map((r) => r.name).filter((r) => !user.roles.includes(r));
+  const [role, setRole] = useState("");
+  if (!host?.act || !user.active) return null;
+  return (
+    <details>
+      <summary>Change {user.name}</summary>
+      {others.length > 0 && (
+        <p>
+          <label htmlFor={roleId}>Add the role</label>{" "}
+          <select
+            id={roleId}
+            value={role}
+            onChange={(e) => {
+              setRole(e.target.value);
+            }}
+          >
+            <option value="">(choose)</option>
+            {others.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>{" "}
+          {role && (
+            <ActionForm
+              host={host}
+              label="Add the role"
+              tryable={false}
+              action={{ verb: "user-assign-role", name: user.name, role }}
+            />
+          )}
+        </p>
+      )}
+      <ActionForm host={host} label="Deactivate" tryable={false} action={{ verb: "user-remove", name: user.name }} />
+      <p className="muted">A user is deactivated, never deleted; catalyst keeps the last active one.</p>
+    </details>
+  );
+}
+
+/** Registering a user, inside a host that acts (R6.25); catalyst gives the userid. */
+function AddUser({ roles, defaultName = "" }: { roles: Role[]; defaultName?: string }) {
+  const host = useHost();
+  const ids = { name: useId(), role: useId(), git: useId() };
+  const [name, setName] = useState(defaultName);
+  const [role, setRole] = useState(roles[0]?.name ?? "");
+  const [git, setGit] = useState("");
+  if (!host?.act) return null;
+  return (
+    <div className="add-user">
+      <label htmlFor={ids.name}>Name</label>{" "}
+      <input
+        id={ids.name}
+        type="text"
+        maxLength={80}
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+        }}
+      />{" "}
+      <label htmlFor={ids.role}>Role</label>{" "}
+      <select
+        id={ids.role}
+        value={role}
+        onChange={(e) => {
+          setRole(e.target.value);
+        }}
+      >
+        {roles.map((r) => (
+          <option key={r.name} value={r.name}>
+            {r.name}
+          </option>
+        ))}
+      </select>{" "}
+      <label htmlFor={ids.git}>Git username (default: the name)</label>{" "}
+      <input
+        id={ids.git}
+        type="text"
+        maxLength={39}
+        value={git}
+        onChange={(e) => {
+          setGit(e.target.value);
+        }}
+      />
+      {name.trim() && role && (
+        <ActionForm
+          host={host}
+          label="Register"
+          tryable={false}
+          action={{ verb: "user-add", name: name.trim(), role, ...(git.trim() ? { git_username: git.trim() } : {}) }}
+        />
+      )}
+    </div>
+  );
+}
+
+function Person({
+  name,
+  user,
+  act,
+  work = [],
+  roles = [],
+}: {
+  name: string;
+  user?: User;
+  act?: Activity;
+  work?: OpenItem[];
+  roles?: Role[];
+}) {
   const navigate = useNavigate();
   const open = (id: string) => {
     navigate("artifacts", id);
@@ -109,6 +222,11 @@ function Person({ name, user, act, work = [] }: { name: string; user?: User; act
           <Status tone="warn" label="Not registered" />
         )}
       </p>
+      {user ? (
+        <PersonAdmin user={user} roles={roles} />
+      ) : (
+        roles.length > 0 && <AddUser roles={roles} defaultName={name} />
+      )}
       {work.length > 0 && (
         <section aria-label={`${name}'s open work`}>
           <p>
@@ -178,12 +296,16 @@ export function TeamView({
   entries,
   since,
   graph,
+  roles = [],
 }: {
   users: User[];
   entries: JournalEntry[];
   since: string;
   graph?: Graph;
+  /** The roles, for the changes a host that acts may make (R6.25). */
+  roles?: Role[];
 }) {
+  const host = useHost();
   const acts = activity(entries);
   const work = graph ? openWork(graph) : new Map<string, OpenItem[]>();
   const registered = new Set(users.map((u) => u.name));
@@ -194,16 +316,30 @@ export function TeamView({
       <h2>Team</h2>
       <p className="muted">
         {users.length} registered user{users.length === 1 ? "" : "s"}; the journal since {since}. Users and roles change
-        through <code>/user</code> and <code>/role</code>.
+        through <code>/user</code> and <code>/role</code>
+        {host?.act ? ", or here" : ""}.
       </p>
       {sorted.map((u) => (
-        <Person key={u.userid} name={u.name} user={u} act={acts.get(u.name)} work={workOf(work, u.name, u)} />
+        <Person
+          key={u.userid}
+          name={u.name}
+          user={u}
+          act={acts.get(u.name)}
+          work={workOf(work, u.name, u)}
+          roles={roles}
+        />
       ))}
+      {host?.act && roles.length > 0 && (
+        <section aria-labelledby="add-user">
+          <h3 id="add-user">Register a user</h3>
+          <AddUser roles={roles} />
+        </section>
+      )}
       {strangers.length > 0 && (
         <section aria-labelledby="strangers">
           <h3 id="strangers">In the journal, not registered</h3>
           {strangers.map((a) => (
-            <Person key={a} name={a} act={acts.get(a)} />
+            <Person key={a} name={a} act={acts.get(a)} roles={roles} />
           ))}
         </section>
       )}
@@ -217,7 +353,7 @@ function daysAgo(n: number): string {
 
 type Load =
   | { state: "loading" }
-  | { state: "ready"; users: User[]; entries: JournalEntry[]; graph?: Graph }
+  | { state: "ready"; users: User[]; entries: JournalEntry[]; graph?: Graph; roles: Role[] }
   | { state: "failed"; message: string };
 
 const WINDOW = 14;
@@ -245,9 +381,10 @@ export function Team({ client }: { client: StudioClient }) {
       client.users(),
       client.journal(daysAgo(WINDOW)),
       client.graph().catch(() => undefined), // without the graph, the activity still shows
+      client.roles().catch(() => [] as Role[]), // without the roles, no changes are offered
     ]).then(
-      ([users, entries, graph]) => {
-        if (live) setLoad({ state: "ready", users, entries, graph });
+      ([users, entries, graph, roles]) => {
+        if (live) setLoad({ state: "ready", users, entries, graph, roles });
       },
       (err: unknown) => {
         if (live) setLoad({ state: "failed", message: String(err) });
@@ -272,5 +409,7 @@ export function Team({ client }: { client: StudioClient }) {
       </>
     );
   }
-  return <TeamView users={load.users} entries={load.entries} since={daysAgo(WINDOW)} graph={load.graph} />;
+  return (
+    <TeamView users={load.users} entries={load.entries} since={daysAgo(WINDOW)} graph={load.graph} roles={load.roles} />
+  );
 }
