@@ -726,3 +726,36 @@ progress {
     display: none;
   }
 }
+
+/* The roadmap's Gantt chart (decision B9): a bar per dated row, today marked. */
+.gantt table {
+  width: 100%;
+}
+.gantt th {
+  width: 30%;
+  font-weight: normal;
+  text-align: left;
+}
+.gantt-track {
+  position: relative;
+  width: 50%;
+  height: 1.2em;
+  background: color-mix(in srgb, var(--border) 35%, transparent);
+}
+.gantt-bar {
+  position: absolute;
+  top: 0.25em;
+  height: 0.7em;
+  border-radius: 2px;
+  background: var(--warn);
+}
+.gantt-bar.gantt-closed {
+  background: var(--ok);
+}
+.gantt-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text-muted);
+}

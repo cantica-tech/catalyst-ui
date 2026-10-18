@@ -401,6 +401,7 @@ export interface User {
   userid: string;
   roles: string[];
   active: boolean;
+  git_username?: string;
   registered?: string;
   notes?: string;
 }

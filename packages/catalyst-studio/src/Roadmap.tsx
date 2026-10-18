@@ -75,12 +75,100 @@ export function roadmapTables(graph: Graph): RoadmapTable[] {
     });
 }
 
+/** One row on the Gantt chart: from its earlier date to its later, or a point when it has one. */
+export interface GanttSpan {
+  id: string;
+  title: string;
+  from: string;
+  to: string;
+  closed: boolean;
+}
+
+/**
+ * The Gantt chart's spans (owner decision B9): every row with a date, from
+ * the earliest of its dates to the latest; no field is named, the dates are
+ * the row's own. The range is the table's first and last date.
+ */
+export function ganttSpans(items: RoadmapItem[]): { spans: GanttSpan[]; first: string; last: string } | null {
+  const spans = items
+    .filter((i) => i.dates.length > 0)
+    .map((i) => {
+      const days = i.dates.map(([, v]) => v).sort();
+      return { id: i.id, title: i.title, from: days[0], to: days[days.length - 1], closed: i.closed };
+    });
+  if (spans.length === 0) return null;
+  const all = spans.flatMap((x) => [x.from, x.to]).sort();
+  return { spans, first: all[0], last: all[all.length - 1] };
+}
+
+function dayNumber(day: string): number {
+  return Date.parse(`${day}T00:00:00Z`) / 86_400_000;
+}
+
+/** Where a day falls in the range, as a share of it (0 to 100). */
+export function position(day: string, first: string, last: string): number {
+  const span = dayNumber(last) - dayNumber(first);
+  return span <= 0 ? 0 : ((dayNumber(day) - dayNumber(first)) / span) * 100;
+}
+
+function Gantt({ items, today }: { items: RoadmapItem[]; today: string }) {
+  const g = ganttSpans(items);
+  if (!g) return null;
+  const now = today >= g.first && today <= g.last ? position(today, g.first, g.last) : null;
+  return (
+    <figure className="gantt">
+      <figcaption className="muted">
+        From <time>{g.first}</time> to <time>{g.last}</time>
+        {now !== null && <>; today is marked</>}. {items.length - g.spans.length} row(s) without a date are left out.
+      </figcaption>
+      <table>
+        <tbody>
+          {g.spans.map((x) => {
+            const left = position(x.from, g.first, g.last);
+            const width = Math.max(position(x.to, g.first, g.last) - left, 0.8);
+            return (
+              <tr key={x.id}>
+                <th scope="row">{x.title}</th>
+                <td className="gantt-track">
+                  {now !== null && (
+                    <span className="gantt-today" style={{ left: `${String(now)}%` }} aria-hidden="true" />
+                  )}
+                  <span
+                    className={x.closed ? "gantt-bar gantt-closed" : "gantt-bar"}
+                    style={{ left: `${String(left)}%`, width: `${String(width)}%` }}
+                    aria-hidden="true"
+                  />
+                </td>
+                <td className="muted">
+                  <time>{x.from}</time>
+                  {x.to !== x.from && (
+                    <>
+                      {" "}
+                      to <time>{x.to}</time>
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </figure>
+  );
+}
+
 function tableName(file: string): string {
   return (file.split("/").pop() ?? file).replace(/\.md$/, "");
 }
 
 /** The tables' timelines, each linked entity opening its page with its own status. */
-export function RoadmapView({ graph }: { graph: Graph }) {
+export function RoadmapView({
+  graph,
+  today = new Date().toISOString().slice(0, 10),
+}: {
+  graph: Graph;
+  today?: string;
+}) {
   const navigate = useNavigate();
   const tables = roadmapTables(graph);
   const statusOf = new Map(graph.artifacts.map((a) => [a.id, clean(fieldsOf(a).Status)]));
@@ -97,6 +185,7 @@ export function RoadmapView({ graph }: { graph: Graph }) {
             <progress value={t.closed} max={t.items.length} aria-label={`${tableName(t.file)}: closed items`} />{" "}
             {t.closed} of {t.items.length} closed
           </p>
+          <Gantt items={t.items} today={today} />
           <ol className="timeline">
             {t.items.map((i) => (
               <li key={i.id} className={i.closed ? "timeline-closed" : undefined}>
