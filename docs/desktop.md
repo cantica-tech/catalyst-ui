@@ -61,8 +61,8 @@ The installers are signed after they are built; the application inside an instal
 
 ## Linux
 
-Nothing to set up. The `.deb` names no maintainer yet: `linux.maintainer` in `electron-builder.yml` needs an
-address the organization wants public.
+Nothing to set up. The `.deb` names its maintainer as "Cantica Tech" without an address: `linux.maintainer` in
+`electron-builder.yml` takes `Cantica Tech <address>` once the organization names a public one.
 
 ## Not yet
 

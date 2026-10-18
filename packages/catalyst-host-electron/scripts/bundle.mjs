@@ -39,6 +39,7 @@ writeFileSync(
       version: pkg.version,
       description: "Catalyst Studio on the desktop",
       author: "Cantica Tech",
+      homepage: "https://github.com/cantica-tech/catalyst-ui",
       license: pkg.license,
       main: "main.js",
     },
