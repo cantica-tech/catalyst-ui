@@ -23,7 +23,15 @@ export {
   type GraphRule,
   type History,
   type ApprovalGate,
+  type AnalysisFinding,
+  type AnalysisReport,
+  type AnalysisSummary,
   type ApprovalsReport,
+  type AuditLink,
+  type AuditPack,
+  type InstalledModule,
+  type ModulePlan,
+  type ModuleReleases,
   type ProposalView,
   type HistoryEntry,
   type JournalEntry,
@@ -69,6 +77,9 @@ export { findables, search, Search, SEARCH_ID, SearchView, type Findable } from 
 export { gateCount, gateCovers, GatesSection } from "./Gates.js";
 export { ProposalDiff } from "./Proposals.js";
 export { TryOutcome, tryReport, type TryFinding, type TryReport } from "./Trial.js";
+export { Analyses, AnalysisList, AnalysisPage, fixCommand, passesLabel, phaseTone, trend, triage } from "./Analyses.js";
+export { Modules, ModulesView, moduleState, upgradeCommand } from "./Modules.js";
+export { Audit, AuditView, holds, rulesShown } from "./Audit.js";
 export { Approvals, ApprovalsView, reconciliationCases, signers, type Case, type Signer } from "./Approvals.js";
 export {
   connectHost,
@@ -86,3 +97,4 @@ export { RunConsole, runSummary } from "./RunConsole.js";
 export { DriftBadge, driftOf, DriftSection, useDrift, WithDrift, type Drift } from "./drift.js";
 export { costByCommand, RunHistory } from "./RunHistory.js";
 export { ImpactBar, ImpactMark, useImpact, WithImpact, type ImpactMarks } from "./impact.js";
+export { itemKey, knowProject, markSeen, seenStore, unread, UnreadCount } from "./Unread.js";

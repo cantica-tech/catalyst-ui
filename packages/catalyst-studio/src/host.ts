@@ -73,9 +73,49 @@ function newId(): string {
  * The host's runs, or null when the page has no host that runs them (not
  * framed, or no answer within `timeoutMs`).
  */
-export function connectHost(win: Window = window, timeoutMs = 1500): Promise<HostRuns | null> {
-  if (win.parent === win) return Promise.resolve(null);
+/** The desktop shell's preload bridge (R6.49): the same messages, over IPC instead of the parent frame. */
+export interface DesktopBridge {
+  post: (message: unknown) => void;
+  subscribe: (listener: (message: unknown) => void) => void;
+}
+
+interface Transport {
+  send: (message: unknown) => void;
+  listen: (listener: (data: unknown) => void) => void;
+}
+
+/** The desktop shell's bridge when the page has one, else the parent frame (VS Code), else none (a browser). */
+function transportOf(win: Window): Transport | null {
+  const bridge = (win as Window & { catalystHost?: DesktopBridge }).catalystHost;
+  if (bridge && typeof bridge.post === "function" && typeof bridge.subscribe === "function") {
+    return {
+      send: (m) => {
+        bridge.post(m);
+      },
+      listen: (l) => {
+        bridge.subscribe(l);
+      },
+    };
+  }
+  if (win.parent === win) return null;
   const parent = win.parent;
+  return {
+    // the parent's origin is the editor's own: nothing secret is in these messages
+    send: (m) => {
+      parent.postMessage(m, "*");
+    },
+    listen: (l) => {
+      win.addEventListener("message", (event: MessageEvent) => {
+        if (event.source === parent) l(event.data);
+      });
+    },
+  };
+}
+
+export function connectHost(win: Window = window, timeoutMs = 1500): Promise<HostRuns | null> {
+  const found = transportOf(win);
+  if (!found) return Promise.resolve(null);
+  const transport: Transport = found;
   const listeners = new Map<string, { onEvent: (e: RunEvent) => void; onDeclined: () => void }>();
   const pending = new Map<string, (result: ActionResult) => void>();
   const batches = new Map<string, (result: BatchResult) => void>();
@@ -85,9 +125,8 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
     const timer = setTimeout(() => {
       if (!answered) resolve(null);
     }, timeoutMs);
-    win.addEventListener("message", (event: MessageEvent) => {
-      if (event.source !== parent) return;
-      const data = event.data as Partial<Incoming> | null;
+    transport.listen((raw) => {
+      const data = raw as Partial<Incoming> | null;
       if (data?.catalyst !== "host") return;
       if (data.type === "hello" && !answered) {
         answered = true;
@@ -121,14 +160,13 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
         listeners.delete(data.id);
       }
     });
-    // the parent's origin is the editor's own: nothing secret is in these messages
-    parent.postMessage({ catalyst: "studio", type: "hello" }, "*");
+    transport.send({ catalyst: "studio", type: "hello" });
 
     function act(action: StudioAction): Promise<ActionResult> {
       const id = newId();
       return new Promise((done) => {
         pending.set(id, done);
-        parent.postMessage({ catalyst: "studio", type: "action", id, action }, "*");
+        transport.send({ catalyst: "studio", type: "action", id, action });
       });
     }
 
@@ -136,7 +174,7 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       const id = newId();
       return new Promise((done) => {
         tries.set(id, done);
-        parent.postMessage({ catalyst: "studio", type: "try", id, action }, "*");
+        transport.send({ catalyst: "studio", type: "try", id, action });
       });
     }
 
@@ -144,17 +182,17 @@ export function connectHost(win: Window = window, timeoutMs = 1500): Promise<Hos
       const id = newId();
       return new Promise((done) => {
         batches.set(id, done);
-        parent.postMessage({ catalyst: "studio", type: "batch", id, actions }, "*");
+        transport.send({ catalyst: "studio", type: "batch", id, actions });
       });
     }
 
     function run(command: string, args: string, onEvent: (e: RunEvent) => void, onDeclined: () => void): RunHandle {
       const id = newId();
       listeners.set(id, { onEvent, onDeclined });
-      parent.postMessage({ catalyst: "studio", type: "run", id, command, arguments: args }, "*");
+      transport.send({ catalyst: "studio", type: "run", id, command, arguments: args });
       return {
         cancel: () => {
-          parent.postMessage({ catalyst: "studio", type: "cancel", id }, "*");
+          transport.send({ catalyst: "studio", type: "cancel", id });
         },
       };
     }

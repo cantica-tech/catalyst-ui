@@ -3,7 +3,6 @@ import { NodeDetail } from "catalyst-ui";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-import { AgentWindow } from "./AgentWindow.js";
 import { GraphView } from "./GraphView.js";
 import type { GraphLayout } from "./graph.js";
 import type { CatalystApi, ProjectUpdate } from "./preload.js";
@@ -20,6 +19,7 @@ function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [layoutsByProject, setLayoutsByProject] = useState<Record<string, GraphLayout>>({});
   const [detail, setDetail] = useState<NodeDetailPayload | null>(null);
+  const [studioError, setStudioError] = useState("");
 
   useEffect(() => {
     void window.catalyst.listProjects().then(setProjects);
@@ -41,6 +41,10 @@ function App() {
     setDetail(await window.catalyst.getNodeDetail(selectedProjectId, nodeId));
   }
 
+  async function handleOpenStudio(projectId: string) {
+    setStudioError((await window.catalyst.openStudio(projectId)) ?? "");
+  }
+
   const layout = selectedProjectId ? layoutsByProject[selectedProjectId] : undefined;
 
   return (
@@ -57,7 +61,8 @@ function App() {
                   }}
                 >
                   {project.projectRoot}
-                </button>
+                </button>{" "}
+                <button onClick={() => void handleOpenStudio(project.id)}>Open Studio</button>
               </li>
             ))}
           </ul>
@@ -77,13 +82,10 @@ function App() {
           )}
         </aside>
       </div>
-      <div style={{ height: 260, borderTop: "1px solid #444", flexShrink: 0 }}>
-        {selectedProjectId ? (
-          <AgentWindow projectId={selectedProjectId} />
-        ) : (
-          <p style={{ margin: 8 }}>Select a project to run catalyst commands.</p>
-        )}
-      </div>
+      <p role="status" style={{ margin: 8 }}>
+        {studioError ||
+          "Open a project's Studio to work in it: its commands run with your agent, each confirmed here first."}
+      </p>
     </div>
   );
 }

@@ -677,3 +677,52 @@ progress {
   border: 1px solid var(--accent);
   border-radius: var(--radius);
 }
+
+/* The analysis trend (R6.23): accepted and rejected findings as two bars. */
+.trend {
+  list-style: none;
+  padding: 0;
+}
+.bar {
+  display: inline-block;
+  height: 0.7em;
+  vertical-align: middle;
+}
+.bar.accepted {
+  background: var(--ok);
+}
+.bar.rejected {
+  background: var(--border);
+}
+.findings {
+  list-style: none;
+  padding: 0;
+}
+.finding {
+  border-top: 1px solid var(--border);
+  padding: 0.5em 0;
+}
+
+/* The Inbox's unread count in the navigation (R6.26). */
+.badge {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 0.35em;
+  border-radius: 0.7em;
+  background: var(--warn, var(--border));
+  color: var(--bg, inherit);
+  font-size: 0.8em;
+  text-align: center;
+}
+
+/* The audit pack (R6.27): printed without the Studio's own controls. */
+.audit-rule {
+  break-inside: avoid;
+}
+@media print {
+  .studio-header,
+  .skip-link,
+  .no-print {
+    display: none;
+  }
+}

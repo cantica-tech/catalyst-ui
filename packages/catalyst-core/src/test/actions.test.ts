@@ -51,6 +51,64 @@ describe("actionArgs (studio-SHELL-000016)", () => {
       expect(() => actionArgs({ verb: "restore", id: "REQ-000001", to, intent: "x" })).toThrow("to:");
   });
 
+  it("decides one finding of an analysis, an accepted one naming what it became (catalyst >= 0.44.0)", () => {
+    expect(
+      actionArgs({
+        verb: "analysis-decide",
+        id: "ANALYSIS-000001-Ab3xR9pQ",
+        finding: "F2",
+        verdict: "accept",
+        artifact: "br-AUTH-000001-Ab3xR9pQ",
+        intent: "The code does check it",
+      }),
+    ).toEqual([
+      "analysis",
+      "decide",
+      "ANALYSIS-000001-Ab3xR9pQ",
+      "F2",
+      "accept",
+      "--artifact=br-AUTH-000001-Ab3xR9pQ",
+      "--reason=The code does check it",
+    ]);
+    expect(
+      actionArgs({
+        verb: "analysis-decide",
+        id: "ANALYSIS-000001-Ab3xR9pQ",
+        finding: "F3",
+        verdict: "accept",
+        artifact: "AUTH",
+        intent: "A domain",
+      }),
+    ).toContain("--artifact=AUTH");
+    expect(() =>
+      actionArgs({
+        verb: "analysis-decide",
+        id: "ANALYSIS-000001-Ab3xR9pQ",
+        finding: "F2",
+        verdict: "accept",
+        intent: "x",
+      }),
+    ).toThrow(/artifact/);
+    expect(() =>
+      actionArgs({
+        verb: "analysis-decide",
+        id: "ANALYSIS-000001-Ab3xR9pQ",
+        finding: "--all",
+        verdict: "reject",
+        intent: "x",
+      }),
+    ).toThrow(/finding/);
+    expect(() =>
+      actionArgs({
+        verb: "analysis-decide",
+        id: "ANALYSIS-000001-Ab3xR9pQ",
+        finding: "F2",
+        verdict: "maybe",
+        intent: "x",
+      }),
+    ).toThrow(/verdict/);
+  });
+
   it("approves an entity's current version under a gate (catalyst >= 0.80.0)", () => {
     expect(
       actionArgs({ verb: "approve", id: "br-AUTH-000001-Ab3xR9pQ", gate: "auth-rules", intent: "Reviewed" }),
