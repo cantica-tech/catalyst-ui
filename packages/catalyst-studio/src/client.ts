@@ -197,6 +197,8 @@ export interface GraphRule {
   file: string;
   line: number;
   retired: boolean;
+  /** `must`, `should` or `may` (catalyst >= 0.83.0; an older catalyst gives none: `must`). */
+  strength?: string;
   domain: string | null;
   mentions: string[];
 }

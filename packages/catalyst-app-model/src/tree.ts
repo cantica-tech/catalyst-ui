@@ -75,12 +75,25 @@ export function formatNodeLabel(node: ChainNode, type?: ModuleType): string {
     }
   }
 
-  const displayName = rawName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+  // An ID shown as the name keeps its dashes; a slug or title reads as words.
+  const displayName = rawName === idWithoutUserid ? rawName : rawName.replace(/-/g, " ").replace(/\s+/g, " ").trim();
 
   const user = getNodeUser(node);
   const userSuffix = user ? ` - ${user}` : "";
   const statusPrefix = getNodeStatusGlyph(node, type);
-  return `${statusPrefix}${displayName} [${idWithoutUserid}${userSuffix}]`;
+  // The bracket repeats nothing the label already starts with.
+  const bracket = `${idWithoutUserid}${userSuffix}`;
+  const same = (s: string) =>
+    s
+      .replace(/[-\s]+/g, " ")
+      .trim()
+      .toLowerCase();
+  const label = same(displayName);
+  if (label.startsWith(same(bracket))) return `${statusPrefix}${displayName}`;
+  if (label.startsWith(same(idWithoutUserid))) {
+    return user ? `${statusPrefix}${displayName} [${user}]` : `${statusPrefix}${displayName}`;
+  }
+  return `${statusPrefix}${displayName} [${bracket}]`;
 }
 
 /** The artifacts of one module type, under the type's own plural name. */

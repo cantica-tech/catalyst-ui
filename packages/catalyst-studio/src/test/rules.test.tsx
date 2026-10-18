@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { EntityPage } from "../Artifacts.js";
 import type { EntityView, Graph, GraphRule } from "../client.js";
-import { citers, groupRules, RuleBrowser, ruleStatus, searchRules } from "../Rules.js";
+import { breachIs, citers, groupRules, RuleBrowser, ruleStatus, ruleStrength, searchRules } from "../Rules.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,6 +27,26 @@ const graph: Graph = {
   ],
   domains: [{ code: "AUTH", file: "d.md", title: "`AUTH` — Who may sign in" }],
 };
+
+describe("a rule's strength (studio-SHELL-000021)", () => {
+  it("is must when catalyst gives none, and says what a breach is reported as", () => {
+    expect(ruleStrength({})).toBe("must");
+    expect(ruleStrength({ strength: "should" })).toBe("should");
+    expect(breachIs("must")).toBe("a breach is a violation");
+    expect(breachIs("should")).toBe("a breach is a warning");
+    expect(breachIs("may")).toBe("a breach is a note");
+  });
+
+  it("filters and is searched", () => {
+    const rules = [
+      { ...rule("br-AUTH-000001", "Sign in", "✅"), strength: "should" },
+      rule("br-AUTH-000003", "Lock out", "✅"),
+    ];
+    expect(searchRules(rules, "", false, "should").map((r) => r.id)).toEqual(["br-AUTH-000001"]);
+    expect(searchRules(rules, "", false, "must").map((r) => r.id)).toEqual(["br-AUTH-000003"]);
+    expect(searchRules(rules, "should", false).map((r) => r.id)).toEqual(["br-AUTH-000001"]);
+  });
+});
 
 describe("the rule browser's data (studio-SHELL-000009)", () => {
   it("reads a status from its mark", () => {
@@ -91,6 +111,29 @@ describe("the rule browser (studio-SHELL-000009)", () => {
     await axeClean();
   });
 
+  it("marks a rule weaker than must and filters by strength (studio-SHELL-000021)", async () => {
+    const weak: Graph = {
+      ...graph,
+      rules: [{ ...rule("br-AUTH-000001", "Sign in", "✅"), strength: "may" }, rule("br-PAY-000001", "Refunds", "✅")],
+    };
+    act(() => {
+      root.render(<RuleBrowser graph={weak} />);
+    });
+    expect(host.querySelector(".strength")?.textContent).toBe("may");
+    expect(host.querySelector(".strength")?.getAttribute("title")).toBe("a breach is a note");
+    const select = host.querySelector<HTMLSelectElement>("select");
+    act(() => {
+      if (select) {
+        select.value = "must";
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    });
+    expect(host.textContent).toContain("1 of 2 rules");
+    expect(host.textContent).toContain("Refunds");
+    expect(host.textContent).not.toContain("Sign in");
+    await axeClean();
+  });
+
   it("shows a rule's own text, domain and status on its page", async () => {
     const view = {
       id: "br-AUTH-000001",
@@ -109,6 +152,7 @@ describe("the rule browser (studio-SHELL-000009)", () => {
     });
     expect(host.textContent).toContain("Rule · domain AUTH");
     expect(host.textContent).toContain("Working");
+    expect(host.textContent).toContain("must (a breach is a violation)");
     expect(host.textContent).toContain("A user signs in with a password.");
     expect(host.textContent).not.toContain("Fields");
     await axeClean();

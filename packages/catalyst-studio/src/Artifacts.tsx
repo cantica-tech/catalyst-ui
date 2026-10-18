@@ -15,7 +15,7 @@ import { GatesSection } from "./Gates.js";
 import { ProposalDiff } from "./Proposals.js";
 import { ImpactBar, ImpactMark } from "./impact.js";
 import { EntityHistory } from "./History.js";
-import { ruleStatus } from "./Rules.js";
+import { breachIs, ruleStatus, ruleStrength } from "./Rules.js";
 import { Status, type StatusTone } from "./Status.js";
 import { Trace } from "./Trace.js";
 
@@ -137,7 +137,9 @@ export function EntityPage({
             <Status
               tone={ruleStatus({ status: text(entity.status), retired: entity.retired === true }).tone}
               label={ruleStatus({ status: text(entity.status), retired: entity.retired === true }).label}
-            />
+            />{" "}
+            · <span className="strength">{ruleStrength({ strength: entity.strength })}</span>{" "}
+            <span className="muted">({breachIs(ruleStrength({ strength: entity.strength }))})</span>
           </>
         )}
         {status && (

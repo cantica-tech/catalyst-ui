@@ -90,7 +90,7 @@ Estimate: 5–7 sessions, the restore verb included; R6.49 adds 1–2, done with
 
 Estimate: 8–11 sessions.
 
-### G3 — Decisions as first-class (decision G taken: opt-in gates for 1.0; two module choices open)
+### G3 — Decisions as first-class (decision G taken: opt-in gates for 1.0; ADRs and rule typing decided 2026-10-18)
 
 | Item  | Work                                                                                                   | Needs                                                                                                                                                                                                                                                      |
 | ----- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -131,7 +131,8 @@ as the proof that nothing in the Studio names a module type.
 
 1. ~~**W — how the Studio writes**~~ — **decided 2026-10-16: W1**, in VS Code and Electron alike (R6.49).
 2. ~~**G — approval gates**~~ — **decided 2026-10-16: opt-in for 1.0** (option 2): no gate unless a deployment declares one. (Not B5, which keeps four-eyes _analysis_.)
-3. **Module choices:** an `ADR-` type, an assignee field, dates on roadmap rows (the module's repository).
+3. **Module choices:** ~~an `ADR-` type~~ — **decided 2026-10-18: yes**, decisions are recorded, so they are entities: an `ADR-` type of the process module naming the rules it shapes, catalyst's own ADRs moved into its record (R6.45); an assignee field, dates on roadmap rows still open (the module's repository).
+   **Rule typing** — **decided 2026-10-18:** a rule states `must`, `should` or `may`, `must` when it states none; a `should` breach is reported as a warning, a `may` one as a note (R6.46, kernel).
 4. **Scope cuts** of §4.
 
 ## 6. Order

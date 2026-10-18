@@ -20,6 +20,18 @@ function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
 }
 
 describe("formatNodeLabel", () => {
+  it("drops the bracket when the label already starts with it", () => {
+    assert.strictEqual(formatNodeLabel(node({ id: "AUTH", kind: "domain" })), "AUTH");
+    assert.strictEqual(formatNodeLabel(node({ id: "STEP-000001-yCNjAMXO" })), "… STEP-000001");
+  });
+
+  it("keeps only the signer in the bracket when the label already starts with the ID", () => {
+    assert.strictEqual(
+      formatNodeLabel(node({ id: "STEP-000001-yCNjAMXO", signedOffBy: "Olivier Steck" })),
+      "… STEP-000001 [Olivier Steck]",
+    );
+  });
+
   it("formats a node with name and username, stripping the userid from ID", () => {
     const n = node({
       id: "REQ-000001-yCNjAMXO",
