@@ -20,6 +20,7 @@ import { Rules } from "./Rules.js";
 import { Search, SEARCH_ID } from "./Search.js";
 import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
+import { Share } from "./Share.js";
 import { Team } from "./Team.js";
 import { TypeMap } from "./TypeMap.js";
 import { knowProject, UnreadCount } from "./Unread.js";
@@ -139,6 +140,11 @@ function mount(): void {
                       id: "team",
                       label: "Team",
                       render: () => <Team client={client} />,
+                    },
+                    {
+                      id: "share",
+                      label: "Share",
+                      render: () => <Share client={client} />,
                     },
                     {
                       id: "search",

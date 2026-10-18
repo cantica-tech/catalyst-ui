@@ -184,3 +184,42 @@ console.log('{"id": "REQ-000001"}'); process.exit(0);`,
     expect(failed).toEqual({ ok: false, output: "", error: "refused" });
   });
 });
+
+describe("IAM and share actions (R6.25)", () => {
+  it("builds user add, remove and assign-role, names as positionals", () => {
+    expect(
+      actionArgs({ verb: "user-add", name: "Ada Lovelace", role: "Developer", git_username: "ada", intent: "Joins" }),
+    ).toEqual(["user", "add", "Ada Lovelace", "Developer", "--git-username=ada", "--intent=Joins", "--json"]);
+    expect(actionArgs({ verb: "user-remove", name: "Ada Lovelace", intent: "Left" })).toEqual([
+      "user",
+      "remove",
+      "Ada Lovelace",
+      "--intent=Left",
+      "--json",
+    ]);
+    expect(
+      actionArgs({ verb: "user-assign-role", name: "ada", role: "Scrum Master / Delivery Lead", intent: "x" }),
+    ).toEqual(["user", "assign-role", "ada", "Scrum Master / Delivery Lead", "--intent=x", "--json"]);
+  });
+
+  it("refuses a name read as an option, a control character or a bad git username", () => {
+    expect(() => actionArgs({ verb: "user-remove", name: "--all", intent: "x" })).toThrow("name:");
+    expect(() => actionArgs({ verb: "user-add", name: "a\nb", role: "Developer", intent: "x" })).toThrow("name:");
+    expect(() => actionArgs({ verb: "user-add", name: "a", role: "", intent: "x" })).toThrow("role:");
+    expect(() =>
+      actionArgs({ verb: "user-add", name: "a", role: "Developer", git_username: "a b", intent: "x" }),
+    ).toThrow("git_username:");
+  });
+
+  it("pulls, and pushes with the message, the dialog being the person's yes", () => {
+    expect(actionArgs({ verb: "share-pull" })).toEqual(["share", "pull"]);
+    expect(actionArgs({ verb: "share-push", intent: "Week's work" })).toEqual([
+      "share",
+      "push",
+      "--message=Week's work",
+      "--yes",
+      "--json",
+    ]);
+    expect(() => actionArgs({ verb: "share-push", intent: "" })).toThrow("message:");
+  });
+});

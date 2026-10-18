@@ -15,7 +15,12 @@ export type StudioAction =
   | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string }
   | { verb: "restore"; id: string; to: string; intent: string; tier?: string }
   | { verb: "approve"; id: string; gate: string; intent: string }
-  | { verb: "analysis-decide"; id: string; finding: string; verdict: string; intent: string; artifact?: string };
+  | { verb: "analysis-decide"; id: string; finding: string; verdict: string; intent: string; artifact?: string }
+  | { verb: "user-add"; name: string; role: string; intent: string; git_username?: string }
+  | { verb: "user-remove"; name: string; intent: string }
+  | { verb: "user-assign-role"; name: string; role: string; intent: string }
+  | { verb: "share-pull" }
+  | { verb: "share-push"; intent: string };
 
 export class ActionError extends Error {}
 
@@ -29,6 +34,13 @@ const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
 /** A reconciled finding's id in an analysis (`F1`), and what it may become: an entity or rule ID, or a domain code. */
 const FINDING = /^[A-Za-z][A-Za-z0-9_.]{0,40}$/;
 const DOMAIN = /^[A-Z][A-Z0-9]*(\.[A-Z][A-Z0-9]*)?$/;
+/** A user's or a role's name as IAM holds it: 1 to 80 printable characters, never read as an option. */
+const isName = (v: string) =>
+  v.length > 0 &&
+  v.length <= 80 &&
+  !v.startsWith("-") &&
+  Array.from(v, (c) => c.charCodeAt(0)).every((code) => code >= 0x20);
+const GIT_USERNAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/;
 /** A version of an entity: its Nth change (`#3`) or an ISO time (`2026-10-16T08:00:00Z`). */
 const VERSION = /^(#[1-9][0-9]{0,5}|\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?Z?)?)$/;
 
@@ -48,6 +60,10 @@ function words(value: unknown, name: string, max: number): string {
 
 function entity(value: unknown, name: string): string {
   return field(value, name, (v) => ENTITY.test(v), "not an entity ID");
+}
+
+function name(value: unknown, what: string): string {
+  return field(value, what, isName, "a name of 1 to 80 characters");
 }
 
 function optional(value: unknown, make: (v: unknown) => string, flag: string): string[] {
@@ -166,6 +182,29 @@ export function actionArgs(action: unknown): string[] {
         `--reason=${words(a.intent, "reason", 500)}`,
       ];
     }
+    case "user-add":
+      return [
+        "user",
+        "add",
+        name(a.name, "name"),
+        name(a.role, "role"),
+        ...optional(
+          a.git_username,
+          (v) => field(v, "git_username", (x) => GIT_USERNAME.test(x), "not a git username"),
+          "--git-username",
+        ),
+        intent(),
+        "--json",
+      ];
+    case "user-remove":
+      return ["user", "remove", name(a.name, "name"), intent(), "--json"];
+    case "user-assign-role":
+      return ["user", "assign-role", name(a.name, "name"), name(a.role, "role"), intent(), "--json"];
+    case "share-pull":
+      return ["share", "pull"];
+    case "share-push":
+      // the host's dialog, showing this command, is the person's yes (law L3)
+      return ["share", "push", `--message=${words(a.intent, "message", 500)}`, "--yes", "--json"];
     default:
       throw new ActionError("not an action the Studio may ask for");
   }
