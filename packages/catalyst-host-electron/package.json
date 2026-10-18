@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-electron",
-  "version": "0.51.0",
+  "version": "0.52.0",
   "license": "Apache-2.0",
   "private": true,
   "main": "dist/main.js",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "catalyst-core": "*",
+    "catalyst-studio": "*",
     "catalyst-ui": "*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

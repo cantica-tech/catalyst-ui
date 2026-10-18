@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { Analyses } from "./Analyses.js";
 import { Approvals } from "./Approvals.js";
+import { Audit } from "./Audit.js";
+import { Modules } from "./Modules.js";
 import { Artifacts } from "./Artifacts.js";
 import { Board } from "./Board.js";
 import { connectionFromPage, StudioClient } from "./client.js";
@@ -19,6 +22,7 @@ import { Shell } from "./Shell.js";
 import { Status } from "./Status.js";
 import { Team } from "./Team.js";
 import { TypeMap } from "./TypeMap.js";
+import { knowProject, UnreadCount } from "./Unread.js";
 
 /** Gives every view the host once it answers (inside a host only; a browser has none). */
 function WithHost({ hostReady, children }: { hostReady: Promise<HostRuns | null>; children: ReactNode }) {
@@ -42,6 +46,12 @@ function mount(): void {
   const connection = connectionFromPage();
   const client = connection ? new StudioClient(connection) : null;
   const hostReady = connectHost(); // the page renders now; the run appears when a host answers
+  client?.head().then(
+    (h) => {
+      knowProject(h.project);
+    },
+    () => undefined, // a shared server has no head of this kind: one key for what was seen
+  );
   createRoot(host).render(
     <WithHost hostReady={hostReady}>
       <WithDrift client={client}>
@@ -72,6 +82,7 @@ function mount(): void {
                     {
                       id: "inbox",
                       label: "Inbox",
+                      badge: <UnreadCount client={client} />,
                       render: (target?: string) => <Inbox client={client} target={target} />,
                     },
                     {
@@ -108,6 +119,21 @@ function mount(): void {
                       id: "approvals",
                       label: "Approvals",
                       render: () => <Approvals client={client} />,
+                    },
+                    {
+                      id: "analyses",
+                      label: "Analyses",
+                      render: (target?: string) => <Analyses client={client} target={target} />,
+                    },
+                    {
+                      id: "modules",
+                      label: "Modules",
+                      render: () => <Modules client={client} />,
+                    },
+                    {
+                      id: "audit",
+                      label: "Audit",
+                      render: () => <Audit client={client} />,
                     },
                     {
                       id: "team",

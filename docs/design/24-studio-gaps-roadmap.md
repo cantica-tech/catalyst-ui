@@ -131,7 +131,7 @@ as the proof that nothing in the Studio names a module type.
 
 1. ~~**W — how the Studio writes**~~ — **decided 2026-10-16: W1**, in VS Code and Electron alike (R6.49).
 2. ~~**G — approval gates**~~ — **decided 2026-10-16: opt-in for 1.0** (option 2): no gate unless a deployment declares one. (Not B5, which keeps four-eyes _analysis_.)
-3. **Module choices:** ~~an `ADR-` type~~ — **decided 2026-10-18: yes**, decisions are recorded, so they are entities: an `ADR-` type of the process module naming the rules it shapes, catalyst's own ADRs moved into its record (R6.45); an assignee field, dates on roadmap rows still open (the module's repository).
+3. **Module choices:** ~~an `ADR-` type~~ — **decided 2026-10-18: yes**, decisions are recorded, so they are entities: an `ADR-` type of the process module naming the rules it shapes, catalyst's own ADRs moved into its record (R6.45); an assignee field and dates on roadmap rows — **decided 2026-10-18: yes** (module 3.4.0, B9); embeds from other sites — **decided 2026-10-18: yes**, from origins a deployment allows (B8).
    **Rule typing** — **decided 2026-10-18:** a rule states `must`, `should` or `may`, `must` when it states none; a `should` breach is reported as a warning, a `may` one as a note (R6.46, kernel).
 4. **Scope cuts** of §4.
 

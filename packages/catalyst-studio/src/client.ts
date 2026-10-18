@@ -102,6 +102,8 @@ export interface Head {
   seq: number;
   files: number;
   kernel?: string | null;
+  /** The project's name (catalyst >= 0.86.0). */
+  project?: string | null;
   modules?: { id: string; version: string }[];
   catalyst?: string;
 }
@@ -251,6 +253,125 @@ export interface EntityView {
   [field: string]: unknown;
 }
 
+/** One analysis in brief (`GET /v1/analyses`, catalyst >= 0.85.0). */
+export interface AnalysisSummary {
+  id: string;
+  title: string;
+  phase: string;
+  mode: string | null;
+  /** 2: four-eyes; 1: single-pass (catalyst >= 0.84.0). */
+  passes: number;
+  scope: string[];
+  code_state: string | null;
+  opened: string | null;
+  closed: string | null;
+  findings: number;
+  decided: number;
+  accepted: number;
+  rejected: number;
+}
+
+/** A person's decision on one reconciled finding. */
+export interface FindingDecision {
+  verdict: "accept" | "reject";
+  artifact: string | null;
+  reason: string | null;
+  by: string | null;
+  at: string | null;
+}
+
+/** One reconciled finding, as `ANALYSIS-PLAYBOOK.md` gives it, with its decision. */
+export interface AnalysisFinding {
+  id: string;
+  kind: "domain" | "rule" | "defect";
+  title?: string;
+  statement?: string;
+  status?: string;
+  breaks?: string;
+  code?: string;
+  confidence?: string;
+  evidence?: { path: string; line?: number }[];
+  sources?: string[];
+  verification?: string;
+  decision: FindingDecision | null;
+  [field: string]: unknown;
+}
+
+/** `GET /v1/analyses/<id>`: one analysis in full (catalyst >= 0.85.0). */
+export interface AnalysisReport extends AnalysisSummary {
+  recorded: { A: boolean; B: boolean | null };
+  diff: { agreed: number; conflicting: number; a_only: number; b_only: number } | null;
+  reconciled: boolean;
+  dropped: { source?: string; reason?: string }[];
+  items: AnalysisFinding[];
+  problems: string[];
+}
+
+/** One installed module as its record and tree agree (`GET /v1/modules`, local mode, catalyst >= 0.86.0). */
+export interface InstalledModule {
+  id: string;
+  /** `ok`, `changed` (its tree differs from the record), `unrecorded` or `missing`. */
+  state: string;
+  version: string | null;
+  source: string | null;
+  commit: string | null;
+  sha256: string | null;
+  actual: string | null;
+}
+
+/** A module's releases at its recorded repository (`GET /v1/modules/<id>/available`). */
+export interface ModuleReleases {
+  id: string;
+  installed: string;
+  source: string;
+  releases: { version: string; tag: string; newer: boolean; installed: boolean }[];
+}
+
+/** What upgrading a module to a release would change (`GET /v1/modules/<id>/plan?to=<tag>`). */
+export interface ModulePlan {
+  id: string;
+  to: string;
+  from_module?: string | null;
+  to_module?: string | null;
+  migrations?: unknown[];
+  actions: { kind: string; target: string; change: string; detail?: string }[];
+}
+
+/** One link of a rule's chain in the audit pack: an entity resting on it, how far, and what brought it in. */
+export interface AuditLink {
+  id: string;
+  type: string;
+  title: string;
+  status: string | null;
+  depth: number;
+  via: { id: string; field: string; on: string };
+}
+
+/** `GET /v1/audit` (local mode, catalyst >= 0.87.0): the audit pack. */
+export interface AuditPack {
+  project: string | null;
+  generated: string;
+  catalyst: string;
+  kernel: string | null;
+  modules: { id: string; version: string | null }[];
+  criterion_commit: string | null;
+  integrity: {
+    journal: { entries: number; errors: number; warnings: number };
+    check: { errors: number; warnings: number; first: string[] };
+    unapproved_rules: string[];
+  };
+  signers: { name: string; signed: number }[];
+  rules: {
+    id: string;
+    title: string;
+    status: string | null;
+    strength: string;
+    domain: string | null;
+    retired: boolean;
+    chain: AuditLink[];
+  }[];
+}
+
 /** One entity `impact` reached: how far, and the link that reached it. */
 export interface Reached {
   id: string;
@@ -280,6 +401,7 @@ export interface User {
   userid: string;
   roles: string[];
   active: boolean;
+  git_username?: string;
   registered?: string;
   notes?: string;
 }
@@ -389,6 +511,36 @@ export class StudioClient {
   /** The gates covering an entity and what each lacks (catalyst >= 0.80.0). */
   approvals(id: string): Promise<ApprovalsReport> {
     return this.get<ApprovalsReport>(`approvals/${encodeURIComponent(id)}`);
+  }
+
+  /** Every analysis in brief, newest first (catalyst >= 0.85.0). */
+  async analyses(): Promise<AnalysisSummary[]> {
+    return (await this.get<{ analyses: AnalysisSummary[] }>("analyses")).analyses;
+  }
+
+  /** One analysis in full: its passes, diff, findings and their decisions (catalyst >= 0.85.0). */
+  analysis(id: string): Promise<AnalysisReport> {
+    return this.get<AnalysisReport>(`analyses/${encodeURIComponent(id)}`);
+  }
+
+  /** The audit pack: each rule's chain and the record's integrity (local mode, catalyst >= 0.87.0). */
+  audit(): Promise<AuditPack> {
+    return this.get<AuditPack>("audit");
+  }
+
+  /** The installed modules (local mode, catalyst >= 0.86.0). */
+  async modules(): Promise<InstalledModule[]> {
+    return (await this.get<{ modules: InstalledModule[] }>("modules")).modules;
+  }
+
+  /** A module's releases at its repository: the network, local mode (catalyst >= 0.86.0). */
+  moduleReleases(id: string): Promise<ModuleReleases> {
+    return this.get<ModuleReleases>(`modules/${encodeURIComponent(id)}/available`);
+  }
+
+  /** What upgrading a module to one of its releases would change, written nowhere (catalyst >= 0.86.0). */
+  modulePlan(id: string, tag: string): Promise<ModulePlan> {
+    return this.get<ModulePlan>(`modules/${encodeURIComponent(id)}/plan?to=${encodeURIComponent(tag)}`);
   }
 
   /** The registered users (`GET /v1/list?type=users`). */

@@ -1,22 +1,15 @@
-import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import type { ChainModel, SlashCommandSpec } from "catalyst-core";
-import {
-  commandNames,
-  composeCommandRequest,
-  discoverSlashCommands,
-  resolveAgentLaunch,
-  resolveCorpusRoot,
-  watchProject,
-} from "catalyst-core";
+import type { ChainModel } from "catalyst-core";
+import { resolveCorpusRoot, watchProject } from "catalyst-core";
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 
 import { buildNodeDetail } from "./detail.js";
 import { computeGraphLayout } from "./graph.js";
-import { isProjectId, renderIndexHtml, validateAgentInput, validateSlashCommandRequest } from "./security.js";
+import { isProjectId, renderIndexHtml } from "./security.js";
+import { openStudio } from "./studio.js";
 import {
   addTrackedProject,
   loadTrackedProjects,
@@ -28,7 +21,6 @@ import {
 interface ProjectRuntime {
   handle: { close(): Promise<void> };
   model: ChainModel | null;
-  agentProcess?: ChildProcessWithoutNullStreams;
 }
 
 const runtimeByProjectId = new Map<string, ProjectRuntime>();
@@ -64,57 +56,6 @@ function startWatching(project: TrackedProject, win: BrowserWindow): void {
   );
 
   runtimeByProjectId.set(project.id, { handle, model: null });
-}
-
-/**
- * One spawned agent process per project, reused across multiple
- * slash-command runs — never crossed with another project's live session.
- * The binary comes from the allow-list in `resolveAgentLaunch` (never the
- * pointer's raw `agent` string) and is spawned with an argv array and
- * `shell: false`, so nothing from the repository reaches a shell (B-01).
- */
-function runSlashCommand(
-  win: BrowserWindow,
-  project: TrackedProject,
-  runtime: ProjectRuntime,
-  name: string,
-  args: string,
-): string | null {
-  const launch = resolveAgentLaunch(project.projectRoot);
-  if (!launch.ok) return launch.reason;
-
-  if (!runtime.agentProcess) {
-    const child = spawn(launch.command, launch.args, {
-      cwd: project.projectRoot,
-      shell: false,
-    });
-    const forward = (chunk: Buffer) => {
-      win.webContents.send("catalyst:agent-output", {
-        projectId: project.id,
-        chunk: chunk.toString("utf8"),
-      });
-    };
-    child.stdout.on("data", forward);
-    child.stderr.on("data", forward);
-    child.on("error", (error) => {
-      win.webContents.send("catalyst:agent-output", {
-        projectId: project.id,
-        chunk: `\n[could not start ${launch.command}: ${error.message}]\n`,
-      });
-      runtime.agentProcess = undefined;
-    });
-    child.on("exit", (code) => {
-      win.webContents.send("catalyst:agent-output", {
-        projectId: project.id,
-        chunk: `\n[process exited with code ${code}]\n`,
-      });
-      runtime.agentProcess = undefined;
-    });
-    runtime.agentProcess = child;
-  }
-
-  runtime.agentProcess.stdin.write(`${composeCommandRequest(name, args)}\n`);
-  return null;
 }
 
 /** Only this app's own window may call the IPC API. */
@@ -154,7 +95,6 @@ function registerIpcHandlers(win: BrowserWindow): void {
     const runtime = runtimeByProjectId.get(id);
     if (runtime) {
       await runtime.handle.close();
-      runtime.agentProcess?.kill();
       runtimeByProjectId.delete(id);
     }
     const projects = loadTrackedProjects(stateFilePath());
@@ -169,34 +109,16 @@ function registerIpcHandlers(win: BrowserWindow): void {
     return buildNodeDetail(runtime.model, nodeId);
   });
 
-  ipcMain.handle("catalyst:listSlashCommands", (event, projectId: unknown): SlashCommandSpec[] => {
-    if (!fromOwnWindow(win, event) || !isProjectId(projectId)) return [];
+  ipcMain.handle("catalyst:openStudio", async (event, projectId: unknown): Promise<string | null> => {
+    if (!fromOwnWindow(win, event) || !isProjectId(projectId)) return "Refused.";
     const project = loadTrackedProjects(stateFilePath()).find((p) => p.id === projectId);
-    return project ? discoverSlashCommands(project.projectRoot) : [];
-  });
-
-  ipcMain.handle(
-    "catalyst:runSlashCommand",
-    (event, projectId: unknown, name: unknown, args: unknown): string | null => {
-      if (!fromOwnWindow(win, event)) return "Refused.";
-      const project = isProjectId(projectId)
-        ? loadTrackedProjects(stateFilePath()).find((p) => p.id === projectId)
-        : undefined;
-      const runtime = project ? runtimeByProjectId.get(project.id) : undefined;
-      if (!project || !runtime) return "Unknown project.";
-      // Only a command of the project's composed §4 can be dispatched.
-      const allowed = commandNames(discoverSlashCommands(project.projectRoot));
-      const checked = validateSlashCommandRequest(projectId, name, args, allowed);
-      if (!checked.ok) return checked.error;
-      return runSlashCommand(win, project, runtime, checked.name, checked.args);
-    },
-  );
-
-  ipcMain.handle("catalyst:sendAgentInput", (event, projectId: unknown, text: unknown) => {
-    if (!fromOwnWindow(win, event)) return;
-    const checked = validateAgentInput(projectId, text);
-    if (!checked.ok) return;
-    runtimeByProjectId.get(projectId as string)?.agentProcess?.stdin.write(`${checked.text}\n`);
+    if (!project) return "Unknown project.";
+    try {
+      await openStudio(project.projectRoot, basename(project.projectRoot));
+      return null;
+    } catch (err) {
+      return `catalyst could not serve the Studio: ${String(err)}`;
+    }
   });
 }
 
