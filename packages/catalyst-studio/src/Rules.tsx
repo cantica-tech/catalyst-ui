@@ -14,6 +14,22 @@ export function ruleStatus(rule: { status: string; retired: boolean }): { tone: 
   return { tone: "info", label: "No status" };
 }
 
+export const STRENGTHS = ["must", "should", "may"] as const;
+
+/** How hard a rule binds: its stated strength, `must` when it states none (an older catalyst). */
+export function ruleStrength(rule: { strength?: unknown }): string {
+  return typeof rule.strength === "string" && rule.strength !== "" ? rule.strength : "must";
+}
+
+/** What a breach of the rule is reported as: a violation, a warning or a note. */
+export function breachIs(strength: string): string {
+  return strength === "should"
+    ? "a breach is a warning"
+    : strength === "may"
+      ? "a breach is a note"
+      : "a breach is a violation";
+}
+
 /** Which entities cite each rule: every artifact whose reference fields name it. */
 export function citers(graph: Graph): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
@@ -32,12 +48,14 @@ export function ruleDocument(rule: GraphRule): string {
   return rule.id.split("-")[0];
 }
 
-/** The rules a search keeps: every word in the ID, title, domain or status. */
-export function searchRules(rules: GraphRule[], words: string, showRetired: boolean): GraphRule[] {
+/** The rules a search keeps: every word in the ID, title, domain, status or strength, of the strength asked. */
+export function searchRules(rules: GraphRule[], words: string, showRetired: boolean, strength = ""): GraphRule[] {
   const ws = words.toLowerCase().split(/\s+/).filter(Boolean);
   return rules.filter((r) => {
     if (!showRetired && ruleStatus(r).label === "Retired") return false;
-    const hay = `${r.id} ${r.title} ${r.domain ?? ""} ${ruleStatus(r).label} ${r.status}`.toLowerCase();
+    if (strength && ruleStrength(r) !== strength) return false;
+    const hay =
+      `${r.id} ${r.title} ${r.domain ?? ""} ${ruleStatus(r).label} ${r.status} ${ruleStrength(r)}`.toLowerCase();
     return ws.every((w) => hay.includes(w));
   });
 }
@@ -68,10 +86,12 @@ export function RuleBrowser({ graph }: { graph: Graph }) {
   const navigate = useNavigate();
   const [words, setWords] = useState("");
   const [showRetired, setShowRetired] = useState(false);
+  const [strength, setStrength] = useState("");
   const searchId = useId();
   const retiredId = useId();
+  const strengthId = useId();
   const all = graph.rules ?? [];
-  const kept = searchRules(all, words, showRetired);
+  const kept = searchRules(all, words, showRetired, strength);
   const cited = citers(graph);
   const domainTitle = new Map((graph.domains ?? []).map((d) => [d.code, d.title]));
   return (
@@ -95,7 +115,21 @@ export function RuleBrowser({ graph }: { graph: Graph }) {
             setShowRetired(event.target.checked);
           }}
         />{" "}
-        <label htmlFor={retiredId}>Show retired rules</label>
+        <label htmlFor={retiredId}>Show retired rules</label> <label htmlFor={strengthId}>Strength</label>{" "}
+        <select
+          id={strengthId}
+          value={strength}
+          onChange={(event) => {
+            setStrength(event.target.value);
+          }}
+        >
+          <option value="">any</option>
+          {STRENGTHS.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       </div>
       <p className="muted" aria-live="polite">
         {kept.length} of {all.length} rules
@@ -124,6 +158,13 @@ export function RuleBrowser({ graph }: { graph: Graph }) {
                         <code>{r.id}</code> {r.title.replace(/^🗑\s*/, "")}
                       </button>{" "}
                       <Status tone={st.tone} label={st.label} />{" "}
+                      {ruleStrength(r) !== "must" && (
+                        <>
+                          <span className="strength" title={breachIs(ruleStrength(r))}>
+                            {ruleStrength(r)}
+                          </span>{" "}
+                        </>
+                      )}
                       <span className="muted">{n === 0 ? "cited by nothing" : `cited by ${String(n)}`}</span>{" "}
                       <DriftBadge id={r.id} />
                     </li>
