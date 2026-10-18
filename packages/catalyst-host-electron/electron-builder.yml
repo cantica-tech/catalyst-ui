@@ -43,3 +43,5 @@ linux:
     - target: deb
       arch: [x64, arm64]
   category: Development
+  # a name only until the organization names a public address for it
+  maintainer: Cantica Tech
