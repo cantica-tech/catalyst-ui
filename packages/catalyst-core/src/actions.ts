@@ -14,7 +14,8 @@ export type StudioAction =
   | { verb: "journal-append"; path: string; intent: string; tier: string; target?: string; artifact?: string }
   | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string }
   | { verb: "restore"; id: string; to: string; intent: string; tier?: string }
-  | { verb: "approve"; id: string; gate: string; intent: string };
+  | { verb: "approve"; id: string; gate: string; intent: string }
+  | { verb: "analysis-decide"; id: string; finding: string; verdict: string; intent: string; artifact?: string };
 
 export class ActionError extends Error {}
 
@@ -25,6 +26,9 @@ const TIER = /^[a-z][a-z-]{0,20}$/;
 /** A gate's id in `IAM/gates.json` (catalyst >= 0.80.0). */
 const GATE = /^[a-z][a-z0-9-]{0,40}$/;
 const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
+/** A reconciled finding's id in an analysis (`F1`), and what it may become: an entity or rule ID, or a domain code. */
+const FINDING = /^[A-Za-z][A-Za-z0-9_.]{0,40}$/;
+const DOMAIN = /^[A-Z][A-Z0-9]*(\.[A-Z][A-Z0-9]*)?$/;
 /** A version of an entity: its Nth change (`#3`) or an ISO time (`2026-10-16T08:00:00Z`). */
 const VERSION = /^(#[1-9][0-9]{0,5}|\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?Z?)?)$/;
 
@@ -142,6 +146,26 @@ export function actionArgs(action: unknown): string[] {
         intent(),
         "--json",
       ];
+    case "analysis-decide": {
+      // one person's decision on one reconciled finding (law L4); catalyst
+      // refuses an accepted finding whose artifact does not exist
+      const verdict = field(a.verdict, "verdict", (v) => v === "accept" || v === "reject", "accept or reject");
+      if (verdict === "accept" && !a.artifact)
+        throw new ActionError("artifact: an accepted finding names what it became");
+      return [
+        "analysis",
+        "decide",
+        entity(a.id, "id"),
+        field(a.finding, "finding", (v) => FINDING.test(v), "not a finding's id"),
+        verdict,
+        ...optional(
+          a.artifact,
+          (v) => field(v, "artifact", (x) => ENTITY.test(x) || DOMAIN.test(x), "not an ID or a domain code"),
+          "--artifact",
+        ),
+        `--reason=${words(a.intent, "reason", 500)}`,
+      ];
+    }
     default:
       throw new ActionError("not an action the Studio may ask for");
   }
