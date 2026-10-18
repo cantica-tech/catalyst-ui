@@ -7,6 +7,7 @@ import { describeEvidence } from "./evidence.js";
 import { gateCount } from "./Gates.js";
 import { ProposalDiff } from "./Proposals.js";
 import { useHost } from "./host.js";
+import { markSeen } from "./Unread.js";
 import { Status } from "./Status.js";
 
 /** The kinds catalyst reports, in its order, each with the heading the inbox gives it. */
@@ -381,6 +382,12 @@ export function Inbox({
       live = false;
     };
   }, [client, batch]);
+
+  // what the Inbox shows is seen: the navigation's unread count drops (R6.26)
+  const shown = load.state === "ready" ? load.report.items : null;
+  useEffect(() => {
+    if (shown) markSeen(shown);
+  }, [shown]);
 
   const item = load.state === "ready" && open ? load.report.items.find((i) => `${i.kind}:${i.id}` === open) : undefined;
   const viewable = item && ["reconciliation", "analysis", "approval", "proposal"].includes(item.kind) ? item.id : null;

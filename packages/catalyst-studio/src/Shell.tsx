@@ -7,6 +7,8 @@ export interface View {
   label: string;
   /** `target`: what another view asked this one to open (an entity's ID), if any. */
   render: (target?: string) => ReactNode;
+  /** Shown after the label in the navigation, such as the Inbox's unread count (R6.26). */
+  badge?: ReactNode;
   /** Ctrl/⌘ with this key opens the view from anywhere, then focuses the element with id `focus`. */
   shortcut?: { key: string; focus: string };
 }
@@ -112,6 +114,7 @@ export function Shell({
                   }}
                 >
                   {v.label}
+                  {v.badge ? <> {v.badge}</> : null}
                 </button>
               </li>
             ))}
