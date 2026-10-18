@@ -1,8 +1,16 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-/** The Studio's built page, as the catalyst-studio package ships it. */
-export function studioBundle(resolve: (id: string) => string = require.resolve): string | null {
+/**
+ * The Studio's built page: in a packaged app, the `studio` resource beside it
+ * (electron-builder's `extraResources`); in a checkout, the catalyst-studio
+ * package's build.
+ */
+export function studioBundle(
+  resolve: (id: string) => string = require.resolve,
+  resources: string | undefined = (process as { resourcesPath?: string }).resourcesPath,
+): string | null {
+  if (resources && existsSync(join(resources, "studio", "index.html"))) return join(resources, "studio");
   try {
     const dir = join(dirname(resolve("catalyst-studio/package.json")), "dist", "web");
     return existsSync(join(dir, "index.html")) ? dir : null;

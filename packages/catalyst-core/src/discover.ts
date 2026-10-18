@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { KERNEL_VERSION_FLOOR } from "./kernel-version.js";
-import { parseFieldTable, sectionLines } from "./markdown.js";
 import { homeCriterion, projectName, readProjectFile } from "./project-file.js";
 import type { CatalystPointer } from "./types.js";
 import { satisfiesVersionSpecifier } from "./versioning.js";
@@ -149,32 +148,6 @@ export const REQUIRED_KERNEL_VERSION = `>=${KERNEL_VERSION_FLOOR}`;
 export function meetsRequiredKernelVersion(deployedVersion: string | null): boolean {
   if (!deployedVersion) return true;
   return satisfiesVersionSpecifier(deployedVersion, REQUIRED_KERNEL_VERSION);
-}
-
-/**
- * Reads a deployed entity definition (`INVARIANTS.md` INV-23,
- * `.criterion/definitions/<entityType>.md`) — the short, versioned prose
- * explaining what one catalyst entity type is and what it's for. `null`
- * if the file is missing, unreadable, or missing its `Version` field or
- * `## Description` section — callers should treat that as "nothing to
- * show," not throw.
- */
-export function readEntityDefinition(
-  corpusRoot: string,
-  entityType: string,
-): { version: string; description: string } | null {
-  const definitionFile = join(corpusRoot, "definitions", `${entityType}.md`);
-  if (!existsSync(definitionFile)) return null;
-
-  try {
-    const { fields, text } = parseFieldTable(definitionFile);
-    const version = fields.get("Version");
-    const description = sectionLines(text, "Description").join(" ");
-    if (!version || description.length === 0) return null;
-    return { version, description };
-  } catch {
-    return null;
-  }
 }
 
 /**

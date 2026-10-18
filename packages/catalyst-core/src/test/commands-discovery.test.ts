@@ -1,113 +1,63 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "vitest";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { commandNames, commandsFromCatalog, discoverSlashCommands, type RunCatalyst } from "../commands-discovery.js";
 
-import { commandNames, discoverSlashCommands, parseSection4Commands } from "../commands-discovery.js";
+/** What `catalyst spec --json` prints, cut to what the picker reads. */
+const CATALOG = {
+  commands: [
+    { name: "alpha", usage: "/alpha", summary: "Does the alpha thing. Then more.", aliases: [], parts: [] },
+    {
+      name: "create",
+      usage: "/create <type> <title>",
+      summary: "create an artifact of a type the active modules declare; each type is a part.",
+      aliases: ["create-item"],
+      parts: [],
+    },
+    { name: "long", usage: "/long", summary: "word ".repeat(80) },
+    { usage: "/nameless" },
+  ],
+};
 
-const CODE_OF_CONDUCT = `# Code of conduct
-
-## 3. Before
-
-- \`/not-a-command\` — outside §4, never listed.
-
-## 4. Commands
-
-Every command below ends with a check.
-
-- \`/alpha <title>\` — create an alpha thing immediately, e.g. for a
-  quick note. Then register it in the index.
-- \`/beta\` or \`/beta-long\` — run beta.
-- \`/gamma create <name>\` — create a gamma.
-- \`/gamma remove <name>\` — remove a gamma.
-- \`/x|y\` — names no command.
-- \`/delta\`
-
-A paragraph about \`/alpha\`: its procedure, not a command.
-
-## 5. After
-
-- \`/omega\` — after §4, never listed.
-`;
-
-describe("parseSection4Commands", () => {
-  const specs = parseSection4Commands(CODE_OF_CONDUCT, "/c/CODE-OF-CONDUCT.md");
-  const byName = (name: string) => specs.find((s) => s.name === name);
-
-  it("lists only §4's bullet commands, sorted, with their file", () => {
-    expect(specs.map((s) => s.name)).toEqual(["alpha", "beta", "delta", "gamma"]);
-    expect(byName("alpha")?.filePath).toBe("/c/CODE-OF-CONDUCT.md");
-  });
-
-  it("takes the first sentence after the dash, whitespace collapsed", () => {
-    expect(byName("alpha")?.description).toBe("create an alpha thing immediately, e.g. for a quick note.");
-    expect(byName("delta")?.description).toBeUndefined();
-  });
-
-  it("reads the argument hint from the bullet's code span", () => {
-    expect(byName("alpha")?.argumentHint).toBe("<title>");
-    expect(byName("beta")?.argumentHint).toBeUndefined();
-    expect(byName("gamma")?.argumentHint).toBe("create <name> | remove <name>");
-  });
-
-  it("treats further mentions before the dash as aliases", () => {
-    expect(byName("beta")?.aliases).toEqual(["beta-long"]);
-    expect(byName("beta-long")).toBeUndefined();
-    expect(commandNames(specs)).toEqual(["alpha", "beta", "beta-long", "delta", "gamma"]);
+describe("commandsFromCatalog (R5.3: catalyst's own list)", () => {
+  it("reads each command's name, hint, first sentence and aliases", () => {
+    const specs = commandsFromCatalog(CATALOG);
+    expect(specs.map((s) => s.name)).toEqual(["alpha", "create", "long"]);
+    expect(specs[0]).toEqual({ name: "alpha", description: "Does the alpha thing." });
+    expect(specs[1].argumentHint).toBe("<type> <title>");
+    expect(specs[1].aliases).toEqual(["create-item"]);
+    expect(commandNames(specs)).toEqual(["alpha", "create", "create-item", "long"]);
   });
 
   it("caps a long description", () => {
-    const long = "word ".repeat(80).trim();
-    const [spec] = parseSection4Commands(`## 4. C\n- \`/long\` — ${long}\n`);
-    expect(spec.description?.length).toBe(200);
-    expect(spec.description?.endsWith("…")).toBe(true);
+    const long = commandsFromCatalog(CATALOG)[2];
+    expect(long.description?.length).toBe(200);
+    expect(long.description?.endsWith("…")).toBe(true);
   });
 
-  it("returns nothing without a §4", () => {
-    expect(parseSection4Commands("# Nothing\n\n- `/alpha` — a.\n")).toEqual([]);
+  it("gives nothing for anything but a catalogue", () => {
+    expect(commandsFromCatalog(null)).toEqual([]);
+    expect(commandsFromCatalog({ commands: "x" })).toEqual([]);
   });
 });
 
 describe("discoverSlashCommands", () => {
-  let scratch: string;
-  let savedHome: string | undefined;
-
-  beforeEach(() => {
-    scratch = mkdtempSync(join(tmpdir(), "catalyst-core-commands-"));
-    savedHome = process.env.CATALYST_HOME;
-    process.env.CATALYST_HOME = join(scratch, "home");
+  it("asks catalyst, from the project", () => {
+    const asked: [string[], string][] = [];
+    const run: RunCatalyst = (args, cwd) => {
+      asked.push([args, cwd]);
+      return { status: 0, stdout: JSON.stringify(CATALOG) };
+    };
+    expect(discoverSlashCommands("/work/app", run).map((s) => s.name)).toEqual(["alpha", "create", "long"]);
+    expect(asked).toEqual([[["--project", "/work/app", "spec", "--json"], "/work/app"]]);
   });
 
-  afterEach(() => {
-    if (savedHome === undefined) delete process.env.CATALYST_HOME;
-    else process.env.CATALYST_HOME = savedHome;
-    rmSync(scratch, { recursive: true, force: true });
-  });
-
-  it("reads §4 of the criterion's CODE-OF-CONDUCT.md", () => {
-    const project = join(scratch, "project");
-    const criterion = join(scratch, "home", "projects", "app", "criterion");
-    mkdirSync(project);
-    mkdirSync(criterion, { recursive: true });
-    writeFileSync(join(project, "catalyst.toml"), 'project_name = "app"\n');
-    writeFileSync(join(criterion, "CODE-OF-CONDUCT.md"), CODE_OF_CONDUCT);
-
-    const specs = discoverSlashCommands(project);
-    expect(specs.map((s) => s.name)).toEqual(["alpha", "beta", "delta", "gamma"]);
-    expect(specs[0].filePath).toBe(join(criterion, "CODE-OF-CONDUCT.md"));
-  });
-
-  it("ignores command files in the project's .claude/commands", () => {
-    const project = join(scratch, "project");
-    mkdirSync(join(project, ".claude", "commands"), { recursive: true });
-    writeFileSync(join(project, ".claude", "commands", "alpha.md"), "---\ndescription: stale\n---\n");
-    expect(discoverSlashCommands(project)).toEqual([]);
-  });
-
-  it("returns nothing when the criterion has no CODE-OF-CONDUCT.md", () => {
-    const project = join(scratch, "project");
-    mkdirSync(join(project, ".criterion"), { recursive: true });
-    expect(discoverSlashCommands(project)).toEqual([]);
+  it("gives nothing when catalyst fails, answers garbage or cannot run", () => {
+    expect(discoverSlashCommands("/p", () => ({ status: 2, stdout: "" }))).toEqual([]);
+    expect(discoverSlashCommands("/p", () => ({ status: 0, stdout: "not json" }))).toEqual([]);
+    expect(
+      discoverSlashCommands("/p", () => {
+        throw new Error("ENOENT");
+      }),
+    ).toEqual([]);
   });
 });

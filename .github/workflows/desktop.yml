@@ -1,0 +1,129 @@
+name: Desktop
+
+# Catalyst Studio on the desktop (R6.20): built for macOS, Windows and Linux
+# when a release is published, its files attached to that release; a manual
+# run builds and keeps the files as the run's artifacts. Each platform is
+# signed only once its credentials exist; without them it still builds,
+# unsigned:
+# - macOS: secrets MAC_CERTIFICATE_P12 (base64 of the Developer ID
+#   Application .p12) and MAC_CERTIFICATE_PASSWORD sign; APPLE_API_KEY_P8
+#   (the .p8's text), with variables APPLE_API_KEY_ID and APPLE_API_ISSUER,
+#   notarize.
+# - Windows: variables AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_SUBSCRIPTION_ID
+#   (a federated credential for this repository's `release` environment, no
+#   secret), ARTIFACT_SIGNING_ENDPOINT, ARTIFACT_SIGNING_ACCOUNT and
+#   ARTIFACT_SIGNING_PROFILE sign the installers with Azure Artifact Signing.
+# - Linux: AppImage and .deb, not signed.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    environment: release
+    permissions:
+      contents: write # attach the files to the release
+      id-token: write # Azure's federated sign-in, Windows only
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          package-manager-cache: false # a release build never reads a cache another run wrote
+      - run: npm ci
+      - name: Build the packages and the Studio bundle
+        run: |
+          npx tsc --build
+          npm run build --workspace catalyst-studio
+          npm run bundle --workspace catalyst-host-electron
+      - name: Signing credentials, when there are any
+        shell: bash
+        env:
+          MAC_CERTIFICATE_P12: ${{ secrets.MAC_CERTIFICATE_P12 }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          if [ "$RUNNER_OS" != "macOS" ]; then
+            # electron-builder signs Windows and Linux builds itself only with a certificate
+            # file; Windows is signed by Azure after the build, Linux not at all
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [ -n "$MAC_CERTIFICATE_P12" ]; then
+            echo "CSC_LINK=$MAC_CERTIFICATE_P12" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$MAC_CERTIFICATE_PASSWORD" >> "$GITHUB_ENV"
+          else
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+            echo "::notice::macOS build not signed: no MAC_CERTIFICATE_P12 secret"
+          fi
+          if [ -n "$APPLE_API_KEY_P8" ]; then
+            key="$RUNNER_TEMP/apple-api-key.p8"
+            printf '%s\n' "$APPLE_API_KEY_P8" > "$key"
+            echo "APPLE_API_KEY=$key" >> "$GITHUB_ENV"
+          fi
+      - name: Package
+        shell: bash
+        working-directory: packages/catalyst-host-electron
+        env:
+          APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER }}
+        run: npx electron-builder --publish never
+      - name: Sign in to Azure (Windows, when it is set up)
+        if: runner.os == 'Windows' && vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Sign the installers with Azure Artifact Signing
+        if: runner.os == 'Windows' && vars.AZURE_CLIENT_ID != ''
+        uses: azure/trusted-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: packages/catalyst-host-electron/release
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-digest: SHA256
+      - name: Windows build not signed
+        if: runner.os == 'Windows' && vars.AZURE_CLIENT_ID == ''
+        shell: bash
+        run: |
+          echo "::notice::Windows installers not signed: no AZURE_CLIENT_ID variable"
+      - name: Attach the files to the release
+        if: github.event_name == 'release'
+        shell: bash
+        working-directory: packages/catalyst-host-electron/release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          shopt -s nullglob
+          files=( *.dmg *.zip *.exe *.AppImage *.deb )
+          gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+      - name: Keep the files (a manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: catalyst-studio-${{ matrix.os }}
+          path: |
+            packages/catalyst-host-electron/release/*.dmg
+            packages/catalyst-host-electron/release/*.zip
+            packages/catalyst-host-electron/release/*.exe
+            packages/catalyst-host-electron/release/*.AppImage
+            packages/catalyst-host-electron/release/*.deb
+          if-no-files-found: error

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { MAX_AGENT_TEXT_LENGTH, renderIndexHtml, validateAgentInput, validateSlashCommandRequest } from "./security.js";
+import {
+  MAX_AGENT_TEXT_LENGTH,
+  renderIndexHtml,
+  renderInlineHtml,
+  validateAgentInput,
+  validateSlashCommandRequest,
+} from "./security.js";
 
 const allowed = ["alpha", "beta"];
 
@@ -58,5 +64,18 @@ describe("renderIndexHtml", () => {
     expect(csp).toContain("form-action 'none'");
     expect(csp).not.toContain("unsafe-eval");
     expect(html).toContain('<script nonce="abc123" src="file:///app/dist/renderer.js"></script>');
+  });
+});
+
+describe("renderInlineHtml (the packaged app's launcher)", () => {
+  it("puts the code under the nonce and never lets it close its script element", () => {
+    const html = renderInlineHtml('console.log("</script><script>alert(1)")', "n0nce");
+    expect(html).toContain('<script nonce="n0nce">console.log("<\\/script><script>alert(1)")</script>');
+    expect(html.match(/<\/script>/g)).toHaveLength(1);
+    expect(html).toContain("script-src 'nonce-n0nce'");
+  });
+
+  it("keeps the code's dollar signs as written", () => {
+    expect(renderInlineHtml('a.replace(/x/, "$&$\'$`")', "n")).toContain('a.replace(/x/, "$&$\'$`")');
   });
 });

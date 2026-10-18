@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { pathToFileURL } from "node:url";
 
 import type { ChainModel } from "catalyst-core";
 import { resolveCorpusRoot, watchProject } from "catalyst-core";
@@ -8,7 +8,7 @@ import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "el
 
 import { buildNodeDetail } from "./detail.js";
 import { computeGraphLayout } from "./graph.js";
-import { isProjectId, renderIndexHtml } from "./security.js";
+import { isProjectId, renderInlineHtml } from "./security.js";
 import { openStudio } from "./studio.js";
 import {
   addTrackedProject,
@@ -144,7 +144,8 @@ function createMainWindow(): BrowserWindow {
   });
 
   const nonce = randomBytes(16).toString("base64");
-  const html = renderIndexHtml(pathToFileURL(join(__dirname, "renderer.js")).toString(), nonce);
+  // the renderer inline: a data: page may not load the packaged app's file: script
+  const html = renderInlineHtml(readFileSync(join(__dirname, "renderer.js"), "utf8"), nonce);
   void win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
   return win;
