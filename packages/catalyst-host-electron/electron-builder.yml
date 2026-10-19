@@ -13,6 +13,11 @@ directories:
 extraResources:
   - from: ../catalyst-studio/dist/web
     to: studio
+  # the kernel's catalyst.pyz (catalyst-version.txt), downloaded by the Desktop workflow from the
+  # distribution repository; absent in a local build unless fetched by hand
+  - from: build/catalyst
+    to: catalyst
+    filter: ["catalyst.pyz"]
 artifactName: "catalyst-studio-${version}-${os}-${arch}.${ext}"
 publish: null
 # app/ has no dependencies: everything is bundled into its files

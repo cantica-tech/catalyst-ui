@@ -49,6 +49,16 @@ jobs:
           npx tsc --build
           npm run build --workspace catalyst-studio
           npm run bundle --workspace catalyst-host-electron
+      - name: The catalyst CLI the app ships (catalyst-version.txt, from the public distribution repository)
+        shell: bash
+        working-directory: packages/catalyst-host-electron
+        run: |
+          version="$(tr -d '[:space:]' < catalyst-version.txt)"
+          mkdir -p build/catalyst
+          curl -fsSL --retry 3 -o build/catalyst/catalyst.pyz \
+            "https://raw.githubusercontent.com/cantica-tech/cantica-tech/main/catalyst/kernel/v${version}/catalyst.pyz"
+          head -c 2 build/catalyst/catalyst.pyz | grep -q '#!'
+          echo "::notice::the app ships catalyst $version"
       - name: Signing credentials, when there are any
         shell: bash
         env:
