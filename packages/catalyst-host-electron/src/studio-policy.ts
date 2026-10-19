@@ -38,7 +38,7 @@ export function bundledCatalyst(
  */
 export function serveFailure(err: unknown, shipped: boolean = bundledCatalyst() !== null): string {
   const text = String(err);
-  if (!/ENOENT/.test(text)) return `catalyst could not serve the Studio: ${text}`;
+  if (!text.includes("ENOENT")) return `catalyst could not serve the Studio: ${text}`;
   return shipped
     ? "catalyst could not be started: this app carries its own catalyst, which needs Python 3.11 or later on the PATH; install one, or install catalyst itself."
     : "catalyst could not be started: it is not installed (the catalyst command, or ~/.catalyst/bin/catalyst).";
