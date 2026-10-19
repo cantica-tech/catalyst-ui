@@ -1,7 +1,7 @@
 # Catalyst Studio — rules, journal and traceability for AI-assisted development
 
 A VS Code extension for projects governed by the [catalyst
-framework](https://github.com/oliben67/catalyst) — the agent-installed
+framework](https://github.com/cantica-tech/catalyst) — the agent-installed
 layer that gives a codebase one traceable structure for its rules, its
 development work, and the history of why every change happened. This
 extension makes that structure visible and navigable without leaving
@@ -54,16 +54,16 @@ goes through the governing agent, never straight from the UI.
 A project governed by catalyst (a `*.catalyst` pointer file at its
 root). No pointer yet? Open the folder anyway — the extension offers to
 help you install one; see [catalyst's own
-repository](https://github.com/oliben67/catalyst) for what that
+repository](https://github.com/cantica-tech/catalyst) for what that
 involves.
 
 ## Also available for Electron
 
 The same UI ships as a standalone Electron desktop app for tracking
 multiple projects side by side — see the
-[catalyst-ui repository](https://github.com/oliben67/catalyst-ui).
+[catalyst-ui repository](https://github.com/cantica-tech/catalyst-ui).
 
 ## Release notes
 
-See [GitHub Releases](https://github.com/oliben67/catalyst-ui/releases)
+See [GitHub Releases](https://github.com/cantica-tech/catalyst-ui/releases)
 for what changed in each version.

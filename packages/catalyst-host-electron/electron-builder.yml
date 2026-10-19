@@ -5,7 +5,7 @@
 appId: com.cantica-tech.catalyst-studio
 productName: Catalyst Studio
 electronVersion: 30.5.1
-copyright: Copyright © 2026 Cantica Tech
+copyright: Copyright © 2026 CanticaTech
 directories:
   app: app
   output: release
@@ -44,4 +44,4 @@ linux:
       arch: [x64, arm64]
   category: Development
   # a name only until the organization names a public address for it
-  maintainer: Cantica Tech
+  maintainer: CanticaTech

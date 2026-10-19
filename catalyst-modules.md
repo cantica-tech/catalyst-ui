@@ -101,7 +101,7 @@ This is the "Catalyst: Switch Process UI Module…" path. "Load Zipped UI
 Module…" skips discovery and download.
 
 1. **Discover.** `fetchRemoteUiModules(catalyst.moduleSourceUrl)` defaults to
-   `git@github.com:oliben67/cantica-tech.git/catalyst/`.
+   `git@github.com:cantica-tech/cantica-tech.git/catalyst/`.
    `parseArtifactSourceLocation` accepts a Git SSH URL with a path, a GitHub
    tree URL, a `git+https://…#branch:path` URI, a raw.githubusercontent URL, or
    a local path. It derives `moduleSubpath` (`catalyst/modules`) and

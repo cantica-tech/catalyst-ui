@@ -22,16 +22,16 @@ vi.mock("node:child_process", () => ({
 
 describe("remote-module-store", () => {
   it("parses various source URL formats cleanly", () => {
-    const loc1 = parseArtifactSourceLocation("git@github.com:oliben67/cantica-tech.git/catalyst/");
+    const loc1 = parseArtifactSourceLocation("git@github.com:cantica-tech/cantica-tech.git/catalyst/");
     expect(loc1.type).toBe("git");
-    expect(loc1.owner).toBe("oliben67");
+    expect(loc1.owner).toBe("cantica-tech");
     expect(loc1.repo).toBe("cantica-tech");
     expect(loc1.branch).toBe("main");
     expect(loc1.moduleSubpath).toBe("catalyst/modules");
     expect(loc1.kernelSubpath).toBe("catalyst/kernel");
 
     // The pre-0.35.0 "framework" release folder still maps onto the kernel.
-    const legacy = parseArtifactSourceLocation("git@github.com:oliben67/cantica-tech.git/catalyst/framework/");
+    const legacy = parseArtifactSourceLocation("git@github.com:cantica-tech/cantica-tech.git/catalyst/framework/");
     expect(legacy.kernelSubpath).toBe("catalyst/kernel");
     expect(legacy.moduleSubpath).toBe("catalyst/modules");
 
