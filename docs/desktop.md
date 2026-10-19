@@ -31,7 +31,7 @@ before starting the built app, or it runs as plain Node.
 
 1. An Artifact Signing (formerly Trusted Signing) account; note its **name** and its region's **endpoint**
    (for example `https://weu.codesigning.azure.net/`).
-2. Cantica Tech's **identity validation** completed in it, then a **public-trust certificate profile**; note its
+2. CanticaTech's **identity validation** completed in it, then a **public-trust certificate profile**; note its
    **name**.
 3. An app registration with a **federated credential for GitHub Actions**: organization `cantica-tech`,
    repository `catalyst-ui`, entity type _Environment_, environment `release`. No client secret.
@@ -52,7 +52,7 @@ The installers are signed after they are built; the application inside an instal
 
 ## macOS: Developer ID and notarization
 
-1. An Apple Developer account in Cantica Tech's name.
+1. An Apple Developer account in CanticaTech's name.
 2. A **Developer ID Application** certificate, exported with its key as a `.p12` and a password.
 3. An **App Store Connect API key** for notarization: its `.p8` file, key ID and issuer ID.
 4. In environment `release`: **secrets** `MAC_CERTIFICATE_P12` (the `.p12`, base64-encoded:
@@ -61,8 +61,8 @@ The installers are signed after they are built; the application inside an instal
 
 ## Linux
 
-Nothing to set up. The `.deb` names its maintainer as "Cantica Tech" without an address: `linux.maintainer` in
-`electron-builder.yml` takes `Cantica Tech <address>` once the organization names a public one.
+Nothing to set up. The `.deb` names its maintainer as "CanticaTech" without an address: `linux.maintainer` in
+`electron-builder.yml` takes `CanticaTech <address>` once the organization names a public one.
 
 ## Not yet
 

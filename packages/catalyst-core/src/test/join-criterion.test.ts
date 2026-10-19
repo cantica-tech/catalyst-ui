@@ -79,15 +79,15 @@ describe("defaultAgentSource", () => {
 
 describe("repoNameFromUrl", () => {
   it("strips .git from an SSH URL", () => {
-    expect(repoNameFromUrl("git@github.com:oliben67/criterion.git")).toBe("criterion");
+    expect(repoNameFromUrl("git@github.com:cantica-tech/criterion.git")).toBe("criterion");
   });
 
   it("strips .git from an HTTPS URL", () => {
-    expect(repoNameFromUrl("https://github.com/oliben67/criterion.git")).toBe("criterion");
+    expect(repoNameFromUrl("https://github.com/cantica-tech/criterion.git")).toBe("criterion");
   });
 
   it("handles a URL with no .git suffix", () => {
-    expect(repoNameFromUrl("https://github.com/oliben67/criterion")).toBe("criterion");
+    expect(repoNameFromUrl("https://github.com/cantica-tech/criterion")).toBe("criterion");
   });
 });
 

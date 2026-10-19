@@ -621,7 +621,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
     const moduleSourceUrl =
       vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl") ||
-      "git@github.com:oliben67/cantica-tech.git/catalyst/";
+      "git@github.com:cantica-tech/cantica-tech.git/catalyst/";
 
     const remoteModules = await vscode.window.withProgress(
       {
