@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
   "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
-  "version": "0.54.0",
+  "version": "0.54.1",
   "private": true,
   "license": "Apache-2.0",
   "publisher": "CanticaTech",
@@ -21,7 +21,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/oliben67/catalyst-ui.git"
+    "url": "https://github.com/cantica-tech/catalyst-ui.git"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -190,12 +190,12 @@
         },
         "catalyst.moduleSourceUrl": {
           "type": "string",
-          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/",
+          "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/",
           "description": "Source location URL for downloading Catalyst process modules. Supports Git SSH URLs (git@github.com:owner/repo.git/path/), GitHub tree URLs (https://github.com/owner/repo/tree/branch/path), standard VCS URIs (git+https://github.com/owner/repo.git#branch:path), or raw GitHub HTTP URLs."
         },
         "catalyst.kernelSourceUrl": {
           "type": "string",
-          "default": "git@github.com:oliben67/cantica-tech.git/catalyst/kernel/",
+          "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/kernel/",
           "description": "Source location URL for downloading Catalyst kernel releases."
         },
         "catalyst.detailPanelGroups": {

@@ -29,10 +29,10 @@ export interface ArtifactSourceLocation {
   apiTreeUrl?: string;
 }
 
-export const DEFAULT_MODULE_SOURCE_URL = "git@github.com:oliben67/cantica-tech.git/catalyst/";
+export const DEFAULT_MODULE_SOURCE_URL = "git@github.com:cantica-tech/cantica-tech.git/catalyst/";
 
-export const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/oliben67/cantica-tech/main/catalyst/modules";
-export const GITHUB_API_TREE_URL = "https://api.github.com/repos/oliben67/cantica-tech/git/trees/main?recursive=1";
+export const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/cantica-tech/cantica-tech/main/catalyst/modules";
+export const GITHUB_API_TREE_URL = "https://api.github.com/repos/cantica-tech/cantica-tech/git/trees/main?recursive=1";
 
 /**
  * Parses a module or framework source location string (Git SSH URL with path,

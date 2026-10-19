@@ -1,6 +1,6 @@
 # catalyst-ui
 
-A UI for [catalyst](https://github.com/oliben67/catalyst) that makes its
+A UI for [catalyst](https://github.com/cantica-tech/catalyst) that makes its
 four-layer traceability chain (work items → dev artifacts → rules →
 rules of rules) navigable in both directions, surfaces drift as it
 happens, and lets a human author governed changes without ever
@@ -17,7 +17,7 @@ removed in R6.1: they wrote `PROP-`/`RUN-` files outside catalyst's
 journal. The VS
 Code extension is published on the
 [Marketplace](https://marketplace.visualstudio.com/items?itemName=CanticaTech.catalyst-host-vscode)
-as **Catalyst framework**.
+as **Catalyst Studio**.
 
 Each release's `.vsix` is also kept on cantica-tech under
 `catalyst/vsix/v<version>/`, next to a `manifest.json` whose
