@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Catalyst's placeholder mark (brand roadmap item 4): three linked nodes, rule to work to commit. Our own drawing; replaced by the brand's mark (item 6). -->
+  <path d="M7.95 7.95 L9.55 9.55 M14.45 14.45 L16.05 16.05"/>
+  <circle cx="5.5" cy="5.5" r="2.5"/>
+  <circle cx="12" cy="12" r="2.5"/>
+  <circle cx="18.5" cy="18.5" r="2.5" fill="currentColor"/>
+</svg>

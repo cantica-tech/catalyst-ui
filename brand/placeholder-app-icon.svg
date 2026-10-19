@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Catalyst's placeholder app icon (brand roadmap item 4): the placeholder mark in white on neutral slate. Our own drawing; replaced by the brand's mark (item 6). -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#2d333b"/>
+  <g fill="none" stroke="#ffffff" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" transform="translate(152 152) scale(30)">
+    <path d="M7.95 7.95 L9.55 9.55 M14.45 14.45 L16.05 16.05" stroke-width="1.9"/>
+    <circle cx="5.5" cy="5.5" r="2.5" stroke-width="1.9"/>
+    <circle cx="12" cy="12" r="2.5" stroke-width="1.9"/>
+    <circle cx="18.5" cy="18.5" r="2.5" fill="#ffffff" stroke-width="1.9"/>
+  </g>
+</svg>
