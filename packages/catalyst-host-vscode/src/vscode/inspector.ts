@@ -1,7 +1,7 @@
-import { existsSync } from "node:fs";
-
 import type { ChainModel, ChainNode, EntityDefinition, IamRole, IamUser, ModuleType, RowNode } from "catalyst-core";
 import * as vscode from "vscode";
+
+import { codiconFor } from "../codicons.js";
 import {
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
@@ -137,19 +137,13 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   constructor(private readonly extensionUri: vscode.Uri) {}
 
   /** The icon a module type shows: the first of its candidate names this extension ships, else the generic one. */
-  private typeIcon(model: ChainModel, prefix: string): { light: vscode.Uri; dark: vscode.Uri } {
-    const shipped = typeIconCandidates(model.types?.get(prefix), prefix).find((name) =>
-      existsSync(vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "light", `${name}.svg`).fsPath),
-    );
-    return this.iconUris(shipped ?? "dev-artifacts");
+  private typeIcon(model: ChainModel, prefix: string): vscode.ThemeIcon {
+    return new vscode.ThemeIcon(codiconFor(typeIconCandidates(model.types?.get(prefix), prefix)));
   }
 
-  /** Light/dark pair for an icon basename under resources/icons/. */
-  private iconUris(name: string): { light: vscode.Uri; dark: vscode.Uri } {
-    return {
-      light: vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "light", `${name}.svg`),
-      dark: vscode.Uri.joinPath(this.extensionUri, "resources", "icons", "dark", `${name}.svg`),
-    };
+  /** VS Code's own icon for a section or a node kind (`codicons.ts`). */
+  private iconUris(name: string): vscode.ThemeIcon {
+    return new vscode.ThemeIcon(codiconFor([name]));
   }
 
   setState(
