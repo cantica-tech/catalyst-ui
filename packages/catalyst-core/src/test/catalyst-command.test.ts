@@ -34,7 +34,7 @@ describe("which catalyst runs (R6.20: the desktop app's own copy last)", () => {
     expect(pythonCommand({ PATH: binDir("python3", "python3.12") }, "linux", recent)).toEqual(["python3.12"]);
     expect(pythonCommand({ PATH: binDir("python3", "python") }, "linux", recent)).toEqual(["python3"]);
     expect(pythonCommand({ PATH: binDir("python") }, "linux", recent)).toEqual(["python"]);
-    expect(pythonCommand({ Path: binDir("py.exe"), PATHEXT: ".EXE" }, "win32", recent)).toEqual(["py", "-3"]);
+    expect(pythonCommand({ Path: binDir("py.EXE"), PATHEXT: ".EXE" }, "win32", recent)).toEqual(["py", "-3"]);
     expect(pythonCommand({ PATH: binDir() }, "linux", recent)).toBeNull();
     // macOS's own python3 is 3.9: passed over for a newer one, none when it is the only one
     const onlyPython = (c: string[]) => c[0] === "python";
