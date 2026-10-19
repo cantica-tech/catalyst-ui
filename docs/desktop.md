@@ -11,7 +11,12 @@ credentials are set up below; until then it is built unsigned and the run says s
 | Windows (x64, arm64) | `.exe` (NSIS installer) | Azure Artifact Signing                          |
 | Linux (x64, arm64)   | `.AppImage`, `.deb`     | none                                            |
 
-The app needs `catalyst` on the machine (`catalyst serve --local` is its sidecar).
+The app runs `catalyst serve --local` as its sidecar. It uses the machine's `catalyst` when there is one
+(`CATALYST_BIN`, `~/.catalyst/bin/catalyst`, or `catalyst` on the `PATH`); otherwise it runs its own copy, the
+`catalyst.pyz` of the kernel named in `packages/catalyst-host-electron/catalyst-version.txt`, which the `Desktop`
+workflow downloads from the public distribution repository (`cantica-tech/cantica-tech`). That copy needs Python 3.11
+or later on the `PATH` (macOS's own `python3` is 3.9); without one, the app says what to install. Raise
+`catalyst-version.txt` once a kernel release is published there.
 
 ## Building locally
 
