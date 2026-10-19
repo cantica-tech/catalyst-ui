@@ -10,6 +10,7 @@ import { buildNodeDetail } from "./detail.js";
 import { computeGraphLayout } from "./graph.js";
 import { isProjectId, renderInlineHtml } from "./security.js";
 import { openStudio } from "./studio.js";
+import { bundledCatalyst, serveFailure } from "./studio-policy.js";
 import {
   addTrackedProject,
   loadTrackedProjects,
@@ -24,6 +25,10 @@ interface ProjectRuntime {
 }
 
 const runtimeByProjectId = new Map<string, ProjectRuntime>();
+
+// The app's own catalyst, used only when none is installed (R6.20; catalyst-core's catalystCommand)
+const shipped = bundledCatalyst();
+if (shipped && !process.env.CATALYST_BUNDLED_PYZ) process.env.CATALYST_BUNDLED_PYZ = shipped;
 
 function stateFilePath(): string {
   return join(app.getPath("userData"), "projects.json");
@@ -117,7 +122,7 @@ function registerIpcHandlers(win: BrowserWindow): void {
       await openStudio(project.projectRoot, basename(project.projectRoot));
       return null;
     } catch (err) {
-      return `catalyst could not serve the Studio: ${String(err)}`;
+      return serveFailure(err);
     }
   });
 }

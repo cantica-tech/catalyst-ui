@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
@@ -283,14 +283,57 @@ export function reportFromCheck(check: CatalystCheck, criterionRoot: string, mod
  * The `catalyst` command: `$CATALYST_BIN` (words), else catalyst's own
  * launcher (`$CATALYST_HOME/bin/catalyst`, by default under `~/.catalyst`;
  * an editor's environment often lacks the shell's PATH), else `catalyst` on
- * PATH.
+ * PATH; with no catalyst on PATH, the desktop app's bundled copy
+ * (`CATALYST_BUNDLED_PYZ`) run by a Python 3.11 or later, which `probe` checks.
  */
-export function catalystCommand(): string[] {
+export function catalystCommand(probe?: PythonProbe): string[] {
   const bin = process.env.CATALYST_BIN;
   if (bin) return bin.split(" ").filter(Boolean);
   const home = process.env.CATALYST_HOME ?? join(homedir(), ".catalyst");
   const launcher = join(home, "bin", process.platform === "win32" ? "catalyst.cmd" : "catalyst");
-  return [existsSync(launcher) ? launcher : "catalyst"];
+  if (existsSync(launcher)) return [launcher];
+  const bundled = process.env.CATALYST_BUNDLED_PYZ;
+  if (bundled && existsSync(bundled) && !onPath("catalyst")) {
+    // the desktop app's own copy (R6.20), run by this machine's Python, only when no catalyst is installed
+    const python = pythonCommand(process.env, process.platform, probe);
+    if (python) return [...python, bundled];
+  }
+  return ["catalyst"];
+}
+
+/** Whether `name` is an executable on `PATH` (with `PATHEXT` on Windows). */
+export function onPath(name: string, env: NodeJS.ProcessEnv = process.env, platform = process.platform): boolean {
+  const exts = platform === "win32" ? (env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";").filter(Boolean) : [""];
+  const dirs = (env.PATH ?? env.Path ?? "").split(platform === "win32" ? ";" : ":").filter(Boolean);
+  return dirs.some((dir) => exts.some((ext) => existsSync(join(dir, name + ext))));
+}
+
+/** Whether a Python command is 3.11 or later, which catalyst needs (`tomllib`). */
+export type PythonProbe = (command: string[]) => boolean;
+
+const probePython: PythonProbe = (command) => {
+  const [cmd, ...pre] = command;
+  const out = spawnSync(cmd, [...pre, "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"], {
+    timeout: 5000,
+    shell: false,
+  });
+  return out.status === 0;
+};
+
+/**
+ * The Python that runs catalyst's `.pyz` (3.11 or later): the first of
+ * `python3.13`, `python3.12`, `python3.11`, `python3`, `python` and Windows'
+ * `py -3` on `PATH` that is recent enough; null when there is none (macOS's
+ * own `python3` is 3.9).
+ */
+export function pythonCommand(
+  env: NodeJS.ProcessEnv = process.env,
+  platform = process.platform,
+  probe: PythonProbe = probePython,
+): string[] | null {
+  const candidates = [["python3.13"], ["python3.12"], ["python3.11"], ["python3"], ["python"]];
+  if (platform === "win32") candidates.push(["py", "-3"]);
+  return candidates.find((c) => onPath(c[0], env, platform) && probe(c)) ?? null;
 }
 
 export interface CatalystServer {

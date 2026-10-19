@@ -10,3 +10,6 @@ out/
 # the desktop app: its packaged directory and the builds (R6.20)
 packages/catalyst-host-electron/app/
 packages/catalyst-host-electron/release/
+
+# the catalyst CLI the Desktop workflow downloads into the app
+packages/catalyst-host-electron/build/catalyst/
