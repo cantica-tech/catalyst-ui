@@ -62,6 +62,16 @@ function pack(over: Partial<AuditPack["integrity"]> = {}): AuditPack {
         chain: [],
       },
       {
+        id: "rr-META-000001-Ab3xR9pQ",
+        title: "Every rule has a domain",
+        status: "✅",
+        strength: "must",
+        domain: null,
+        retired: false,
+        meta: true,
+        chain: [],
+      },
+      {
         id: "br-AUTH-000003-Ab3xR9pQ",
         title: "Old",
         status: "🗑",
@@ -102,7 +112,7 @@ describe("the audit pack (R6.27)", () => {
 
   it("filters to the live rules nothing rests on", () => {
     expect(rulesShown(pack(), true).map((r) => r.id)).toEqual(["br-AUTH-000002-Ab3xR9pQ"]);
-    expect(rulesShown(pack(), false)).toHaveLength(3);
+    expect(rulesShown(pack(), false)).toHaveLength(4); // a meta-rule, by design, is no gap
   });
 
   it("shows each rule's chain, nearest first, and prints", async () => {
@@ -119,7 +129,9 @@ describe("the audit pack (R6.27)", () => {
     });
     const text = el.textContent;
     expect(text).toContain("The record holds");
-    expect(text).toContain("3 rules; 1 with nothing resting on them");
+    expect(text).toContain("4 rules; 1 with nothing resting on them");
+    expect(text).toContain("Meta-rule");
+    expect(text).toContain("no work rests on a meta-rule");
     expect(text).toContain("TEST-000001-Ab3xR9pQ");
     expect(text).toContain("Requirements of TEST-000001-Ab3xR9pQ");
     expect(text).toContain("Nothing rests on it");
