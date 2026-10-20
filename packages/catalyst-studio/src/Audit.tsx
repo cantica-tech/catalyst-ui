@@ -10,9 +10,15 @@ export function holds(pack: AuditPack): boolean {
   return i.journal.errors === 0 && i.check.errors === 0 && i.unapproved_rules.length === 0;
 }
 
-/** The rules shown: every one, or only those nothing rests on (retired ones left out of that). */
+/**
+ * Whether nothing resting on a rule is a gap: a retired rule is past, and a meta-rule governs the rules, so no
+ * work rests on it by design (as catalyst's own audit counts them).
+ */
+const alone = (r: AuditPack["rules"][number]): boolean => r.chain.length === 0 && !r.retired && !r.meta;
+
+/** The rules shown: every one, or only the live rules nothing rests on. */
 export function rulesShown(pack: AuditPack, onlyAlone: boolean): AuditPack["rules"] {
-  return onlyAlone ? pack.rules.filter((r) => r.chain.length === 0 && !r.retired) : pack.rules;
+  return onlyAlone ? pack.rules.filter(alone) : pack.rules;
 }
 
 /** The audit pack (R6.27): the record's integrity, then each rule and what rests on it; printable to a PDF. */
@@ -29,7 +35,7 @@ export function AuditView({
   const aloneId = useId();
   const [onlyAlone, setOnlyAlone] = useState(false);
   const i = pack.integrity;
-  const alone = pack.rules.filter((r) => r.chain.length === 0 && !r.retired).length;
+  const gaps = pack.rules.filter(alone).length;
   const shown = rulesShown(pack, onlyAlone);
   const link = (id: string) => (
     <button
@@ -109,7 +115,7 @@ export function AuditView({
       <section aria-labelledby="audit-rules">
         <h3 id="audit-rules">Rules and what rests on them</h3>
         <p>
-          {pack.rules.length} rules; {alone} with nothing resting on them.{" "}
+          {pack.rules.length} rules; {gaps} with nothing resting on them.{" "}
           <input
             id={aloneId}
             type="checkbox"
@@ -127,12 +133,15 @@ export function AuditView({
           <section key={r.id} className="audit-rule" aria-label={r.id}>
             <h4>
               {link(r.id)} {r.title} {r.retired && <Status tone="info" label="Retired" />}
+              {r.meta && <Status tone="info" label="Meta-rule" />}
             </h4>
             <p className="muted">
               {r.status ?? "no status"} · strength {r.strength}
               {r.domain ? ` · domain ${r.domain}` : ""}
             </p>
-            {r.chain.length === 0 ? (
+            {r.chain.length === 0 && r.meta ? (
+              <p className="muted">It governs the rules: no work rests on a meta-rule.</p>
+            ) : r.chain.length === 0 ? (
               <p>
                 <Status tone="warn" label="Nothing rests on it" />
               </p>
