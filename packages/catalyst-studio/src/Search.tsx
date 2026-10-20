@@ -1,4 +1,4 @@
-import { fieldsOf, isEntity, titleOf } from "catalyst-core";
+import { fieldsOf, isEntity, titleOf } from "catalyst-core/graph-artifact";
 import { useEffect, useId, useState } from "react";
 
 import type { Graph, StudioClient } from "./client.js";

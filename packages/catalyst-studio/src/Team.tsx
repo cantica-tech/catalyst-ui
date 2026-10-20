@@ -1,4 +1,4 @@
-import { fieldsOf, titleOf } from "catalyst-core";
+import { fieldsOf, titleOf } from "catalyst-core/graph-artifact";
 import { useEffect, useId, useState } from "react";
 
 import { ActionForm } from "./ActionForm.js";

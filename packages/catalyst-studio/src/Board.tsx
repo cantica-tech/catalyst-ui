@@ -1,4 +1,4 @@
-import { isEntity } from "catalyst-core";
+import { isEntity } from "catalyst-core/graph-artifact";
 import { useEffect, useId, useState } from "react";
 
 import type { GraphArtifactJson } from "catalyst-core";

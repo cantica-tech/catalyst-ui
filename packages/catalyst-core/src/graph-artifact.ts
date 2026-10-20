@@ -1,6 +1,7 @@
 /**
  * An artifact as `graph` gives it is either an entity with a file and a page of its own, or a row of a
- * type kept as a table (a roadmap item), its columns under `fields` (`spec/graph.schema.json`).
+ * type kept as a table (a roadmap item), its columns under `fields` (`spec/graph.schema.json`). Browser-safe: the
+ * Studio imports it as `catalyst-core/graph-artifact`, never the package root, which reaches node modules.
  */
 import type { GraphArtifactJson, GraphJson, GraphTableRowJson } from "./spec.js";
 

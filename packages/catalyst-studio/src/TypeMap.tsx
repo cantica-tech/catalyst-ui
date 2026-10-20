@@ -1,4 +1,4 @@
-import { fieldsOf } from "catalyst-core";
+import { fieldsOf } from "catalyst-core/graph-artifact";
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { useEffect, useState } from "react";
 
