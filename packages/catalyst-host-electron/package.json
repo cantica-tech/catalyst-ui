@@ -1,6 +1,6 @@
 {
   "name": "catalyst-host-electron",
-  "version": "0.56.2",
+  "version": "0.56.3",
   "license": "Apache-2.0",
   "private": true,
   "main": "dist/main.js",
