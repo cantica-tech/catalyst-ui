@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/approvals.schema.json",
+  "title": "catalyst approvals",
+  "description": "What `catalyst approvals <id> --json` prints: the entity, the blob of its current version, and each gate of `IAM/gates.json` covering it, with the approvals that count for that version and how many are missing.",
+  "type": "object",
+  "required": ["id", "version", "gates"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string" },
+    "version": { "type": "string" },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gate", "role", "approvals", "covers", "counted", "missing"],
+        "additionalProperties": false,
+        "properties": {
+          "gate": { "type": "string" },
+          "role": { "type": "string" },
+          "approvals": { "type": "integer", "minimum": 1 },
+          "covers": {
+            "description": "What the gate covers, as `IAM/gates.json` declares it: the rules of one domain, or an entity type entering one state.",
+            "anyOf": [
+              {"type": "object", "required": ["rules"], "additionalProperties": false, "properties": {"rules": {"type": "object", "required": ["domain"], "additionalProperties": false, "properties": {"domain": {"type": "string"}}}}},
+              {"type": "object", "required": ["type", "to"], "additionalProperties": false, "properties": {"type": {"type": "string"}, "to": {"type": "string"}}}
+            ]
+          },
+          "counted": { "type": "array", "items": { "type": "string" } },
+          "missing": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

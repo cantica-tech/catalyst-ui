@@ -1,3 +1,4 @@
+import type { RunEventJson } from "catalyst-core";
 import { createContext, useContext } from "react";
 
 /**
@@ -7,11 +8,8 @@ import { createContext, useContext } from "react";
  * confirm and start. In a browser there is no such host: no run is offered.
  */
 
-/** One event of a run, as `catalyst agent run --json` gives it. */
-export interface RunEvent {
-  event: "start" | "session" | "text" | "tool" | "tool_result" | "end";
-  [field: string]: unknown;
-}
+/** One event of a run, as `catalyst agent run --json` gives it (`spec/run-event.schema.json`). */
+export type RunEvent = RunEventJson;
 
 export interface RunHandle {
   cancel: () => void;

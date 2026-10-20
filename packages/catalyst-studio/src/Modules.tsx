@@ -36,7 +36,7 @@ function Plan({ plan }: { plan: ModulePlan }) {
           ))}
         </ul>
       )}
-      {plan.migrations && plan.migrations.length > 0 && (
+      {plan.migrations.length > 0 && (
         <p>
           <Status tone="warn" label="Migrations" /> {plan.migrations.length} migration(s) with judgment steps: upgrade
           with your agent (<code>/sync-framework</code>), not by hand.

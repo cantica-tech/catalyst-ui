@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/run-event.schema.json",
+  "title": "catalyst run event",
+  "description": "One line of `catalyst agent run <command> --json`: what a dispatched agent does, normalized from its own output. A run starts with `start`, ends with `end`, and holds `session`, `text`, `tool` and `tool_result` events between.",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": ["event", "agent", "command", "arguments"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "start" },
+        "agent": { "type": "string" },
+        "command": { "type": "string", "description": "Without its slash." },
+        "arguments": { "type": "string" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["event", "model", "session"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "session" },
+        "model": { "type": ["string", "null"] },
+        "session": { "type": ["string", "null"] }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["event", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "text" },
+        "text": { "type": "string" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["event", "name", "input"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "tool" },
+        "name": { "type": ["string", "null"] },
+        "input": { "type": "string", "description": "A one-line summary of the call's input." }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["event", "name", "ok"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "tool_result" },
+        "name": { "type": "string" },
+        "ok": { "type": "boolean" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["event", "ok", "turns", "usage", "cost_usd", "duration_ms", "denied", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "event": { "const": "end" },
+        "ok": { "type": "boolean" },
+        "turns": { "type": "integer", "minimum": 0 },
+        "usage": {
+          "type": "object",
+          "required": ["input", "output", "cache_read", "cache_write"],
+          "additionalProperties": false,
+          "properties": {
+            "input": { "type": "integer", "minimum": 0 },
+            "output": { "type": "integer", "minimum": 0 },
+            "cache_read": { "type": "integer", "minimum": 0 },
+            "cache_write": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "cost_usd": { "type": ["number", "null"] },
+        "duration_ms": { "type": ["integer", "null"] },
+        "denied": { "type": "array", "items": { "type": "string" }, "description": "Tools the user's agent settings refused." },
+        "result": { "type": "string", "description": "The agent's last word; on a failure, why." },
+        "measured": { "type": "boolean", "description": "false: the agent reports no usage or cost, so the zeros are unknown, not none (catalyst >= 0.88.0; absent: measured)." }
+      }
+    }
+  ]
+}

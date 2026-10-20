@@ -1,15 +1,8 @@
+import { isEntity } from "catalyst-core";
 import { useEffect, useState } from "react";
+import type { GraphArtifactJson } from "catalyst-core";
 
-import type {
-  ApprovalsReport,
-  EntityType,
-  EntityView,
-  Graph,
-  GraphArtifact,
-  History,
-  Impact,
-  StudioClient,
-} from "./client.js";
+import type { ApprovalsReport, EntityType, EntityView, Graph, History, Impact, StudioClient } from "./client.js";
 import { DriftBadge, DriftSection } from "./drift.js";
 import { GatesSection } from "./Gates.js";
 import { ProposalDiff } from "./Proposals.js";
@@ -37,9 +30,9 @@ function typeOf(graph: Graph, prefix: string): EntityType | undefined {
 
 /** Every artifact, grouped under its type's own plural name, each opening its page. */
 export function ArtifactList({ graph, onOpen }: { graph: Graph; onOpen: (id: string) => void }) {
-  const byType = new Map<string, GraphArtifact[]>();
+  const byType = new Map<string, GraphArtifactJson[]>();
   for (const a of graph.artifacts) {
-    if (a.row) continue; // a table row (a roadmap item) has no page of its own
+    if (!isEntity(a)) continue; // a table row (a roadmap item) has no page of its own
     byType.set(a.type, [...(byType.get(a.type) ?? []), a]);
   }
   const prefixes = [...byType.keys()].sort((x, y) =>

@@ -6,12 +6,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Graph, User } from "../client.js";
 import { ganttSpans, position, roadmapTables, RoadmapView } from "../Roadmap.js";
 import { openWork, TeamView, workOf } from "../Team.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: {
-    PLAN: {
+    PLAN: entityType({
       name: "Plan item",
       plural_name: "Plan items",
       states: ["Open", "Done"],
@@ -21,8 +22,8 @@ const graph: Graph = {
         { name: "Begins", kind: "date", required: false, target_type: null },
         { name: "Ends", kind: "date", required: false, target_type: null },
       ],
-    },
-    WORK: {
+    }),
+    WORK: entityType({
       name: "Work",
       plural_name: "Work",
       states: ["Open", "Done"],
@@ -32,10 +33,10 @@ const graph: Graph = {
         { name: "Owner", kind: "user", required: false, target_type: null },
         { name: "Helpers", kind: "user-list", required: false, target_type: null },
       ],
-    },
+    }),
   },
   artifacts: [
-    {
+    art({
       id: "PLAN-000001-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/q4.md",
@@ -43,8 +44,8 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "Design", Status: "Done", Begins: "2026-10-01", Ends: "2026-10-10" },
-    },
-    {
+    }),
+    art({
       id: "PLAN-000002-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/q4.md",
@@ -52,8 +53,8 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "Build", Status: "Open", Begins: "2026-10-11", Ends: "2026-11-30" },
-    },
-    {
+    }),
+    art({
       id: "PLAN-000003-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/q4.md",
@@ -61,8 +62,8 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "Launch", Status: "Open", Ends: "2026-12-01" },
-    },
-    {
+    }),
+    art({
       id: "PLAN-000004-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/q4.md",
@@ -70,33 +71,33 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "Someday", Status: "Open" },
-    },
-    {
+    }),
+    art({
       id: "WORK-000001-Ab3xR9pQ",
       type: "WORK",
       file: "w1.md",
       title: "Login",
       links: {},
       fields: { Status: "Open", Owner: "ada", Helpers: "Grace, ada" },
-    },
-    {
+    }),
+    art({
       id: "WORK-000002-Ab3xR9pQ",
       type: "WORK",
       file: "w2.md",
       title: "Old",
       links: {},
       fields: { Status: "Done", Owner: "ada" },
-    },
-    {
+    }),
+    art({
       id: "WORK-000003-Ab3xR9pQ",
       type: "WORK",
       file: "w3.md",
       title: "Unowned",
       links: {},
       fields: { Status: "Open", Owner: "*(none yet)*" },
-    },
+    }),
   ],
-};
+});
 
 let el: HTMLElement;
 let root: Root;

@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/graph.schema.json",
+  "title": "catalyst graph",
+  "description": "What `catalyst graph --json` prints and `GET /v1/graph` returns: the whole chain in one answer — rules, domains, artifacts (with their links and the IDs their text cites) and the entity types.",
+  "type": "object",
+  "required": [
+    "rules",
+    "domains",
+    "artifacts",
+    "types"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "status",
+          "file",
+          "line",
+          "retired",
+          "domain",
+          "mentions"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer"
+          },
+          "retired": {
+            "type": "boolean"
+          },
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "strength": {
+            "type": "string",
+            "description": "Its strength, from its `**Strength**` line; `must` when it states none (catalyst >= 0.83.0). An unknown value is `check`'s `rule-strength` error and is passed on as written, lowercased."
+          }
+        }
+      }
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "file",
+          "title"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/artifact"
+          },
+          {
+            "$ref": "#/$defs/tableRow"
+          }
+        ]
+      }
+    },
+    "types": {
+      "type": "object",
+      "description": "Type prefix → the type.",
+      "additionalProperties": {
+        "$ref": "#/$defs/type"
+      }
+    }
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "file",
+        "links",
+        "mentions"
+      ],
+      "description": "An artifact: its ID, its type's prefix, its title, its file in the criterion, then each field of its document by name, as written (the module's fields, never listed here).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "links": {
+          "type": "object",
+          "description": "Each reference field of the entity's type that it fills, and the IDs it cites.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "tableRow": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "file",
+        "line",
+        "row",
+        "fields",
+        "links",
+        "mentions"
+      ],
+      "additionalProperties": false,
+      "description": "An item kept as a row of a table: its file and line, and its cells by header.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "row": {
+          "const": true
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "links": {
+          "type": "object",
+          "description": "Each reference field of the entity's type that it fills, and the IDs it cites.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "plural_name",
+        "folder",
+        "location",
+        "grounding",
+        "grounding_field",
+        "fields",
+        "states",
+        "initial",
+        "closed_states",
+        "transitions",
+        "guards",
+        "sections"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "plural_name": {
+          "type": "string"
+        },
+        "folder": {
+          "type": "string"
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grounding": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grounding_field": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "kind",
+              "required",
+              "target_type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "target_type": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "initial": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closed_states": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "description": "The moves its workflow allows; none means any state may follow any other.",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "guards": {
+          "type": "object",
+          "description": "State → the conditions entering it requires (`children_closed`, `nonempty` with a field, `section_written` with a heading).",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "condition",
+                "argument"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "condition": {
+                  "type": "string"
+                },
+                "argument": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "sections": {
+          "type": "array",
+          "description": "The headings a new artifact of the type carries.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

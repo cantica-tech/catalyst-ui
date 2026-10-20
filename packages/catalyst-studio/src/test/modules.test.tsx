@@ -31,9 +31,13 @@ const releases: ModuleReleases = {
 const plan: ModulePlan = {
   id: "software-engineering",
   to: "3.3.0",
+  from_kernel: "0.83.0",
+  to_kernel: "0.83.0",
   from_module: "3.2.0",
   to_module: "3.3.0",
-  migrations: [{ path: "0.83.0/decisions-as-entities.md" }],
+  migrations: [
+    { owner: "module", file: "decisions-as-entities.md", from: "3.2.0", to: "3.3.0", summary: "decisions as entities" },
+  ],
   actions: [
     { kind: "module", target: ".criterion/modules/software-engineering", change: "update", detail: "8 file(s)" },
   ],

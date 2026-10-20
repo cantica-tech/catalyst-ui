@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/module-list.schema.json",
+  "title": "catalyst module list|verify",
+  "description": "What `catalyst module list --json` and `catalyst module verify --json` print: each installed or recorded module against the criterion's record of it (`GET /v1/modules` returns the same list under `modules`, local mode).",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "state",
+      "version",
+      "source",
+      "commit",
+      "sha256",
+      "actual"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "state": {
+        "enum": [
+          "ok",
+          "changed",
+          "unrecorded",
+          "missing"
+        ],
+        "description": "`ok`: its tree matches the record; `changed`: a file under it changed outside `catalyst sync`; `unrecorded`: installed before the record existed; `missing`: recorded, its folder gone."
+      },
+      "version": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "source": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Where it was installed from: a directory, a release zip or a git URL."
+      },
+      "commit": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "sha256": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The recorded hash of its tree."
+      },
+      "actual": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "The hash recomputed, when it differs from the record."
+      }
+    }
+  }
+}

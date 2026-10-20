@@ -1,3 +1,4 @@
+import { fieldsOf, isEntity, titleOf } from "catalyst-core";
 import { useEffect, useId, useState } from "react";
 
 import type { Graph, StudioClient } from "./client.js";
@@ -25,26 +26,25 @@ function clean(value: unknown): string {
 /** Everything in the project the search can find, from `graph`. */
 export function findables(graph: Graph): Findable[] {
   const artifacts = graph.artifacts.map((a) => {
-    const fields =
-      a.fields && typeof a.fields === "object" ? (a.fields as Record<string, unknown>) : (a as Record<string, unknown>);
+    const fields = fieldsOf(a);
     return {
       id: a.id,
       group: a.type in graph.types ? graph.types[a.type].plural_name : a.type,
-      title: clean(fields.Title) || clean(a.title) || a.id,
+      title: clean(titleOf(a)) || a.id,
       status: clean(fields.Status),
       text: Object.values(fields)
         .filter((v): v is string => typeof v === "string")
         .join(" ")
         .toLowerCase(),
-      page: !a.row,
+      page: isEntity(a),
     };
   });
-  const rules = (graph.rules ?? []).map((r) => ({
+  const rules = graph.rules.map((r) => ({
     id: r.id,
     group: "Rules",
     title: r.title.replace(/^🗑\s*/, ""),
-    status: r.retired ? "Retired" : r.status,
-    text: `${r.domain ?? ""} ${r.status}`.toLowerCase(),
+    status: r.retired ? "Retired" : (r.status ?? ""),
+    text: `${r.domain ?? ""} ${r.status ?? ""}`.toLowerCase(),
     page: true,
   }));
   return [...artifacts, ...rules];

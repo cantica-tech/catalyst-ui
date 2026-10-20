@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/unrecorded.schema.json",
+  "title": "catalyst unrecorded",
+  "description": "What `catalyst unrecorded --json` prints: each commit that changed a governed file without a journal entry, with the files it changed (blob before and after; null when absent). Empty when every change is recorded.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "commit",
+      "author",
+      "subject",
+      "files"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "commit": {
+        "type": "string"
+      },
+      "author": {
+        "type": "string"
+      },
+      "subject": {
+        "type": "string"
+      },
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "path",
+            "before",
+            "after"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "before": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -9,6 +9,10 @@ export {
 } from "./kernel-version.js";
 
 export * from "./types.js";
+/** What each `--json` command prints, generated from catalyst's `spec/` (R6.50). */
+export type * from "./spec.js";
+export type { Since } from "./since.js";
+export { fieldsOf, isEntity, isRow, titleOf } from "./graph-artifact.js";
 export {
   ScriptedHost,
   type HostFolder,
@@ -112,6 +116,7 @@ export {
   type CatalystGraph,
   type AgentRun,
   type CatalystServer,
+  type RunEnd,
   type RunEvent,
   type WatcherHandle,
   COMMAND_NAME,

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/commands.schema.json",
+  "title": "catalyst commands",
+  "description": "What `catalyst spec --json` prints and `GET /v1/commands` returns: every command of the deployed CODE-OF-CONDUCT.md section 4, as `catalyst spec` reads it, so a client never keeps a list of its own.",
+  "type": "object",
+  "required": ["commands"],
+  "additionalProperties": false,
+  "properties": {
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command" }
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "required": ["name", "usage", "summary", "aliases", "parts"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "The command, without its slash." },
+        "usage": { "type": "string", "description": "How it is typed, e.g. `/check-rules [<file>]`." },
+        "summary": { "type": "string", "description": "Its one-line description: its bullet, after the dash." },
+        "aliases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other names that read the same spec, without their slash."
+        },
+        "parts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/part" },
+          "description": "A command with parts (ADR-021): each read on its own, `GET /v1/spec/<name>/<part>`."
+        }
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": ["part", "usage", "summary", "aliases"],
+      "additionalProperties": false,
+      "properties": {
+        "part": { "type": "string", "description": "The word that names it after the command, e.g. `bug`." },
+        "usage": { "type": "string" },
+        "summary": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

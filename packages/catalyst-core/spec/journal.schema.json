@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/journal.schema.json",
+  "title": "catalyst journal show",
+  "description": "What `catalyst journal show --json` prints and `GET /v1/journal` returns: journal entries, filtered, in time order. Each entry is as the journal holds it, with `at`, where it is (`<source>:<line>`). Older entries may lack a field or carry one more.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "at"
+    ],
+    "properties": {
+      "at": {
+        "type": "string"
+      },
+      "timestamp": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "actor": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "command": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "action": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "artifact": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "targets": {
+        "type": [
+          "array",
+          "null"
+        ],
+        "items": {
+          "type": "string"
+        }
+      },
+      "intent": {
+        "type": [
+          "array",
+          "string",
+          "null"
+        ],
+        "items": {
+          "type": "string"
+        }
+      },
+      "tier": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "writer": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "files": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "before": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

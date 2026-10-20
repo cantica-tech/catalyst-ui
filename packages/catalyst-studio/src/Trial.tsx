@@ -1,22 +1,12 @@
+import type { TryFindingJson, TryJson } from "catalyst-core";
 import type { ActionResult } from "./host.js";
 import { Status } from "./Status.js";
 
 /** One `check` finding a try adds or clears. */
-export interface TryFinding {
-  level: "error" | "warning";
-  text: string;
-  entity: string | null;
-}
+export type TryFinding = TryFindingJson;
 
 /** What `catalyst try --json` prints (catalyst >= 0.82.0, `spec/try.schema.json`). */
-export interface TryReport {
-  change: string;
-  ok: boolean;
-  refused: string | null;
-  files: { path: string; before: string | null; after: string | null }[];
-  check: { added: TryFinding[]; cleared: TryFinding[] };
-  gates: { id: string; gate: string; missing: number }[];
-}
+export type TryReport = TryJson;
 
 /** The report in a host's answer, or null when catalyst gave none (an older catalyst, a refused field). */
 export function tryReport(result: ActionResult): TryReport | null {

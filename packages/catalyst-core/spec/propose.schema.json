@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/propose.schema.json",
+  "title": "catalyst propose",
+  "description": "What `catalyst propose <id> --from <file> --json` prints: the reconciliation case that carries the proposed change, the file it would change, the base and the proposed blob, and who wrote the proposal.",
+  "type": "object",
+  "required": [
+    "case",
+    "entity",
+    "path",
+    "base",
+    "proposed",
+    "file",
+    "author",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "case": {
+      "type": "string",
+      "description": "The `RECON-` case."
+    },
+    "entity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The entity's file, relative to the criterion."
+    },
+    "base": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The blob the proposal starts from."
+    },
+    "proposed": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "file": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The proposed content's file, relative to the criterion."
+    },
+    "author": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

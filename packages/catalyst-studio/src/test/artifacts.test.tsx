@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ArtifactList, EntityPage } from "../Artifacts.js";
 import type { EntityType, EntityView, Graph } from "../client.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const item: EntityType = {
+const item: EntityType = entityType({
   name: "Item",
   plural_name: "Items",
   fields: [
@@ -23,16 +24,16 @@ const item: EntityType = {
   transitions: [],
   guards: { Done: [{ condition: "section_written", argument: "Notes" }] },
   sections: ["Notes"],
-};
+});
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: { ITEM: item, SUB: { ...item, name: "Sub", plural_name: "Subs", guards: {} } },
   artifacts: [
-    { id: "ITEM-000001", type: "ITEM", title: "First", file: "items/x.md", links: {}, Status: "Open" },
-    { id: "SUB-000001", type: "SUB", title: "Part", file: "subs/y.md", links: {}, Status: "Done" },
-    { id: "RM-000001", type: "RM", file: "roadmaps/r.md", row: true, links: {} },
+    art({ id: "ITEM-000001", type: "ITEM", title: "First", file: "items/x.md", links: {}, Status: "Open" }),
+    art({ id: "SUB-000001", type: "SUB", title: "Part", file: "subs/y.md", links: {}, Status: "Done" }),
+    art({ id: "RM-000001", type: "RM", file: "roadmaps/r.md", row: true, links: {} }),
   ],
-};
+});
 
 const entity: EntityView = {
   id: "ITEM-000001",
@@ -43,7 +44,15 @@ const entity: EntityView = {
   Severity: "High",
   links: { Subs: ["SUB-000001"] },
   linked_from: [{ id: "SUB-000001", field: "Parent" }],
-  journal: [{ timestamp: "2026-10-16T08:00:00Z", actor: "ada", action: "create", intent: ["Create it"] }],
+  journal: [
+    {
+      timestamp: "2026-10-16T08:00:00Z",
+      actor: "ada",
+      command: "catalyst new",
+      action: "create",
+      intent: ["Create it"],
+    },
+  ],
   sections: [{ heading: "Notes", text: "" }],
   next: [{ state: "Done", blocked_by: ["`## Notes` is not written"] }],
 };

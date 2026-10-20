@@ -21,10 +21,11 @@ working sessions (five to seven weeks), a sync to the current kernel first (R6.0
 
 ### R6.A — Foundations (`09` §4 stages 1 and 3)
 
-| #    | Deliverable                                                                                                                 | Notes                                                          |
-| ---- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| R6.1 | Split `extension.ts`; `HostPort` abstraction; `@catalyst/app-model` (selectors for tree, board, graph, journal)             | exit: no `vscode` import outside the adapters                  |
-| R6.2 | Studio SPA with a design system: tokens, light and dark, status as icon + word + colour, keyboard and screen-reader support | same bundle at localhost and in the VS Code webview; axe clean |
+| #     | Deliverable                                                                                                                                                                       | Notes                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| R6.1  | Split `extension.ts`; `HostPort` abstraction; `@catalyst/app-model` (selectors for tree, board, graph, journal)                                                                   | exit: no `vscode` import outside the adapters                            |
+| R6.2  | Studio SPA with a design system: tokens, light and dark, status as icon + word + colour, keyboard and screen-reader support                                                       | same bundle at localhost and in the VS Code webview; axe clean           |
+| R6.50 | The client's types for what catalyst prints, generated from catalyst's `spec/` vendored at one kernel release (`npm run spec:sync -w catalyst-core -- <catalyst checkout> <tag>`) | done 2026-10-20 (REQ-000060, decision S7), for 0.57.0, on kernel 0.101.2 |
 
 ### R6.B — First views (P0: "can we understand it?")
 

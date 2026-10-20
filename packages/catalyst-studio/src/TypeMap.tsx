@@ -1,3 +1,4 @@
+import { fieldsOf } from "catalyst-core";
 import type { ElkNode } from "elkjs/lib/elk-api.js";
 import { useEffect, useState } from "react";
 
@@ -34,7 +35,7 @@ function text(value: unknown): string {
 export function typeMap(graph: Graph): { nodes: MapNode[]; edges: MapEdge[] } {
   const nodes: MapNode[] = Object.entries(graph.types).map(([prefix, t]) => {
     const mine = graph.artifacts.filter((a) => a.type === prefix);
-    const closed = mine.filter((a) => t.closed_states.includes(text(a.Status))).length;
+    const closed = mine.filter((a) => t.closed_states.includes(text(fieldsOf(a).Status))).length;
     return {
       id: prefix,
       label: t.plural_name,
@@ -49,7 +50,7 @@ export function typeMap(graph: Graph): { nodes: MapNode[]; edges: MapEdge[] } {
       for (const to of (f.target_type ?? "").split("|").filter(Boolean))
         edges.push({ from: prefix, to, field: f.name });
   const named = new Set(edges.map((e) => e.to));
-  const rules = graph.rules ?? [];
+  const rules = graph.rules;
   if (named.has(RULE))
     nodes.push({
       id: RULE,
@@ -59,7 +60,7 @@ export function typeMap(graph: Graph): { nodes: MapNode[]; edges: MapEdge[] } {
       board: false,
     });
   if (named.has(DOMAIN))
-    nodes.push({ id: DOMAIN, label: "Domains", open: (graph.domains ?? []).length, closed: 0, board: false });
+    nodes.push({ id: DOMAIN, label: "Domains", open: graph.domains.length, closed: 0, board: false });
   const ids = new Set(nodes.map((n) => n.id));
   return {
     nodes: nodes.sort((a, b) => a.label.localeCompare(b.label)),

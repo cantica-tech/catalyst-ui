@@ -1,3 +1,4 @@
+import { fieldsOf, titleOf } from "catalyst-core";
 import { useEffect, useId, useState } from "react";
 
 import { ActionForm } from "./ActionForm.js";
@@ -63,7 +64,7 @@ export function openWork(graph: Graph): Map<string, OpenItem[]> {
   for (const a of graph.artifacts) {
     const type = (graph.types as Record<string, Graph["types"][string] | undefined>)[a.type];
     if (!type) continue;
-    const fields = (a.fields && typeof a.fields === "object" ? a.fields : a) as Record<string, unknown>;
+    const fields = fieldsOf(a);
     const status = clean(fields.Status);
     if (type.closed_states.includes(status)) continue;
     for (const f of type.fields.filter((x) => x.kind === "user" || x.kind === "user-list")) {
@@ -72,7 +73,7 @@ export function openWork(graph: Graph): Map<string, OpenItem[]> {
       for (const name of (f.kind === "user-list" ? raw.split(",") : [raw]).map((n) => n.trim().replace(/^`|`$/g, ""))) {
         if (!name) continue;
         const list = out.get(name) ?? [];
-        list.push({ id: a.id, type: a.type, title: clean(a.title) || a.id, status, field: f.name });
+        list.push({ id: a.id, type: a.type, title: clean(titleOf(a)) || a.id, status, field: f.name });
         out.set(name, list);
       }
     }

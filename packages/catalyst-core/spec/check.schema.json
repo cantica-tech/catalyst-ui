@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/check.schema.json",
+  "title": "catalyst check",
+  "description": "What `catalyst check --json` prints and `GET /v1/check` returns (local mode): whether the deployment passes, every error and warning as a line of text, and the same as findings, each with the entity it is about.",
+  "type": "object",
+  "required": [
+    "ok",
+    "errors",
+    "warnings",
+    "findings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "The errors then the warnings, each with the entity it is about: the one whose file it names, else the first known entity ID in it; null when none (catalyst >= 0.78.0).",
+      "items": {
+        "type": "object",
+        "required": [
+          "level",
+          "text",
+          "entity"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "entity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

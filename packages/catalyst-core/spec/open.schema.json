@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/open.schema.json",
+  "title": "catalyst open",
+  "description": "What `catalyst open --json` prints: the project and its criterion, the versions pinned and installed, what `open` did to ready them, and what is left for a person.",
+  "type": "object",
+  "required": [
+    "project",
+    "name",
+    "criterion",
+    "kind",
+    "pinned",
+    "criterion_version",
+    "runtime",
+    "agent",
+    "share",
+    "done",
+    "notes",
+    "todo",
+    "ready"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "string"
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "criterion": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kind": {
+      "enum": [
+        "home",
+        "legacy",
+        "missing"
+      ]
+    },
+    "pinned": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The kernel `catalyst.toml` pins."
+    },
+    "criterion_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The criterion's `version.txt`."
+    },
+    "runtime": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The catalyst in the criterion's `.venv`."
+    },
+    "agent": {
+      "type": "string"
+    },
+    "share": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "driver",
+        "location",
+        "ahead",
+        "behind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "driver": {
+          "type": "string"
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ahead": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "behind": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      }
+    },
+    "done": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What it did."
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "todo": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What is left for a person; empty when ready."
+    },
+    "ready": {
+      "type": "boolean"
+    }
+  }
+}

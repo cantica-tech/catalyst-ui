@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/history.schema.json",
+  "title": "catalyst history",
+  "description": "What `catalyst journal show --artifact <id> --content --json` prints and `GET /v1/history/<id>` returns: every journal entry that changed an entity's file, in the journal's causal order, with the file's content before and after.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "file",
+    "entries"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "An artifact ID or a rule ID."
+    },
+    "type": {
+      "type": "string",
+      "description": "An entity type's prefix, or `rule`."
+    },
+    "file": {
+      "type": "string",
+      "description": "The entity's file, relative to the criterion. A rule's is the document that holds it."
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      }
+    }
+  },
+  "$defs": {
+    "change": {
+      "type": "object",
+      "required": [
+        "timestamp",
+        "actor",
+        "command",
+        "action",
+        "artifact",
+        "tier",
+        "intent",
+        "before",
+        "after",
+        "content_before",
+        "content_after",
+        "redacted"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "command": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "What the entry is labelled with; not always this entity."
+        },
+        "tier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "intent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "before": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The git blob of the file before; null when the entry created it."
+        },
+        "after": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The git blob of the file after; null when the entry removed it."
+        },
+        "content_before": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The file before; null when there was none, when its blob is no longer available, or when it was redacted."
+        },
+        "content_after": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "redacted": {
+          "type": "boolean",
+          "description": "Whether the content before or after was redacted (`catalyst journal redact`); its content is then null, whatever git still holds."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

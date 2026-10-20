@@ -1,3 +1,4 @@
+import { fieldsOf, isRow, titleOf } from "catalyst-core";
 import { useEffect, useState } from "react";
 
 import type { Graph, GraphArtifact, StudioClient } from "./client.js";
@@ -34,16 +35,10 @@ export interface RoadmapTable {
   closed: number;
 }
 
-/** The fields a row keeps, whether `graph` gives them under `fields` or flat. */
-function fieldsOf(a: GraphArtifact): Record<string, unknown> {
-  const nested = a.fields;
-  return nested && typeof nested === "object" ? (nested as Record<string, unknown>) : a;
-}
-
 /** Every table of rows, its items in table order (studio-SHELL-000011). */
 export function roadmapTables(graph: Graph): RoadmapTable[] {
   const tables = new Map<string, GraphArtifact[]>();
-  for (const a of graph.artifacts) if (a.row) tables.set(a.file, [...(tables.get(a.file) ?? []), a]);
+  for (const a of graph.artifacts) if (isRow(a)) tables.set(a.file, [...(tables.get(a.file) ?? []), a]);
   return [...tables.entries()]
     .sort(([x], [y]) => x.localeCompare(y))
     .map(([file, rows]) => {
@@ -56,7 +51,7 @@ export function roadmapTables(graph: Graph): RoadmapTable[] {
         const linked = [...refFields].flatMap((name) => clean(f[name]).match(ENTITY_ID_IN_TEXT) ?? []);
         return {
           id: a.id,
-          title: clean(f.Title) || clean(a.title) || a.id,
+          title: clean(titleOf(a)) || a.id,
           status,
           closed: (type?.closed_states ?? []).includes(status),
           description: clean(f.Description),

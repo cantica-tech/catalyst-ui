@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/share-push.schema.json",
+  "title": "catalyst share push",
+  "description": "What `catalyst share push --yes --json` prints: what it published. git publishes commits on a topic branch and opens a pull request; serve publishes a batch of files. `commits` is 0 when there was nothing to publish.",
+  "type": "object",
+  "required": [
+    "branch",
+    "commits",
+    "pull_request",
+    "regenerated"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "git: the topic branch pushed."
+    },
+    "commits": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "git: the commits pushed; serve: the files published."
+    },
+    "pull_request": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "git: the pull request's URL, when one was opened."
+    },
+    "pull_request_note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "git: why no pull request was opened."
+    },
+    "regenerated": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The generated files rewritten before publishing."
+    },
+    "seq": {
+      "type": "integer",
+      "description": "serve: the batch's sequence number."
+    }
+  }
+}

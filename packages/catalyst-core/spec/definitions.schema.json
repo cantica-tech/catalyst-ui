@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/definitions.schema.json",
+  "title": "catalyst definition list",
+  "description": "What `catalyst definition list --json` prints, and `GET /v1/definitions` answers: each deployed definition (`definitions/<slug>.md`, INV-23) with its version and description (catalyst >= 0.88.0).",
+  "type": "object",
+  "required": [
+    "definitions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "definitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "slug",
+          "version",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "The file's name without `.md`: `requirement`, `domain`, `journal`."
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "Its `## Description`, on one line."
+          }
+        }
+      }
+    }
+  }
+}

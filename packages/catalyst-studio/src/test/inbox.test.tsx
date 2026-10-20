@@ -143,15 +143,16 @@ describe("the inbox (studio-SHELL-000005)", () => {
   });
 
   it("says when the clipboard refuses, and shows a case's own sections", async () => {
-    const artifact = {
+    const artifact: EntityView = {
       id: "RECON-000001",
       type: "RECON",
+      title: "Two versions of the sign-in rule",
       file: "r.md",
       links: {},
       linked_from: [],
       journal: [],
       sections: [{ heading: "Version A", text: "Sign in with a password" }],
-    } as EntityView;
+    };
     act(() => {
       root.render(
         <InboxItemPage

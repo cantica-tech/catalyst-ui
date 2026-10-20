@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/workspace-status.schema.json",
+  "title": "catalyst workspace status",
+  "description": "What `catalyst workspace status <file> --json` prints: a VS Code workspace's meta criterion and, for each of its folders, the project there and whether it is a member.",
+  "type": "object",
+  "required": [
+    "workspace",
+    "criterion",
+    "folders"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "workspace": {
+      "type": "string"
+    },
+    "criterion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The workspace's criterion; null before `catalyst workspace init`."
+    },
+    "folders": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "folder",
+          "project",
+          "member"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "project": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The project's name; null when the folder has no catalyst."
+          },
+          "member": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

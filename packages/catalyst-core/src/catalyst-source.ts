@@ -19,6 +19,9 @@ import type {
   EntityDefinition,
 } from "./types.js";
 import { coerceJournal } from "./journal.js";
+import type { CheckJson, GraphJson, RunEventJson } from "./spec.js";
+import type { Since } from "./since.js";
+import { fieldsOf, isRow } from "./graph-artifact.js";
 
 /**
  * The chain model and its validation, read through catalyst (REQ-000019)
@@ -38,39 +41,11 @@ export interface WatcherHandle {
 /** The catalyst release this package reads through: `graph` and `serve --local` arrived in 0.54.0. */
 export const CATALYST_SERVE_FLOOR = "0.54.0";
 
-/** What `catalyst graph --json` prints (kernel `views.graph`). */
-export interface CatalystGraph {
-  rules: {
-    id: string;
-    title: string;
-    status: string;
-    file: string;
-    line: number;
-    retired: boolean;
-    domain: string | null;
-    mentions: string[];
-  }[];
-  domains: { code: string; file: string | null; title: string }[];
-  artifacts: ({
-    id: string;
-    type: string;
-    title?: string;
-    file: string;
-    line?: number;
-    row?: boolean;
-    fields?: Record<string, string>;
-    links: Record<string, string[]>;
-    mentions: string[];
-  } & Record<string, unknown>)[];
-  types: Record<string, Omit<ModuleType, "prefix">>;
-}
+/** What `catalyst graph --json` prints (`spec/graph.schema.json`). */
+export type CatalystGraph = GraphJson;
 
-/** What `catalyst check --json` prints. */
-export interface CatalystCheck {
-  ok: boolean;
-  errors: string[];
-  warnings: string[];
-}
+/** What `catalyst check --json` prints (`spec/check.schema.json`); `findings` since catalyst 0.78.0. */
+export type CatalystCheck = Since<CheckJson, "findings">;
 
 const RETIRED_HEADER_RE = /^\*\*Retired:\*\*/m;
 
@@ -150,7 +125,7 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
       docPrefix: r.id.split("-")[0],
       domain: r.domain ?? "",
       // A rule with no status line reads as working, as this package always showed it.
-      status: or(r.status, r.retired ? "🗑 retired" : "✅ working"),
+      status: or(r.status ?? undefined, r.retired ? "🗑 retired" : "✅ working"),
       registeredInRulesIndex: true,
       description: basename(r.file).startsWith(r.id) ? text : ruleSection(text, r.line),
     });
@@ -171,13 +146,13 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
     ]),
   );
   for (const a of graph.artifacts) {
-    const fields: Partial<Record<string, string>> = (a.row ? a.fields : undefined) ?? {};
+    const fields = fieldsOf(a);
     const links: Record<string, string[]> = a.links;
-    const status = plain(a.row ? fields.Status : a.Status);
+    const status = plain(fields.Status);
     const closed = (types.get(a.type)?.closed_states ?? []).includes(status);
-    const signedText = plain(a.row ? fields["Signed-off-by"] : a["Signed-off-by"]);
+    const signedText = plain(fields["Signed-off-by"]);
     const signed = signedText ? signedText : undefined;
-    if (a.row) {
+    if (isRow(a)) {
       const file = join(criterionRoot, a.file);
       const title = or(plain(fields.Title), a.id);
       add({
@@ -186,7 +161,7 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
         typePrefix: a.type,
         title,
         name: title,
-        location: at(a.file, a.line ?? 1),
+        location: at(a.file, a.line || 1),
         references: a.mentions,
         table: basename(a.file, ".md"),
         tableRetired: RETIRED_HEADER_RE.test(readText(file)),
@@ -558,16 +533,16 @@ export function watchProject(
 }
 
 /** One event of `catalyst agent run --json` (catalyst >= 0.76.0, `spec/run-event.schema.json`). */
-export interface RunEvent {
-  event: "start" | "session" | "text" | "tool" | "tool_result" | "end";
-  [field: string]: unknown;
-}
+export type RunEvent = RunEventJson;
+
+/** The event a run ends with: how it went, its turns, tokens and cost. */
+export type RunEnd = Extract<RunEvent, { event: "end" }>;
 
 export interface AgentRun {
   /** Stops the run (the agent's process tree is catalyst's to end). */
   cancel(): void;
   /** Resolves with the run's `end` event (one is made up when catalyst gives none). */
-  done: Promise<RunEvent>;
+  done: Promise<RunEnd>;
 }
 
 /** A catalyst command name, as §4 names it: never an option or a path. */
@@ -596,7 +571,7 @@ export function startAgentRun(
   child.stderr.on("data", (chunk: Buffer) => {
     stderr += chunk.toString();
   });
-  let end: RunEvent | null = null;
+  let end: RunEnd | null = null;
   createInterface({ input: child.stdout }).on("line", (line) => {
     let event: RunEvent;
     try {
@@ -607,7 +582,7 @@ export function startAgentRun(
     if (event.event === "end") end = event;
     onEvent(event);
   });
-  const done = new Promise<RunEvent>((resolve) => {
+  const done = new Promise<RunEnd>((resolve) => {
     const finish = (why: string) => {
       if (!end) {
         end = {

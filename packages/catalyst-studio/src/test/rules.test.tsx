@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { EntityPage } from "../Artifacts.js";
 import type { EntityView, Graph, GraphRule } from "../client.js";
 import { breachIs, citers, groupRules, RuleBrowser, ruleStatus, ruleStrength, searchRules } from "../Rules.js";
+import { art } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -16,8 +17,8 @@ function rule(id: string, title: string, status: string, retired = false): Graph
 const graph: Graph = {
   types: {},
   artifacts: [
-    { id: "REQ-000001", type: "REQ", file: "q.md", links: { Targets: ["br-AUTH-000001"] } },
-    { id: "BUG-000001", type: "BUG", file: "b.md", links: { Targets: ["br-AUTH-000001", "ui-FORM-000001"] } },
+    art({ id: "REQ-000001", type: "REQ", file: "q.md", links: { Targets: ["br-AUTH-000001"] } }),
+    art({ id: "BUG-000001", type: "BUG", file: "b.md", links: { Targets: ["br-AUTH-000001", "ui-FORM-000001"] } }),
   ],
   rules: [
     rule("ui-FORM-000001", "Forms validate on blur", "⏳ in progress."),
@@ -59,7 +60,7 @@ describe("the rule browser's data (studio-SHELL-000009)", () => {
   it("counts who cites each rule, groups by document then domain, and searches", () => {
     const c = citers(graph);
     expect([...(c.get("br-AUTH-000001") ?? [])].sort()).toEqual(["BUG-000001", "REQ-000001"]);
-    const rules = graph.rules ?? [];
+    const rules = graph.rules;
     expect(groupRules(searchRules(rules, "", false)).map((d) => [d.document, d.domains.map((x) => x.code)])).toEqual([
       ["br", ["AUTH", "PAY"]],
       ["ui", ["FORM"]],

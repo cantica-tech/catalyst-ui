@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { boardColumns, boardTypes, BoardView, movesFrom } from "../Board.js";
 import type { EntityType, Graph } from "../client.js";
 import { Shell } from "../Shell.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -15,7 +16,7 @@ function type(
   closed: string[],
   transitions?: { from: string; to: string }[],
 ): EntityType {
-  return {
+  return entityType({
     name,
     plural_name: `${name}s`,
     fields: [],
@@ -23,10 +24,10 @@ function type(
     initial: states[0] ?? null,
     closed_states: closed,
     transitions,
-  };
+  });
 }
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: {
     WORK: type(
       "Work item",
@@ -43,15 +44,15 @@ const graph: Graph = {
     ROW: type("Row", ["Open"], []),
   },
   artifacts: [
-    { id: "WORK-000002", type: "WORK", title: "Second", file: "w2.md", links: {}, Status: "Active" },
-    { id: "WORK-000001", type: "WORK", title: "First", file: "w1.md", links: {}, Status: "Active" },
-    { id: "WORK-000003", type: "WORK", title: "Third", file: "w3.md", links: {}, Status: "Done" },
-    { id: "WORK-000004", type: "WORK", title: "Odd", file: "w4.md", links: {}, Status: "Parked" },
-    { id: "NOTE-000001", type: "NOTE", title: "n", file: "n.md", links: {} },
-    { id: "ITEM-000001", type: "ITEM", title: "i", file: "i.md", links: {}, Status: "`Open`" },
-    { id: "ROW-000001", type: "ROW", title: "r", file: "r.md", links: {}, row: true, Status: "Open" },
+    art({ id: "WORK-000002", type: "WORK", title: "Second", file: "w2.md", links: {}, Status: "Active" }),
+    art({ id: "WORK-000001", type: "WORK", title: "First", file: "w1.md", links: {}, Status: "Active" }),
+    art({ id: "WORK-000003", type: "WORK", title: "Third", file: "w3.md", links: {}, Status: "Done" }),
+    art({ id: "WORK-000004", type: "WORK", title: "Odd", file: "w4.md", links: {}, Status: "Parked" }),
+    art({ id: "NOTE-000001", type: "NOTE", title: "n", file: "n.md", links: {} }),
+    art({ id: "ITEM-000001", type: "ITEM", title: "i", file: "i.md", links: {}, Status: "`Open`" }),
+    art({ id: "ROW-000001", type: "ROW", title: "r", file: "r.md", links: {}, row: true, Status: "Open" }),
   ],
-};
+});
 
 describe("the board's columns (studio-SHELL-000008)", () => {
   it("offers the types with states and artifacts, by plural name", () => {
@@ -151,7 +152,7 @@ describe("the board (studio-SHELL-000008)", () => {
 
   it("says so when no type has work to show", () => {
     act(() => {
-      root.render(<BoardView graph={{ types: {}, artifacts: [] }} />);
+      root.render(<BoardView graph={makeGraph()} />);
     });
     expect(host.textContent).toContain("No type with states holds any artifact yet.");
   });

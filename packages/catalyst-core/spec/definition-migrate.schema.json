@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/definition-migrate.schema.json",
+  "title": "catalyst definition migrate",
+  "description": "What `definition migrate --json` prints: the entity type whose definition moved, from which version to which (catalyst >= 0.97.0 describes it).",
+  "type": "object",
+  "required": [
+    "definition",
+    "from",
+    "to"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "definition": {
+      "type": "string"
+    },
+    "from": {
+      "type": [
+        "string",
+        "integer",
+        "null"
+      ]
+    },
+    "to": {
+      "type": [
+        "string",
+        "integer"
+      ]
+    }
+  }
+}

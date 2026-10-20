@@ -8,7 +8,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "spec:sync": "node scripts/spec.mjs sync",
+    "spec:generate": "node scripts/spec.mjs generate",
+    "spec:check": "node scripts/spec.mjs check"
   },
   "dependencies": {},
   "devDependencies": {

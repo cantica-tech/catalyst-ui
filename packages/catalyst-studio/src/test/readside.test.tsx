@@ -11,6 +11,7 @@ import { WithImpact } from "../impact.js";
 import { groupJournal } from "../Journal.js";
 import { pruneTree, Trace, traceTree } from "../Trace.js";
 import { tint } from "../TypeMap.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -141,21 +142,21 @@ describe("the trace filtered, and what a change would reach marked (R6.36, R6.41
   });
 
   it("marks what a change would reach on the board until cleared", async () => {
-    const work: EntityType = {
+    const work: EntityType = entityType({
       name: "Step",
       plural_name: "Steps",
       fields: [],
       states: ["Open", "Done"],
       initial: "Open",
       closed_states: ["Done"],
-    };
-    const graph: Graph = {
+    });
+    const graph: Graph = makeGraph({
       types: { STEP: work },
       artifacts: [
-        { id: "STEP-000001", type: "STEP", title: "Reached", file: "s1", links: {}, Status: "Open" },
-        { id: "STEP-000002", type: "STEP", title: "Untouched", file: "s2", links: {}, Status: "Open" },
+        art({ id: "STEP-000001", type: "STEP", title: "Reached", file: "s1", links: {}, Status: "Open" }),
+        art({ id: "STEP-000002", type: "STEP", title: "Untouched", file: "s2", links: {}, Status: "Open" }),
       ],
-    };
+    });
     act(() => {
       root.render(
         <WithImpact>
