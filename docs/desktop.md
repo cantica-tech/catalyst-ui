@@ -16,7 +16,7 @@ The app runs `catalyst serve --local` as its sidecar. It uses the machine's `cat
 `catalyst.pyz` of the kernel named in `packages/catalyst-host-electron/catalyst-version.txt`, which the `Desktop`
 workflow downloads from the public distribution repository (`cantica-tech/cantica-tech`). That copy needs Python 3.11
 or later on the `PATH` (macOS's own `python3` is 3.9); without one, the app says what to install. Raise
-`catalyst-version.txt` once a kernel release is published there (0.100.1 since UI 0.56.2).
+`catalyst-version.txt` once a kernel release is published there (0.101.0 since UI 0.56.3).
 
 ## Building locally
 
