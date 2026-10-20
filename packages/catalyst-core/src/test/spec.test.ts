@@ -18,4 +18,10 @@ describe("the types generated from catalyst's spec/ (R6.50)", () => {
     expect(kernel).toMatch(/^\d+\.\d+\.\d+$/);
     expect(readFileSync(join(PACKAGE, "src", "spec.ts"), "utf8")).toContain(`from catalyst ${kernel}'s`);
   });
+
+  it("are the kernel's the desktop app ships: syncing one means syncing the other", () => {
+    const kernel = readFileSync(join(PACKAGE, "spec", "KERNEL"), "utf8").trim();
+    const pinned = readFileSync(join(PACKAGE, "..", "catalyst-host-electron", "catalyst-version.txt"), "utf8").trim();
+    expect(kernel, "run `npm run spec:sync -w catalyst-core -- <catalyst checkout> <the pinned tag>`").toBe(pinned);
+  });
 });
