@@ -5,30 +5,31 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { ApprovalsView, reconciliationCases, signers } from "../Approvals.js";
 import type { Graph, User } from "../client.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: {
-    RECON: {
+    RECON: entityType({
       name: "Reconciliation",
       plural_name: "Reconciliations",
       fields: [],
       states: ["Open", "Under Review", "Resolved-Accepted", "Closed"],
       initial: "Open",
       closed_states: ["Resolved-Accepted", "Closed"],
-    },
-    REQ: {
+    }),
+    REQ: entityType({
       name: "Requirement",
       plural_name: "Requirements",
       fields: [],
       states: ["Draft", "Done"],
       initial: "Draft",
       closed_states: ["Done"],
-    },
+    }),
   },
   artifacts: [
-    {
+    art({
       id: "RECON-000002",
       type: "RECON",
       title: "Two versions",
@@ -36,8 +37,8 @@ const graph: Graph = {
       links: {},
       Status: "Resolved-Accepted",
       Entity: "`REQ-000001`",
-    },
-    {
+    }),
+    art({
       id: "RECON-000001",
       type: "RECON",
       title: "Disputed",
@@ -45,12 +46,12 @@ const graph: Graph = {
       links: {},
       Status: "Under Review",
       Entity: "REQ-000002",
-    },
-    { id: "REQ-000001", type: "REQ", file: "a", links: {}, Status: "Done", "Signed-off-by": "ada" },
-    { id: "REQ-000002", type: "REQ", file: "b", links: {}, Status: "Draft", "Signed-off-by": "ada" },
-    { id: "REQ-000003", type: "REQ", file: "c", links: {}, Status: "Draft", "Signed-off-by": "mallory" },
+    }),
+    art({ id: "REQ-000001", type: "REQ", file: "a", links: {}, Status: "Done", "Signed-off-by": "ada" }),
+    art({ id: "REQ-000002", type: "REQ", file: "b", links: {}, Status: "Draft", "Signed-off-by": "ada" }),
+    art({ id: "REQ-000003", type: "REQ", file: "c", links: {}, Status: "Draft", "Signed-off-by": "mallory" }),
   ],
-};
+});
 
 const users: User[] = [{ name: "ada", userid: "Ab3xR9pQ", roles: ["Admin"], active: true }];
 
@@ -109,7 +110,7 @@ describe("the approvals (studio-SHELL-000014)", () => {
 
   it("says so when there is nothing to approve", () => {
     act(() => {
-      root.render(<ApprovalsView graph={{ types: {}, artifacts: [] }} users={[]} />);
+      root.render(<ApprovalsView graph={makeGraph()} users={[]} />);
     });
     expect(host.textContent).toContain("No reconciliation case.");
     expect(host.textContent).toContain("No entity names a signer.");

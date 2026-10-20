@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/report.schema.json",
+  "title": "catalyst report",
+  "description": "What `catalyst report --json` prints: the journal's and the deployment's figures, over the whole journal or `--since` a date (catalyst >= 0.95.0 describes it).",
+  "type": "object",
+  "required": [
+    "entries",
+    "actors",
+    "tiers",
+    "commands",
+    "active_days",
+    "artifacts",
+    "reconciliations",
+    "errors",
+    "warnings",
+    "commits",
+    "commits_traced",
+    "unrecorded_commits",
+    "adopted_commits"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actors": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "Entries per actor, most first."
+    },
+    "tiers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "Entries per tier; `untiered` for those without one."
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "The ten commands most entries name, most first."
+    },
+    "active_days": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Days with at least one entry."
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "For each entity type, its artifacts per status.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "reconciliations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "errors": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Validation errors."
+    },
+    "warnings": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Validation warnings."
+    },
+    "commits": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Non-merge commits in the window (the last 200 without `--since`)."
+    },
+    "commits_traced": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Those whose message names an artifact or rule, or carries a chore prefix."
+    },
+    "unrecorded_commits": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Commits with changes outside catalyst since the baseline."
+    },
+    "adopted_commits": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Entries that adopted such a change."
+    }
+  }
+}

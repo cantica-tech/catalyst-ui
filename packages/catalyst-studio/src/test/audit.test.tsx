@@ -31,6 +31,7 @@ function pack(over: Partial<AuditPack["integrity"]> = {}): AuditPack {
         strength: "must",
         domain: "AUTH",
         retired: false,
+        meta: false,
         chain: [
           {
             id: "REQ-000001-Ab3xR9pQ",
@@ -57,6 +58,7 @@ function pack(over: Partial<AuditPack["integrity"]> = {}): AuditPack {
         strength: "should",
         domain: "AUTH",
         retired: false,
+        meta: false,
         chain: [],
       },
       {
@@ -66,6 +68,7 @@ function pack(over: Partial<AuditPack["integrity"]> = {}): AuditPack {
         strength: "must",
         domain: "AUTH",
         retired: true,
+        meta: false,
         chain: [],
       },
     ],

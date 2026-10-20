@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/user.schema.json",
+  "title": "catalyst user add, remove, modify, assign-role",
+  "description": "What a user verb prints with `--json`: the user's record as `IAM/users/users.json` now holds it (catalyst >= 0.97.0 describes it). `user modify` may have added a field of its own.",
+  "type": "object",
+  "required": [
+    "name",
+    "git_username",
+    "roles",
+    "active",
+    "userid"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "git_username": {
+      "type": "string"
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "registered": {
+      "type": "string",
+      "description": "YYYY-MM-DD"
+    },
+    "active": {
+      "type": "boolean",
+      "description": "False once removed: a user is deactivated, never deleted."
+    },
+    "notes": {
+      "type": "string"
+    },
+    "userid": {
+      "type": "string",
+      "description": "The 8-character suffix of every ID the user signs."
+    }
+  }
+}

@@ -9,6 +9,7 @@ import { describeEvidence } from "../evidence.js";
 import { gateCount, gateCovers, GatesSection } from "../Gates.js";
 import { HostContext, type ActionResult, type HostRuns, type StudioAction } from "../host.js";
 import { inboxGroups, InboxItemPage } from "../Inbox.js";
+import { makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -163,7 +164,7 @@ describe("approval gates in the Studio (studio-SHELL-000018)", () => {
 
   it("lists what waits for an approval in the Approvals view", () => {
     act(() => {
-      root.render(<ApprovalsView graph={{ types: {}, artifacts: [] }} users={[]} waiting={[waiting]} />);
+      root.render(<ApprovalsView graph={makeGraph()} users={[]} waiting={[waiting]} />);
     });
     expect(el.textContent).toContain("Waiting for an approval");
     expect([...el.querySelectorAll("#gates-waiting ~ table tbody tr")].map((r) => r.textContent)).toEqual([

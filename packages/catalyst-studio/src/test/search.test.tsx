@@ -6,15 +6,23 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Graph } from "../client.js";
 import { findables, search, SearchView } from "../Search.js";
 import { Shell } from "../Shell.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: {
-    REQ: { name: "Requirement", plural_name: "Requirements", fields: [], states: [], initial: null, closed_states: [] },
+    REQ: entityType({
+      name: "Requirement",
+      plural_name: "Requirements",
+      fields: [],
+      states: [],
+      initial: null,
+      closed_states: [],
+    }),
   },
   artifacts: [
-    {
+    art({
       id: "REQ-000001",
       type: "REQ",
       title: "Sign in",
@@ -22,9 +30,16 @@ const graph: Graph = {
       links: {},
       Status: "Active",
       Notes: "uses a password",
-    },
-    { id: "REQ-000002", type: "REQ", title: "Sign out", file: "b", links: {}, Status: "Draft" },
-    { id: "RM-000001", type: "RM", file: "t.md", links: {}, row: true, fields: { Title: "Phase 1", Status: "Done" } },
+    }),
+    art({ id: "REQ-000002", type: "REQ", title: "Sign out", file: "b", links: {}, Status: "Draft" }),
+    art({
+      id: "RM-000001",
+      type: "RM",
+      file: "t.md",
+      links: {},
+      row: true,
+      fields: { Title: "Phase 1", Status: "Done" },
+    }),
   ],
   rules: [
     {
@@ -38,7 +53,7 @@ const graph: Graph = {
       mentions: [],
     },
   ],
-};
+});
 
 describe("the search's ranking (studio-SHELL-000013)", () => {
   it("needs every word, and ranks an ID match, then a title match, then the rest", () => {

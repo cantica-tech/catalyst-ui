@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/backlog.schema.json",
+  "title": "catalyst backlog",
+  "description": "What `catalyst backlog --json` prints and `GET /v1/backlog` returns: open work (any status outside its type's closed states) by type and status, open items missing a required link, and the rules no open item targets.",
+  "type": "object",
+  "required": [
+    "open",
+    "missing_links",
+    "rules_without_open_work",
+    "coverage"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "open": {
+      "type": "object",
+      "description": "Type prefix → status → the IDs of the open items in it.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "missing_links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "field"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "An open item and the required reference field it leaves empty."
+    },
+    "rules_without_open_work": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "The project's active rules (the handbook's meta-rules left out), and those at least one artifact (open or closed) cites in a reference field (catalyst >= 0.78.0).",
+      "required": [
+        "rules",
+        "cited"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "rules": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cited": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

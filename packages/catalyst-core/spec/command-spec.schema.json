@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/command-spec.schema.json",
+  "title": "catalyst command spec",
+  "description": "What `catalyst spec <command> [<part>] --json` prints and `GET /v1/spec/<command>[/<part>]` returns: the text `catalyst spec` prints for it.",
+  "type": "object",
+  "required": ["command", "part", "text"],
+  "additionalProperties": false,
+  "properties": {
+    "command": { "type": "string", "description": "The command asked for, without its slash." },
+    "part": { "type": ["string", "null"], "description": "The part asked for, or null." },
+    "text": { "type": "string", "description": "The command's bullet and procedure, as Markdown." }
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/list.schema.json",
+  "title": "catalyst list",
+  "description": "What `catalyst list <type> --json` prints and `GET /v1/list?type=<type>` returns: one row per item of the type (`all`: every rule and artifact). The row's shape follows what it lists.",
+  "type": "array",
+  "items": {
+    "anyOf": [
+      {
+        "$ref": "#/$defs/artifact"
+      },
+      {
+        "$ref": "#/$defs/tableRow"
+      },
+      {
+        "$ref": "#/$defs/rule"
+      },
+      {
+        "$ref": "#/$defs/user"
+      },
+      {
+        "$ref": "#/$defs/role"
+      },
+      {
+        "$ref": "#/$defs/template"
+      }
+    ]
+  },
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "file"
+      ],
+      "description": "An artifact: its ID, its type's prefix, its title, its file in the criterion, then each field of its document by name, as written (the module's fields, never listed here).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "tableRow": {
+      "type": "object",
+      "required": [
+        "id",
+        "type"
+      ],
+      "additionalProperties": false,
+      "description": "An item kept as a row of a table (a type the module stores as rows).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "file",
+        "line",
+        "retired"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rule"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "retired": {
+          "type": "boolean"
+        },
+        "strength": {
+          "type": "string",
+          "description": "Its strength, from its `**Strength**` line; `must` when it states none (catalyst >= 0.83.0). An unknown value is `check`'s `rule-strength` error and is passed on as written, lowercased."
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": [
+        "name",
+        "roles"
+      ],
+      "description": "A user, as `IAM/users/users.json` holds it.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "git_username": {
+          "type": "string"
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "registered": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "userid": {
+          "type": "string"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "required": [
+        "name",
+        "actions"
+      ],
+      "description": "A role, as `IAM/roles/roles.json` holds it.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reconciliation": {
+          "enum": [
+            "full",
+            "propose",
+            "none"
+          ]
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "required": [
+        "family",
+        "version",
+        "file"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

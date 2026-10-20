@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/analyses.schema.json",
+  "title": "catalyst analysis list",
+  "description": "What `catalyst analysis list --json` prints: every analysis of the deployment in brief, newest first (catalyst >= 0.85.0).",
+  "type": "object",
+  "required": [
+    "analyses"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "analyses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/summary"
+      }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "phase",
+        "mode",
+        "passes",
+        "scope",
+        "code_state",
+        "opened",
+        "closed",
+        "findings",
+        "decided",
+        "accepted",
+        "rejected"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "Extracting",
+            "Reconciling",
+            "Deciding",
+            "Closed",
+            "Abandoned"
+          ]
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "passes": {
+          "enum": [
+            1,
+            2
+          ],
+          "description": "Independent passes: 2 (four-eyes) or 1 (single-pass, catalyst >= 0.84.0)."
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "code_state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The product commit analysed."
+        },
+        "opened": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "closed": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "findings": {
+          "type": "integer",
+          "description": "Reconciled findings (0 before reconciliation)."
+        },
+        "decided": {
+          "type": "integer"
+        },
+        "accepted": {
+          "type": "integer"
+        },
+        "rejected": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

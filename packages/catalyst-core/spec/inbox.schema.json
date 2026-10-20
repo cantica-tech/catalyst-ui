@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/inbox.schema.json",
+  "title": "catalyst inbox",
+  "description": "What `catalyst inbox --json` prints and `GET /v1/inbox` returns: what waits for a person, each item with its evidence and the commands that settle it. The inbox lists; it settles nothing.",
+  "type": "object",
+  "required": [
+    "items",
+    "counts"
+  ],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "counts": {
+      "type": "object",
+      "description": "How many items of each kind.",
+      "required": [
+        "unrecorded-commit",
+        "unrecorded-change",
+        "reconciliation",
+        "analysis",
+        "approval",
+        "proposal"
+      ],
+      "properties": {
+        "unrecorded-commit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unrecorded-change": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reconciliation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "analysis": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "approval": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "proposal": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "item": {
+      "type": "object",
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "evidence",
+        "settle"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "unrecorded-commit",
+            "unrecorded-change",
+            "reconciliation",
+            "analysis",
+            "approval",
+            "proposal"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "description": "A short commit, a project path, an artifact ID, or a rule ID."
+        },
+        "title": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "object",
+          "description": "What the item rests on. A commit: `commit`, `author`, `files` (each `path`, `before`, `after`). A change: `path`. A case: `status`, `entity`. An analysis: `status`, `scope`. An approval: `gate`, `role`, `approvals` (how many the gate asks), `counted` (who approved the current version, each counting), `missing`, `version` (the blob of the entity's file). A proposal: `status`, `entity`, `path` (the entity's file), `base` (its blob when proposed), `proposed` (the proposed content's blob), `author` (who wrote the proposed version).",
+          "properties": {
+            "commit": {
+              "type": "string"
+            },
+            "author": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "files": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "path",
+                  "before",
+                  "after"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "before": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "after": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "status": {
+              "type": "string"
+            },
+            "entity": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "gate": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "approvals": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "counted": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "missing": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "version": {
+              "type": "string"
+            },
+            "base": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "proposed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        "settle": {
+          "type": "array",
+          "description": "The commands, or the action, that settle the item. A person chooses.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

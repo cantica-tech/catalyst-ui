@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/journal-entry.schema.json",
+  "title": "catalyst journal append|adopt|redact",
+  "description": "What `catalyst journal append --json`, `catalyst journal adopt --json` and `catalyst journal redact --json` print: the one journal entry the command wrote. `adopt` adds the commit it adopts and its `origin`; `redact` adds the blobs it redacted, the paths they were at and the criteria whose pins it lifted.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "actor",
+    "command",
+    "action",
+    "artifact",
+    "targets",
+    "intent",
+    "files",
+    "writer"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "artifact": {
+      "type": "string"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intent": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "before",
+          "after"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "description": "Each file the entry records, with its blob before and after (null: absent)."
+    },
+    "tier": {
+      "type": "string",
+      "description": "`chore`, `fix` or `feature`; an entry written before tiers existed may lack it."
+    },
+    "writer": {
+      "type": "string",
+      "description": "`catalyst/<version>`: the catalyst that wrote the entry."
+    },
+    "commit": {
+      "type": "string",
+      "description": "adopt: the commit made outside catalyst that the entry records."
+    },
+    "origin": {
+      "type": "string",
+      "description": "adopt: how the change was made (`manual`)."
+    },
+    "redacted": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "redact: the blobs whose content was removed."
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "redact: the paths the redacted blobs were at."
+    },
+    "unpinned_in": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "redact: the repositories where the blobs are no longer kept."
+    }
+  }
+}

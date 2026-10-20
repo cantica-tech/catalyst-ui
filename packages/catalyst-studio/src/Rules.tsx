@@ -6,11 +6,12 @@ import { useNavigate } from "./Shell.js";
 import { Status, type StatusTone } from "./Status.js";
 
 /** A rule's status as a tone and a word, from the mark its status line carries. */
-export function ruleStatus(rule: { status: string; retired: boolean }): { tone: StatusTone; label: string } {
-  if (rule.retired || rule.status.includes("🗑")) return { tone: "info", label: "Retired" };
-  if (rule.status.includes("✅")) return { tone: "ok", label: "Working" };
-  if (rule.status.includes("⏳")) return { tone: "warn", label: "In progress" };
-  if (rule.status.includes("❌")) return { tone: "error", label: "Broken" };
+export function ruleStatus(rule: { status: string | null; retired: boolean }): { tone: StatusTone; label: string } {
+  const status = rule.status ?? ""; // a rule with no status line
+  if (rule.retired || status.includes("🗑")) return { tone: "info", label: "Retired" };
+  if (status.includes("✅")) return { tone: "ok", label: "Working" };
+  if (status.includes("⏳")) return { tone: "warn", label: "In progress" };
+  if (status.includes("❌")) return { tone: "error", label: "Broken" };
   return { tone: "info", label: "No status" };
 }
 
@@ -37,7 +38,7 @@ export function citers(graph: Graph): Map<string, Set<string>> {
     if (rule === by) return;
     out.set(rule, (out.get(rule) ?? new Set()).add(by));
   };
-  const rules = new Set((graph.rules ?? []).map((r) => r.id));
+  const rules = new Set(graph.rules.map((r) => r.id));
   for (const a of graph.artifacts)
     for (const ids of Object.values(a.links)) for (const id of ids) if (rules.has(id)) add(id, a.id);
   return out;
@@ -55,7 +56,7 @@ export function searchRules(rules: GraphRule[], words: string, showRetired: bool
     if (!showRetired && ruleStatus(r).label === "Retired") return false;
     if (strength && ruleStrength(r) !== strength) return false;
     const hay =
-      `${r.id} ${r.title} ${r.domain ?? ""} ${ruleStatus(r).label} ${r.status} ${ruleStrength(r)}`.toLowerCase();
+      `${r.id} ${r.title} ${r.domain ?? ""} ${ruleStatus(r).label} ${r.status ?? ""} ${ruleStrength(r)}`.toLowerCase();
     return ws.every((w) => hay.includes(w));
   });
 }
@@ -90,10 +91,10 @@ export function RuleBrowser({ graph }: { graph: Graph }) {
   const searchId = useId();
   const retiredId = useId();
   const strengthId = useId();
-  const all = graph.rules ?? [];
+  const all = graph.rules;
   const kept = searchRules(all, words, showRetired, strength);
   const cited = citers(graph);
-  const domainTitle = new Map((graph.domains ?? []).map((d) => [d.code, d.title]));
+  const domainTitle = new Map(graph.domains.map((d) => [d.code, d.title]));
   return (
     <>
       <h2>Rules</h2>

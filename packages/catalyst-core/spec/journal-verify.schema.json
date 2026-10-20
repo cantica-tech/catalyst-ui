@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/journal-verify.schema.json",
+  "title": "catalyst journal verify",
+  "description": "What `catalyst journal verify --json` prints: whether the journal holds (hash chains, blobs, pins, files changed since their last entry), and each issue (catalyst >= 0.95.0 describes it). Notes are left out. `ok` is false when an issue is an error, or any issue with `--strict`.",
+  "type": "object",
+  "required": [
+    "ok",
+    "issues"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "level",
+          "code",
+          "at",
+          "message",
+          "legacy",
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "e.g. `chain`, `missing-blob`, `unjournaled`, `schema`."
+          },
+          "at": {
+            "type": "string",
+            "description": "`<journal file>:<line>`; empty when about the journal as a whole."
+          },
+          "message": {
+            "type": "string"
+          },
+          "legacy": {
+            "type": "boolean",
+            "description": "About an entry the catalyst CLI did not write."
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The file the issue is about, when it is about one."
+          }
+        }
+      }
+    }
+  }
+}

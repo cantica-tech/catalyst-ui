@@ -6,22 +6,23 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Graph } from "../client.js";
 import { roadmapTables, RoadmapView } from "../Roadmap.js";
 import { Shell } from "../Shell.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const graph: Graph = {
+const graph: Graph = makeGraph({
   types: {
-    PLAN: {
+    PLAN: entityType({
       name: "Plan item",
       plural_name: "Plan items",
       states: ["Open", "Done"],
       initial: "Open",
       closed_states: ["Done"],
       fields: [{ name: "Linked", kind: "ref-list", required: false, target_type: "REQ" }],
-    },
+    }),
   },
   artifacts: [
-    {
+    art({
       id: "PLAN-000002-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/beta.md",
@@ -29,8 +30,8 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "Second", Status: "Open", Linked: "`REQ-000002-Ab3xR9pQ`, `REQ-000003`", Target: "2026-12-01" },
-    },
-    {
+    }),
+    art({
       id: "PLAN-000001-Ab3xR9pQ",
       type: "PLAN",
       file: "plans/beta.md",
@@ -38,10 +39,10 @@ const graph: Graph = {
       row: true,
       links: {},
       fields: { Title: "First", Status: "`Done`", Description: "The base." },
-    },
-    { id: "REQ-000002-Ab3xR9pQ", type: "REQ", file: "r.md", links: {}, Status: "Active" },
+    }),
+    art({ id: "REQ-000002-Ab3xR9pQ", type: "REQ", file: "r.md", links: {}, Status: "Active" }),
   ],
-};
+});
 
 describe("the roadmap's tables (studio-SHELL-000011)", () => {
   it("orders each table's rows as written, reads status, dates and linked IDs", () => {
@@ -108,7 +109,7 @@ describe("the roadmap timeline (studio-SHELL-000011)", () => {
 
   it("says so when there is no table of rows", () => {
     act(() => {
-      root.render(<RoadmapView graph={{ types: {}, artifacts: [] }} />);
+      root.render(<RoadmapView graph={makeGraph()} />);
     });
     expect(host.textContent).toContain("keeps no table of rows");
   });

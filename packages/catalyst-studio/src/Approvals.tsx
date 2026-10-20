@@ -1,3 +1,4 @@
+import { fieldsOf, titleOf } from "catalyst-core/graph-artifact";
 import { useEffect, useState } from "react";
 
 import type { Graph, GraphArtifact, InboxItem, StudioClient, User } from "./client.js";
@@ -13,8 +14,7 @@ function clean(value: unknown): string {
 }
 
 function fieldOf(a: GraphArtifact, name: string): string {
-  const fields = a.fields && typeof a.fields === "object" ? (a.fields as Record<string, unknown>) : a;
-  return clean(fields[name]);
+  return clean(fieldsOf(a)[name]);
 }
 
 export interface Case {
@@ -34,7 +34,7 @@ export function reconciliationCases(graph: Graph): Case[] {
       const status = fieldOf(a, "Status");
       return {
         id: a.id,
-        title: clean(a.title) || a.id,
+        title: clean(titleOf(a)) || a.id,
         status,
         closed: closedStates.includes(status) || status === "Closed",
         entity: fieldOf(a, "Entity"),

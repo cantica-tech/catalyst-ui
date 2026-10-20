@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/change.schema.json",
+  "title": "catalyst new, rename, restore, status set, link",
+  "description": "What a writing verb prints with `--json`: the entity it changed, its file, and every file it touched (back-references and indexes included), each journaled (catalyst >= 0.97.0 describes it).",
+  "type": "object",
+  "required": [
+    "id",
+    "file",
+    "touched"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The entity's ID."
+    },
+    "file": {
+      "type": "string",
+      "description": "Its file."
+    },
+    "touched": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Every file the change wrote."
+    }
+  }
+}

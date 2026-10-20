@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/where.schema.json",
+  "title": "catalyst where",
+  "description": "What `catalyst where --json` prints: the project file found at or above the directory, the project's name and the criterion it resolves to.",
+  "type": "object",
+  "required": [
+    "project",
+    "file",
+    "name",
+    "criterion",
+    "kind",
+    "expected",
+    "workspace"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The project's root."
+    },
+    "file": {
+      "type": "string",
+      "description": "`catalyst.toml`, or a legacy `*.catalyst` pointer."
+    },
+    "name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "criterion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The criterion's directory; null when it is not on this machine."
+    },
+    "kind": {
+      "enum": [
+        "home",
+        "legacy",
+        "missing"
+      ],
+      "description": "`home`: under `$HOME/.catalyst`; `legacy`: elsewhere; `missing`: not found."
+    },
+    "expected": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Where the criterion belongs under `$HOME/.catalyst`."
+    },
+    "workspace": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The workspace the project is a member of."
+    },
+    "workspace_criterion": {
+      "type": "string",
+      "description": "The workspace's criterion, when the project is a member of one."
+    }
+  }
+}

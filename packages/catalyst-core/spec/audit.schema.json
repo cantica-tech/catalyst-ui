@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/audit.schema.json",
+  "title": "catalyst audit",
+  "description": "What `catalyst audit --json` prints: the audit pack — what the deployment runs, the record's integrity, who signed, and each rule with everything that rests on it (catalyst >= 0.87.0).",
+  "type": "object",
+  "required": [
+    "project",
+    "generated",
+    "catalyst",
+    "kernel",
+    "modules",
+    "criterion_commit",
+    "integrity",
+    "signers",
+    "rules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "generated": {
+      "type": "string"
+    },
+    "catalyst": {
+      "type": "string"
+    },
+    "kernel": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "criterion_commit": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The criterion's git HEAD when the pack was made."
+    },
+    "integrity": {
+      "type": "object",
+      "required": [
+        "journal",
+        "check",
+        "unapproved_rules"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "journal": {
+          "type": "object",
+          "required": [
+            "entries",
+            "errors",
+            "warnings"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "entries": {
+              "type": "integer"
+            },
+            "errors": {
+              "type": "integer"
+            },
+            "warnings": {
+              "type": "integer"
+            }
+          }
+        },
+        "check": {
+          "type": "object",
+          "required": [
+            "errors",
+            "warnings",
+            "first"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "errors": {
+              "type": "integer"
+            },
+            "warnings": {
+              "type": "integer"
+            },
+            "first": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The first 20 errors."
+            }
+          }
+        },
+        "unapproved_rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Gated rules whose current text lacks its approvals."
+        }
+      }
+    },
+    "signers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "signed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "signed": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "strength",
+          "domain",
+          "retired",
+          "meta",
+          "chain"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "strength": {
+            "type": "string"
+          },
+          "domain": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retired": {
+            "type": "boolean"
+          },
+          "meta": {
+            "type": "boolean",
+            "description": "A meta-rule (in `Rules-of-Rules.md`): it governs the rules, and no work rests on it."
+          },
+          "chain": {
+            "type": "array",
+            "description": "Everything that rests on the rule, transitively, nearest first (`catalyst impact <rule> --direction down`).",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "type",
+                "title",
+                "status",
+                "depth",
+                "via"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "depth": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "via": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "field",
+                    "on"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "on": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

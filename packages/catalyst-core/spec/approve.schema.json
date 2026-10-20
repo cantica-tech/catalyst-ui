@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/approve.schema.json",
+  "title": "catalyst approve",
+  "description": "What `catalyst approve <id> --json` prints: the approval's journal entry (the gate it counts toward and the exact content approved, as a path and its blob) and how many approvals the gate still needs.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "actor",
+    "command",
+    "action",
+    "artifact",
+    "targets",
+    "intent",
+    "files",
+    "writer",
+    "gate",
+    "approved",
+    "missing"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "timestamp": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string"
+    },
+    "command": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "artifact": {
+      "type": "string"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "intent": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "before",
+          "after"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "description": "Each file the entry records, with its blob before and after (null: absent)."
+    },
+    "tier": {
+      "type": "string",
+      "description": "`chore`, `fix` or `feature`; an entry written before tiers existed may lack it."
+    },
+    "writer": {
+      "type": "string",
+      "description": "`catalyst/<version>`: the catalyst that wrote the entry."
+    },
+    "gate": {
+      "type": "string",
+      "description": "The id of the gate in `IAM/gates.json` the approval counts toward."
+    },
+    "approved": {
+      "type": "object",
+      "required": [
+        "path",
+        "blob"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "blob": {
+          "type": "string"
+        }
+      },
+      "description": "The file approved and its blob: a later edit is a new version, not approved."
+    },
+    "missing": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The approvals the gate still needs; 0 when it is satisfied."
+    }
+  }
+}

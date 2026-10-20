@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/view.schema.json",
+  "title": "catalyst view",
+  "description": "What `catalyst view <id> --json` prints and `GET /v1/view/<id>` returns: one artifact or rule, what it links to (`links`), what links to it (`linked_from`: the entity and its field), the journal entries labelled with it or targeting it, for an artifact its sections and the states it may move to, and for a rule its title, status, domain and own text.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/artifact"
+    },
+    {
+      "$ref": "#/$defs/rule"
+    }
+  ],
+  "$defs": {
+    "artifact": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "file",
+        "links",
+        "linked_from",
+        "journal",
+        "sections",
+        "next"
+      ],
+      "description": "An artifact: its ID, its type's prefix, its title, its file in the criterion, then each field of its document by name, as written (the module's fields, never listed here).",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "links": {
+          "type": "object",
+          "description": "Each reference field of the entity's type that it fills, and the IDs it cites.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "linked_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "field"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "journal": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "timestamp",
+              "actor",
+              "command",
+              "action",
+              "intent"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "timestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "actor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "command": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "intent": {
+                "type": [
+                  "array",
+                  "string",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "sections": {
+          "type": "array",
+          "description": "The document's `## ` sections in order: each heading and its text as written.",
+          "items": {
+            "type": "object",
+            "required": [
+              "heading",
+              "text"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "heading": {
+                "type": "string"
+              },
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "next": {
+          "type": "array",
+          "description": "The states the artifact may move to from its own (its type's transitions, or every other state when it declares none), each with what its guards say blocks it now; `catalyst status set` refuses a blocked one without `--force`.",
+          "items": {
+            "type": "object",
+            "required": [
+              "state",
+              "blocked_by"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "state": {
+                "type": "string"
+              },
+              "blocked_by": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "proposal": {
+          "type": "object",
+          "description": "A proposal case (design 26): its entity, the entity's file, the base and proposed blobs, the proposed version's author, and both contents, for a diff.",
+          "required": [
+            "entity",
+            "path",
+            "base",
+            "proposed",
+            "author",
+            "content_base",
+            "content_proposed"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "entity": {
+              "type": "string"
+            },
+            "path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "base": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "proposed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "author": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "content_base": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "content_proposed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "status",
+        "domain",
+        "text",
+        "file",
+        "line",
+        "retired",
+        "links",
+        "linked_from",
+        "journal"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "const": "rule"
+        },
+        "title": {
+          "type": "string",
+          "description": "Its heading after its ID (a one-file rule: its `rules.md` entry)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The first line of its text carrying a status mark, without its label; empty when none does (catalyst >= 0.76.0)."
+        },
+        "domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Its domain's code, from its ID."
+        },
+        "text": {
+          "type": "string",
+          "description": "The rule's own text: its section of its document, or its file for a one-file rule."
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "retired": {
+          "type": "boolean"
+        },
+        "links": {
+          "type": "object",
+          "description": "Each reference field of the entity's type that it fills, and the IDs it cites.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "linked_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "field"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "journal": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "timestamp",
+              "actor",
+              "command",
+              "action",
+              "intent"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "timestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "actor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "command": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "intent": {
+                "type": [
+                  "array",
+                  "string",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "strength": {
+          "type": "string",
+          "description": "Its strength, from its `**Strength**` line; `must` when it states none (catalyst >= 0.83.0). An unknown value is `check`'s `rule-strength` error and is passed on as written, lowercased."
+        }
+      }
+    }
+  }
+}
