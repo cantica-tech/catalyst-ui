@@ -1,6 +1,6 @@
 import * as assert from "assert";
 
-import type { AgentRun, RunEvent } from "catalyst-core";
+import type { AgentRun, RunEnd, RunEvent } from "catalyst-core";
 
 import { StudioRuns, type HostMessage } from "../studio-runs.js";
 
@@ -10,7 +10,7 @@ function harness(answer: boolean) {
   const started: { command: string; args: string }[] = [];
   const cancelled: string[] = [];
   let emit: (event: RunEvent) => void = () => undefined;
-  let finish: (event: RunEvent) => void = () => undefined;
+  let finish: (event: RunEnd) => void = () => undefined;
   const runs = new StudioRuns({
     confirm: (q) => {
       asked.push(q);
@@ -21,7 +21,7 @@ function harness(answer: boolean) {
       emit = onEvent;
       return {
         cancel: () => cancelled.push(command),
-        done: new Promise<RunEvent>((resolve) => {
+        done: new Promise<RunEnd>((resolve) => {
           finish = resolve;
         }),
       };
@@ -37,7 +37,7 @@ function harness(answer: boolean) {
     emit: (e: RunEvent) => {
       emit(e);
     },
-    finish: (e: RunEvent) => {
+    finish: (e: RunEnd) => {
       finish(e);
     },
   };
@@ -105,7 +105,7 @@ describe("StudioRuns actions (studio-SHELL-000016)", () => {
         asked.push(q);
         return Promise.resolve(answer);
       },
-      start: () => ({ cancel: () => undefined, done: new Promise<RunEvent>(() => undefined) }),
+      start: () => ({ cancel: () => undefined, done: new Promise<RunEnd>(() => undefined) }),
       post: (m) => posted.push(m),
       act: (args) => {
         ran.push(args);
@@ -174,7 +174,7 @@ describe("StudioRuns batches (R6.17)", () => {
         asked.push(q);
         return Promise.resolve(answer);
       },
-      start: () => ({ cancel: () => undefined, done: new Promise<RunEvent>(() => undefined) }),
+      start: () => ({ cancel: () => undefined, done: new Promise<RunEnd>(() => undefined) }),
       post: (m) => posted.push(m),
       act: (args) => {
         ran.push(args);
@@ -252,7 +252,7 @@ describe("StudioRuns' tries (studio-SHELL-000020)", () => {
         asked.push(q);
         return Promise.resolve(true);
       },
-      start: () => ({ cancel: () => undefined, done: new Promise<RunEvent>(() => undefined) }),
+      start: () => ({ cancel: () => undefined, done: new Promise<RunEnd>(() => undefined) }),
       post: (m) => posted.push(m),
       act: (args) => {
         ran.push(args);
