@@ -1,5 +1,5 @@
 /** This package's version; equals its package.json (tested). */
-export const VERSION = "0.56.2";
+export const VERSION = "0.56.3";
 
 export { NodeDetail } from "./NodeDetail.js";
 export type { NodeDetailProps } from "./NodeDetail.js";
