@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/analysis.schema.json",
+  "title": "catalyst analysis status",
+  "description": "What `catalyst analysis status <id> --json` prints: one analysis in full — its summary, what each pass recorded, the diff's counts, each reconciled finding with its decision, and what keeps it from its phase (catalyst >= 0.85.0).",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "phase",
+    "mode",
+    "passes",
+    "scope",
+    "code_state",
+    "opened",
+    "closed",
+    "findings",
+    "decided",
+    "accepted",
+    "rejected",
+    "recorded",
+    "diff",
+    "reconciled",
+    "dropped",
+    "items",
+    "problems"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "Extracting",
+        "Reconciling",
+        "Deciding",
+        "Closed",
+        "Abandoned"
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "passes": {
+      "enum": [
+        1,
+        2
+      ],
+      "description": "Independent passes: 2 (four-eyes) or 1 (single-pass, catalyst >= 0.84.0)."
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "code_state": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The product commit analysed."
+    },
+    "opened": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "closed": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "findings": {
+      "type": "integer",
+      "description": "Reconciled findings (0 before reconciliation)."
+    },
+    "decided": {
+      "type": "integer"
+    },
+    "accepted": {
+      "type": "integer"
+    },
+    "rejected": {
+      "type": "integer"
+    },
+    "recorded": {
+      "type": "object",
+      "required": [
+        "A",
+        "B"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "A": {
+          "type": "boolean"
+        },
+        "B": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "null for a single-pass analysis."
+        }
+      }
+    },
+    "diff": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Counts of `diff.json`, null before `catalyst analysis diff`.",
+      "required": [
+        "agreed",
+        "conflicting",
+        "a_only",
+        "b_only"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "agreed": {
+          "type": "integer"
+        },
+        "conflicting": {
+          "type": "integer"
+        },
+        "a_only": {
+          "type": "integer"
+        },
+        "b_only": {
+          "type": "integer"
+        }
+      }
+    },
+    "reconciled": {
+      "type": "boolean"
+    },
+    "dropped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A finding of a pass dropped at reconciliation: its `source` (`A:<id>`, `B:<id>`) and `reason`; one missing is in `problems`.",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "Each reconciled finding as `ANALYSIS-PLAYBOOK.md` \"Findings format\" gives it (id, kind, title, statement, evidence, sources, verification, …), with its decision.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "decision"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "domain",
+              "rule",
+              "defect"
+            ]
+          },
+          "title": {"type": "string"},
+          "statement": {"type": "string"},
+          "area": {"type": "string", "description": "The domain it belongs to."},
+          "code": {"type": "string", "description": "A domain's proposed code."},
+          "status": {"type": "string", "description": "A rule's: holds, partial or missing."},
+          "confidence": {"type": "string", "description": "high, medium or low."},
+          "breaks": {"type": "string", "description": "A defect's: the rule it breaks."},
+          "notes": {"type": "string"},
+          "evidence": {"type": "array", "items": {"type": "object", "required": ["path"], "properties": {"path": {"type": "string"}, "line": {"type": "integer", "minimum": 1}}}},
+          "sources": {"type": "array", "items": {"type": "string"}, "description": "The passes' findings it reconciles (`A:<id>`, `B:<id>`)."},
+          "verification": {"type": "string", "description": "What the reconciliation checked."},
+          "decision": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "null while undecided.",
+            "required": [
+              "verdict",
+              "artifact",
+              "reason",
+              "by",
+              "at"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "verdict": {
+                "enum": [
+                  "accept",
+                  "reject"
+                ]
+              },
+              "artifact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "by": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What keeps the record from its phase (`catalyst check`'s `analysis:` errors)."
+    }
+  }
+}

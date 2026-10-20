@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/share-status.schema.json",
+  "title": "catalyst share status",
+  "description": "What `catalyst share status --json` prints: the criterion's sharing driver, where its shared copy is, the local changes not yet published and how far it is from the shared copy, when known (catalyst >= 0.90.0 serves it).",
+  "type": "object",
+  "required": [
+    "driver",
+    "location",
+    "branch",
+    "dirty",
+    "ahead",
+    "behind",
+    "mode"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "driver": {
+      "type": "string",
+      "description": "`local` (not shared), `git` or `serve`."
+    },
+    "location": {
+      "type": ["string", "null"],
+      "description": "Where the shared copy is; null when not shared."
+    },
+    "branch": {
+      "type": ["string", "null"]
+    },
+    "dirty": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The criterion's files changed and not yet published."
+    },
+    "ahead": {
+      "type": ["integer", "null"]
+    },
+    "behind": {
+      "type": ["integer", "null"]
+    },
+    "mode": {
+      "type": ["string", "null"],
+      "description": "The driver's own detail (git: home, submodule, local)."
+    }
+  }
+}

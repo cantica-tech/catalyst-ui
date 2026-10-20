@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/agent-status.schema.json",
+  "title": "catalyst agent status",
+  "description": "What `catalyst agent status --json` prints: for each agent catalyst can wire, whether each part of its user-level wiring is in place.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "agent",
+      "installed",
+      "parts"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "agent": {
+        "type": "string"
+      },
+      "installed": {
+        "type": "boolean",
+        "description": "Every part that applies is in place."
+      },
+      "parts": {
+        "type": "object",
+        "additionalProperties": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "description": "Each part (a settings key path, a file or the MCP registration) and whether it is in place; null when it does not apply."
+      }
+    }
+  }
+}

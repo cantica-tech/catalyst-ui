@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/sync-plan.schema.json",
+  "title": "catalyst sync plan",
+  "description": "What `catalyst sync plan --json` and `catalyst module upgrade <id> --plan --json` print: what a sync would do, and nothing changed.",
+  "type": "object",
+  "required": [
+    "from_kernel",
+    "to_kernel",
+    "from_module",
+    "to_module",
+    "migrations",
+    "actions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "from_kernel": {
+      "type": "string",
+      "description": "The kernel the criterion is at."
+    },
+    "to_kernel": {
+      "type": "string",
+      "description": "The kernel it moves to."
+    },
+    "from_module": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The module version installed; null when none moves."
+    },
+    "to_module": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The module version it moves to; null when the module stays."
+    },
+    "migrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "owner",
+          "file",
+          "from",
+          "to",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "owner": {
+            "enum": [
+              "kernel",
+              "module"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "description": "The migration's document, under the owner's `migrations/`."
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "The migrations between the two, in version order: their judgment steps are the reader's."
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "target",
+          "change",
+          "detail"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "What part of the deployment: cli, invariants, module, document, command, definition, version."
+          },
+          "target": {
+            "type": "string",
+            "description": "What it touches."
+          },
+          "change": {
+            "type": "string",
+            "description": "add, update, conflict or skip."
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/validate.schema.json",
+  "title": "catalyst validate",
+  "description": "What `catalyst validate --json` prints: whether the deployment's documents pass, and each finding (catalyst >= 0.95.0 describes it). `ok` is false when a finding is an error, or any finding with `--strict`.",
+  "type": "object",
+  "required": [
+    "ok",
+    "findings"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ok": {
+      "type": "boolean"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "level",
+          "code",
+          "where",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "What kind of finding it is, e.g. `required-field`, `enum-value`, `rule-strength`."
+          },
+          "where": {
+            "type": "string",
+            "description": "The file it is about, relative to the criterion, or the document."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

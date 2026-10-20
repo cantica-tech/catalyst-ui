@@ -4,98 +4,78 @@
  * writes; nothing reads a file.
  */
 
+import type {
+  AnalysesSummaryJson,
+  AnalysisJson,
+  ApprovalsJson,
+  AuditJson,
+  BacklogJson,
+  CheckJson,
+  CommandSpecJson,
+  CommandsCommandJson,
+  CommandsPartJson,
+  GraphJson,
+  GraphTypeJson,
+  HistoryChangeJson,
+  HistoryJson,
+  ImpactJson,
+  ImpactReachedJson,
+  InboxItemJson,
+  InboxJson,
+  JournalJson,
+  ListRoleJson,
+  ListUserJson,
+  ModuleListJson,
+  ModuleReleasesJson,
+  RunsJson,
+  ShareStatusJson,
+  Since,
+  SyncPlanJson,
+  ViewArtifactJson,
+} from "catalyst-core";
+
 export interface Connection {
   /** The server's origin, e.g. `http://127.0.0.1:52011`. */
   url: string;
   token: string;
 }
 
-/** One error or warning of `check`, with the entity it is about (catalyst >= 0.78.0). */
-export interface Finding {
-  level: "error" | "warning";
-  text: string;
-  entity: string | null;
-}
+/*
+ * What each route returns is what catalyst's `spec/` describes (R6.50): the types below are the ones
+ * generated from it in catalyst-core, named for the Studio. A field an older catalyst (down to the
+ * Studio's floor) lacks is made optional with `Since`, its version noted; nothing else is written here.
+ */
+type El<T> = T extends readonly (infer E)[] ? E : never;
 
-/** `GET /v1/check`: `catalyst check --json`. */
-export interface CheckReport {
-  ok: boolean;
-  errors: string[];
-  warnings: string[];
-  findings?: Finding[];
-}
+/** One error or warning of `check`, with the entity it is about (catalyst >= 0.78.0). */
+export type Finding = El<CheckJson["findings"]>;
+
+/** `GET /v1/check`: `catalyst check --json`. `findings` since catalyst 0.78.0. */
+export type CheckReport = Since<CheckJson, "findings">;
 
 /** One file an unrecorded commit changed: its content hash before and after (null when absent). */
-export interface ChangedFile {
-  path: string;
-  before: string | null;
-  after: string | null;
-}
+export type ChangedFile = El<NonNullable<Evidence["files"]>>;
+
+/** What catalyst shows for an item, by kind (`spec/inbox.schema.json`). */
+export type Evidence = InboxItemJson["evidence"];
 
 /**
- * What catalyst shows for an item, by kind: a commit's sha, author and files
- * (`unrecorded-commit`), a path (`unrecorded-change`), a case's status and
- * entity (`reconciliation`), an analysis's status and scope (`analysis`),
- * a gate's count for the current version (`approval`, catalyst >= 0.80.0),
- * a proposal's entity, file, blobs and author (`proposal`, catalyst >= 0.81.0).
+ * One thing waiting for a person: its evidence, and the commands that settle it (a person chooses). A
+ * newer catalyst may add a kind: the Studio shows it with its title and commands.
  */
-export interface Evidence {
-  commit?: string;
-  author?: string;
-  files?: ChangedFile[];
-  path?: string;
-  status?: string;
-  entity?: string | null;
-  scope?: string | null;
-  gate?: string;
-  role?: string;
-  approvals?: number;
-  counted?: string[];
-  missing?: number;
-  version?: string;
-  base?: string | null;
-  proposed?: string | null;
-  [key: string]: unknown;
-}
+export type InboxItem = Omit<InboxItemJson, "kind"> & { kind: InboxItemJson["kind"] | (string & {}) };
 
-/** One thing waiting for a person: its evidence, and the commands that settle it (a person chooses). */
-export interface InboxItem {
-  kind: string;
-  id: string;
-  title: string;
-  evidence: Evidence;
-  settle: string[];
-}
-
-/** `GET /v1/inbox`: what waits for a person, counted by kind. */
+/** `GET /v1/inbox`: what waits for a person, counted by kind (a newer catalyst's kinds too). */
 export interface InboxReport {
   items: InboxItem[];
-  counts: Record<string, number>;
+  counts: Partial<InboxJson["counts"]> & Record<string, number>;
 }
 
-/** `GET /v1/backlog`: open work by type and status, and what it lacks. */
-export interface Backlog {
-  open: Record<string, Record<string, string[]>>;
-  missing_links: { id: string; field: string }[];
-  rules_without_open_work: string[];
-  /** The project's active rules and how many an artifact cites (catalyst >= 0.78.0). */
-  coverage?: { rules: number; cited: number };
-}
+/** `GET /v1/backlog`: open work by type and status, and what it lacks. `coverage` since catalyst 0.78.0. */
+export type Backlog = Since<BacklogJson, "coverage">;
 
 /** One logged agent run, as `catalyst agent runs --json` gives it (catalyst >= 0.78.0). */
-export interface RunRecord {
-  timestamp: string;
-  actor: string;
-  agent: string;
-  command: string;
-  arguments: string;
-  ok: boolean;
-  turns: number;
-  usage: { input: number; output: number; cache_read: number; cache_write: number };
-  cost_usd: number | null;
-  duration_ms: number | null;
-  denied: string[];
-}
+export type RunRecord = El<RunsJson>;
 
 /** `GET /v1/head` (local): the change counter, and what the deployment runs (catalyst >= 0.74.0). */
 export interface Head {
@@ -109,346 +89,91 @@ export interface Head {
 }
 
 /** One journal entry, as the journal holds it. */
-export interface JournalEntry {
-  at: string;
-  timestamp?: string | null;
-  actor?: string | null;
-  command?: string | null;
-  action?: string | null;
-  artifact?: string | null;
-  intent?: string | string[] | null;
-  tier?: string | null;
-  targets?: string[] | null;
-  /** The files it touched, each with its blob before and after (null: absent). */
-  files?: { path: string; before?: string | null; after?: string | null }[];
-}
+export type JournalEntry = El<JournalJson>;
 
 /** One entry that changed an entity's file, with the file before and after. */
-export interface HistoryEntry {
-  timestamp: string | null;
-  actor: string | null;
-  command: string | null;
-  action: string | null;
-  artifact: string | null;
-  tier: string | null;
-  intent: string[];
-  before: string | null;
-  after: string | null;
-  content_before: string | null;
-  content_after: string | null;
-  redacted: boolean;
-}
-
-/** One approval gate covering an entity, counted for its current version (catalyst >= 0.80.0). */
-export interface ApprovalGate {
-  gate: string;
-  role: string;
-  /** How many approvals the gate asks for. */
-  approvals: number;
-  covers: { rules: { domain: string } } | { type: string; to: string };
-  /** Who approved this version, each counting. */
-  counted: string[];
-  missing: number;
-}
-
-/** `GET /v1/approvals/<id>`: `catalyst approvals <id> --json` (catalyst >= 0.80.0). */
-export interface ApprovalsReport {
-  id: string;
-  /** The blob of the entity's file as it is now: the version approvals are of. */
-  version: string;
-  gates: ApprovalGate[];
-}
+export type HistoryEntry = HistoryChangeJson;
 
 /** `GET /v1/history/<id>`: every change to an entity's file, in the journal's order (catalyst >= 0.62.0). */
-export interface History {
-  id: string;
-  type: string;
-  file: string;
-  entries: HistoryEntry[];
-}
+export type History = HistoryJson;
 
-/** One entity type as the module declares it (`graph.types[prefix]`). */
-export interface EntityType {
-  name: string;
-  plural_name: string;
-  fields: { name: string; kind: string; required: boolean; target_type: string | null }[];
-  states: string[];
-  initial: string | null;
-  closed_states: string[];
-  transitions?: { from: string; to: string }[];
-  guards?: Record<string, { condition: string; argument: string }[]>;
-  sections?: string[];
-}
+/** One approval gate covering an entity, counted for its current version (catalyst >= 0.80.0). */
+export type ApprovalGate = El<ApprovalsJson["gates"]>;
 
-/** One artifact in `graph`: its fields by name, as written, besides these. */
-export interface GraphArtifact {
-  id: string;
-  type: string;
-  title?: string;
-  file: string;
-  row?: boolean;
-  links: Record<string, string[]>;
-  [field: string]: unknown;
-}
+/** `GET /v1/approvals/<id>`: `catalyst approvals <id> --json` (catalyst >= 0.80.0). */
+export type ApprovalsReport = ApprovalsJson;
+
+/** One entity type as the module declares it (`graph.types[prefix]`); an older catalyst gives no transitions, guards or sections. */
+export type EntityType = Since<GraphTypeJson, "transitions" | "guards" | "sections">;
+
+/** One artifact in `graph`, or one row of a type kept as table rows. */
+export type GraphArtifact = El<GraphJson["artifacts"]>;
 
 /** One rule in `graph`: its title, its status line, its domain and the entities its text names. */
-export interface GraphRule {
-  id: string;
-  title: string;
-  status: string;
-  file: string;
-  line: number;
-  retired: boolean;
-  /** `must`, `should` or `may` (catalyst >= 0.83.0; an older catalyst gives none: `must`). */
-  strength?: string;
-  domain: string | null;
-  mentions: string[];
-}
+export type GraphRule = El<GraphJson["rules"]>;
 
 /** One registered domain: its code, its file and that file's title. */
-export interface GraphDomain {
-  code: string;
-  file: string | null;
-  title: string | null;
-}
+export type GraphDomain = El<GraphJson["domains"]>;
 
 /** `GET /v1/graph`: the chain, and the module's types. */
-export interface Graph {
-  types: Record<string, EntityType>;
-  artifacts: GraphArtifact[];
-  rules?: GraphRule[];
-  domains?: GraphDomain[];
-}
+export type Graph = Omit<GraphJson, "types"> & { types: Record<string, EntityType> };
 
-/** `GET /v1/view/<id>`: one artifact, with what an entity page shows (catalyst >= 0.73.0). */
+/** `GET /v1/view/<id>` for an artifact (catalyst >= 0.73.0); an older catalyst gives no sections or next states. */
+export type EntityView = Since<ViewArtifactJson, "sections" | "next">;
+
 /** A proposal case's change, as `view` gives it (catalyst >= 0.81.0). */
-export interface ProposalView {
-  entity: string;
-  path: string | null;
-  base: string | null;
-  proposed: string | null;
-  /** Who wrote the proposed version. */
-  author: string | null;
-  content_base: string | null;
-  content_proposed: string | null;
-}
-
-export interface EntityView {
-  id: string;
-  type: string;
-  title?: string;
-  file: string;
-  links: Record<string, string[]>;
-  linked_from: { id: string; field: string }[];
-  journal: {
-    timestamp: string | null;
-    actor: string | null;
-    action: string | null;
-    intent: string | string[] | null;
-  }[];
-  sections?: { heading: string; text: string }[];
-  next?: { state: string; blocked_by: string[] }[];
-  /** On a proposal case (catalyst >= 0.81.0). */
-  proposal?: ProposalView;
-  [field: string]: unknown;
-}
+export type ProposalView = NonNullable<EntityView["proposal"]>;
 
 /** One analysis in brief (`GET /v1/analyses`, catalyst >= 0.85.0). */
-export interface AnalysisSummary {
-  id: string;
-  title: string;
-  phase: string;
-  mode: string | null;
-  /** 2: four-eyes; 1: single-pass (catalyst >= 0.84.0). */
-  passes: number;
-  scope: string[];
-  code_state: string | null;
-  opened: string | null;
-  closed: string | null;
-  findings: number;
-  decided: number;
-  accepted: number;
-  rejected: number;
-}
-
-/** A person's decision on one reconciled finding. */
-export interface FindingDecision {
-  verdict: "accept" | "reject";
-  artifact: string | null;
-  reason: string | null;
-  by: string | null;
-  at: string | null;
-}
+export type AnalysisSummary = AnalysesSummaryJson;
 
 /** One reconciled finding, as `ANALYSIS-PLAYBOOK.md` gives it, with its decision. */
-export interface AnalysisFinding {
-  id: string;
-  kind: "domain" | "rule" | "defect";
-  title?: string;
-  statement?: string;
-  status?: string;
-  breaks?: string;
-  code?: string;
-  confidence?: string;
-  evidence?: { path: string; line?: number }[];
-  sources?: string[];
-  verification?: string;
-  decision: FindingDecision | null;
-  [field: string]: unknown;
-}
+export type AnalysisFinding = El<AnalysisJson["items"]>;
+
+/** A person's decision on one reconciled finding. */
+export type FindingDecision = NonNullable<AnalysisFinding["decision"]>;
 
 /** `GET /v1/analyses/<id>`: one analysis in full (catalyst >= 0.85.0). */
-export interface AnalysisReport extends AnalysisSummary {
-  recorded: { A: boolean; B: boolean | null };
-  diff: { agreed: number; conflicting: number; a_only: number; b_only: number } | null;
-  reconciled: boolean;
-  dropped: { source?: string; reason?: string }[];
-  items: AnalysisFinding[];
-  problems: string[];
-}
+export type AnalysisReport = AnalysisJson;
 
 /** One installed module as its record and tree agree (`GET /v1/modules`, local mode, catalyst >= 0.86.0). */
-export interface InstalledModule {
-  id: string;
-  /** `ok`, `changed` (its tree differs from the record), `unrecorded` or `missing`. */
-  state: string;
-  version: string | null;
-  source: string | null;
-  commit: string | null;
-  sha256: string | null;
-  actual: string | null;
-}
+export type InstalledModule = El<ModuleListJson>;
 
 /** One role as IAM holds it (`GET /v1/list?type=role`). */
-export interface Role {
-  name: string;
-  actions: string[];
-  reconciliation: string;
-}
+export type Role = ListRoleJson;
 
 /** The criterion's sharing state (`GET /v1/share`, local mode, catalyst >= 0.90.0). */
-export interface ShareStatus {
-  /** `local` (not shared), `git` or `serve`. */
-  driver: string;
-  location: string | null;
-  branch: string | null;
-  /** The criterion's files changed and not yet published. */
-  dirty: string[];
-  ahead: number | null;
-  behind: number | null;
-  mode: string | null;
-}
+export type ShareStatus = ShareStatusJson;
 
 /** A module's releases at its recorded repository (`GET /v1/modules/<id>/available`). */
-export interface ModuleReleases {
-  id: string;
-  installed: string;
-  source: string;
-  releases: { version: string; tag: string; newer: boolean; installed: boolean }[];
-}
+export type ModuleReleases = ModuleReleasesJson;
 
-/** What upgrading a module to a release would change (`GET /v1/modules/<id>/plan?to=<tag>`). */
-export interface ModulePlan {
-  id: string;
-  to: string;
-  from_module?: string | null;
-  to_module?: string | null;
-  migrations?: unknown[];
-  actions: { kind: string; target: string; change: string; detail?: string }[];
-}
-
-/** One link of a rule's chain in the audit pack: an entity resting on it, how far, and what brought it in. */
-export interface AuditLink {
-  id: string;
-  type: string;
-  title: string;
-  status: string | null;
-  depth: number;
-  via: { id: string; field: string; on: string };
-}
+/** What upgrading a module to a release would change (`GET /v1/modules/<id>/plan?to=<tag>`): a sync plan, for one module. */
+export type ModulePlan = SyncPlanJson & { id: string; to: string };
 
 /** `GET /v1/audit` (local mode, catalyst >= 0.87.0): the audit pack. */
-export interface AuditPack {
-  project: string | null;
-  generated: string;
-  catalyst: string;
-  kernel: string | null;
-  modules: { id: string; version: string | null }[];
-  criterion_commit: string | null;
-  integrity: {
-    journal: { entries: number; errors: number; warnings: number };
-    check: { errors: number; warnings: number; first: string[] };
-    unapproved_rules: string[];
-  };
-  signers: { name: string; signed: number }[];
-  rules: {
-    id: string;
-    title: string;
-    status: string | null;
-    strength: string;
-    domain: string | null;
-    retired: boolean;
-    chain: AuditLink[];
-  }[];
-}
+export type AuditPack = AuditJson;
+
+/** One link of a rule's chain in the audit pack: an entity resting on it, how far, and what brought it in. */
+export type AuditLink = El<El<AuditJson["rules"]>["chain"]>;
 
 /** One entity `impact` reached: how far, and the link that reached it. */
-export interface Reached {
-  id: string;
-  type: string;
-  title: string;
-  status: string | null;
-  depth: number;
-  /** `id`: the entity one step nearer; `field`: the reference field; `on`: the entity carrying it. */
-  via: { id: string; field: string; on: string };
-}
+export type Reached = ImpactReachedJson;
 
 /** `GET /v1/impact/<id>`: what an entity rests on and what rests on it, transitively. */
-export interface Impact {
-  id: string;
-  type: string;
-  title: string;
-  status: string | null;
-  upstream?: Reached[];
-  downstream?: Reached[];
-  mentions: string[];
-  mentioned_by: string[];
-}
+export type Impact = ImpactJson;
 
 /** One registered user, as `catalyst list users --json` gives them. */
-export interface User {
-  name: string;
-  userid: string;
-  roles: string[];
-  active: boolean;
-  git_username?: string;
-  registered?: string;
-  notes?: string;
-}
+export type User = ListUserJson;
 
 /** One part of a command with parts (`/create bug`): read on its own. */
-export interface CommandPart {
-  part: string;
-  usage: string;
-  summary: string;
-  aliases: string[];
-}
+export type CommandPart = CommandsPartJson;
 
 /** One command of the deployment, as `GET /v1/commands` gives it (catalyst >= 0.75.0). */
-export interface Command {
-  name: string;
-  usage: string;
-  summary: string;
-  aliases: string[];
-  parts: CommandPart[];
-}
+export type Command = CommandsCommandJson;
 
 /** `GET /v1/spec/<command>[/<part>]`: the text `catalyst spec` prints for it. */
-export interface CommandSpec {
-  command: string;
-  part: string | null;
-  text: string;
-}
+export type CommandSpec = CommandSpecJson;
 
 export class ApiError extends Error {
   constructor(

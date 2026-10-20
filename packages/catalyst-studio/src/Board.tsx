@@ -1,6 +1,9 @@
+import { isEntity } from "catalyst-core/graph-artifact";
 import { useEffect, useId, useState } from "react";
 
-import type { EntityType, Graph, GraphArtifact, StudioClient } from "./client.js";
+import type { GraphArtifactJson } from "catalyst-core";
+
+import type { EntityType, Graph, StudioClient } from "./client.js";
 import { ActionForm } from "./ActionForm.js";
 import { DriftBadge } from "./drift.js";
 import { ImpactBar, ImpactMark } from "./impact.js";
@@ -29,7 +32,7 @@ export function boardTypes(graph: Graph): { prefix: string; type: EntityType; co
 export interface Column {
   state: string;
   closed: boolean;
-  cards: GraphArtifact[];
+  cards: GraphArtifactJson[];
 }
 
 /**
@@ -39,7 +42,7 @@ export interface Column {
  */
 export function boardColumns(graph: Graph, prefix: string): Column[] {
   const type = graph.types[prefix];
-  const cards = graph.artifacts.filter((a) => a.type === prefix && !a.row);
+  const cards = graph.artifacts.filter(isEntity).filter((a) => a.type === prefix);
   const statuses = [
     ...type.states,
     ...new Set(cards.map((a) => text(a.Status)).filter((s) => !type.states.includes(s))),
@@ -68,7 +71,7 @@ function Card({
   selected,
   onSelect,
 }: {
-  artifact: GraphArtifact;
+  artifact: GraphArtifactJson;
   type: EntityType;
   state: string;
   copy: (text: string) => Promise<void>;

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/runs.schema.json",
+  "title": "catalyst runs",
+  "description": "What `catalyst agent runs --json` prints (a list) and `GET /v1/runs` returns (`{runs: [...]}`, local mode only): this user's logged agent runs for the project, oldest first, each with how it ended and what it cost.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["timestamp", "actor", "agent", "command", "arguments", "ok", "turns", "usage", "cost_usd", "duration_ms", "denied"],
+    "additionalProperties": false,
+    "properties": {
+      "timestamp": { "type": "string" },
+      "actor": { "type": "string" },
+      "agent": { "type": "string" },
+      "command": { "type": "string" },
+      "arguments": { "type": "string" },
+      "ok": { "type": "boolean" },
+      "turns": { "type": "integer", "minimum": 0 },
+      "usage": {
+        "type": "object",
+        "required": ["input", "output", "cache_read", "cache_write"],
+        "additionalProperties": false,
+        "properties": {
+          "input": { "type": "integer", "minimum": 0 },
+          "output": { "type": "integer", "minimum": 0 },
+          "cache_read": { "type": "integer", "minimum": 0 },
+          "cache_write": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "cost_usd": { "type": ["number", "null"] },
+      "duration_ms": { "type": ["integer", "null"] },
+      "denied": { "type": "array", "items": { "type": "string" } }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/module-releases.schema.json",
+  "title": "catalyst module available",
+  "description": "What `catalyst module available <id> --json` prints: an installed module's version, its recorded repository (credentials removed) and the version tags there, newest first (catalyst >= 0.86.0).",
+  "type": "object",
+  "required": [
+    "id",
+    "installed",
+    "source",
+    "releases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "installed": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "releases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "version",
+          "tag",
+          "newer",
+          "installed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string",
+            "description": "The tag as the repository names it (`1.2.3` or `v1.2.3`)."
+          },
+          "newer": {
+            "type": "boolean"
+          },
+          "installed": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

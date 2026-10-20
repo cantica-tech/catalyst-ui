@@ -11,6 +11,7 @@ import { connectHost, HostContext, type ActionResult, type HostRuns, type Studio
 import { InboxItemPage } from "../Inbox.js";
 import { OverviewView } from "../Overview.js";
 import { Shell } from "../Shell.js";
+import { art, entityType, makeGraph } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -182,14 +183,14 @@ const commit: InboxItem = {
 };
 
 function workType(): EntityType {
-  return {
+  return entityType({
     name: "Work",
     plural_name: "Works",
     fields: [],
     states: ["Open", "Done"],
     initial: "Open",
     closed_states: ["Done"],
-  };
+  });
 }
 
 describe("the views act only with a host that acts (studio-SHELL-000016)", () => {
@@ -222,10 +223,10 @@ describe("the views act only with a host that acts (studio-SHELL-000016)", () =>
 
   it("moves a board card through the host", async () => {
     const { h, asked } = host();
-    const graph: Graph = {
+    const graph: Graph = makeGraph({
       types: { WORK: workType() },
-      artifacts: [{ id: "WORK-000001", type: "WORK", title: "First", file: "w", links: {}, Status: "Open" }],
-    };
+      artifacts: [art({ id: "WORK-000001", type: "WORK", title: "First", file: "w", links: {}, Status: "Open" })],
+    });
     act(() => {
       root.render(
         <HostContext.Provider value={h}>
@@ -305,14 +306,14 @@ describe("batch moves and quick actions (R6.17, R6.34)", () => {
         });
       },
     };
-    const graph: Graph = {
+    const graph: Graph = makeGraph({
       types: { WORK: workType() },
       artifacts: [
-        { id: "WORK-000001", type: "WORK", title: "First", file: "a", links: {}, Status: "Open" },
-        { id: "WORK-000002", type: "WORK", title: "Second", file: "b", links: {}, Status: "Open" },
-        { id: "WORK-000003", type: "WORK", title: "Third", file: "c", links: {}, Status: "Open" },
+        art({ id: "WORK-000001", type: "WORK", title: "First", file: "a", links: {}, Status: "Open" }),
+        art({ id: "WORK-000002", type: "WORK", title: "Second", file: "b", links: {}, Status: "Open" }),
+        art({ id: "WORK-000003", type: "WORK", title: "Third", file: "c", links: {}, Status: "Open" }),
       ],
-    };
+    });
     act(() => {
       root.render(
         <HostContext.Provider value={h}>

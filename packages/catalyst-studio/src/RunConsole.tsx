@@ -1,3 +1,5 @@
+import type { RunEnd } from "catalyst-core";
+
 import type { RunEvent } from "./host.js";
 import { Status } from "./Status.js";
 
@@ -10,16 +12,16 @@ function num(v: unknown): number {
 }
 
 /** How a run ended, in one line: turns, tokens and cost (what R5.5 measures). */
-export function runSummary(end: RunEvent): string {
-  const u = (end.usage ?? {}) as Record<string, unknown>;
+export function runSummary(end: RunEnd): string {
+  const u = end.usage;
   const cost = typeof end.cost_usd === "number" ? `, $${end.cost_usd.toFixed(4)}` : "";
   return `${String(num(end.turns))} turn${num(end.turns) === 1 ? "" : "s"}; tokens ${String(num(u.input))} in, ${String(num(u.output))} out, cache ${String(num(u.cache_read))} read, ${String(num(u.cache_write))} written${cost}`;
 }
 
 /** A run as it happens (studio-SHELL-000015): what the agent says and does, then how it ended. */
 export function RunConsole({ events, declined }: { events: RunEvent[]; declined: boolean }) {
-  const end = events.find((e) => e.event === "end");
-  const denied = Array.isArray(end?.denied) ? (end.denied as string[]) : [];
+  const end = events.find((e): e is RunEnd => e.event === "end");
+  const denied = end?.denied ?? [];
   const status = declined ? (
     <Status tone="info" label="Not run: you declined" />
   ) : !end ? (
@@ -60,7 +62,7 @@ export function RunConsole({ events, declined }: { events: RunEvent[]; declined:
                 <code>{str(e.name)}</code> <span className="muted">{str(e.input)}</span>
               </li>
             );
-          if (e.event === "tool_result" && e.ok === false)
+          if (e.event === "tool_result" && !e.ok)
             return (
               <li key={i}>
                 <Status tone="error" label={`${str(e.name)} failed`} />

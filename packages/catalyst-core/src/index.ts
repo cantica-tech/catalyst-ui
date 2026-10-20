@@ -1,5 +1,5 @@
 /** This package's version; equals package.json and the repository's version.txt (tested). */
-export const VERSION = "0.56.3";
+export const VERSION = "0.57.0";
 
 export {
   KERNEL_VERSION_FLOOR,
@@ -9,6 +9,10 @@ export {
 } from "./kernel-version.js";
 
 export * from "./types.js";
+/** What each `--json` command prints, generated from catalyst's `spec/` (R6.50). */
+export type * from "./spec.js";
+export type { Since } from "./since.js";
+export { fieldsOf, isEntity, isRow, titleOf } from "./graph-artifact.js";
 export {
   ScriptedHost,
   type HostFolder,
@@ -112,6 +116,7 @@ export {
   type CatalystGraph,
   type AgentRun,
   type CatalystServer,
+  type RunEnd,
   type RunEvent,
   type WatcherHandle,
   COMMAND_NAME,

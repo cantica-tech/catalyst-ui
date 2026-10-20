@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/impact.schema.json",
+  "title": "catalyst impact",
+  "description": "What `catalyst impact <id> --json` prints and `GET /v1/impact/<id>` returns: what an entity rests on (upstream) and what rests on it (downstream), transitively. `upstream` is absent with `--down`, `downstream` with `--up`.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "title",
+    "status",
+    "mentions",
+    "mentioned_by"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The entity: an artifact ID, a rule ID or a domain code."
+    },
+    "type": {
+      "type": "string",
+      "description": "An entity type's prefix, `rule` or `domain`."
+    },
+    "title": {
+      "type": "string"
+    },
+    "status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "upstream": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reached"
+      }
+    },
+    "downstream": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reached"
+      }
+    },
+    "mentions": {
+      "type": "array",
+      "description": "Entities this one cites in its prose only. Not followed.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "mentioned_by": {
+      "type": "array",
+      "description": "Entities that cite this one in their prose only. Not followed.",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "reached": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "status",
+        "depth",
+        "via"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "depth": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Links from the entity asked about."
+        },
+        "via": {
+          "type": "object",
+          "description": "The link that reached it: `id`, the entity one step nearer; `field`, the reference field (`domain` for a rule's domain); `on`, the entity that carries the field (the nearer one upstream, the reached one downstream).",
+          "required": [
+            "id",
+            "field",
+            "on"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "on": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

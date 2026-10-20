@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/repair-derived.schema.json",
+  "title": "catalyst repair derived",
+  "description": "What `catalyst repair derived --json` prints: each derived field (another type's back-reference) it rewrote from its sources, with the ids added and removed; empty when every derived field already agreed.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "id",
+      "field",
+      "added",
+      "removed"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "The artifact whose field was rewritten."
+      },
+      "field": {
+        "type": "string"
+      },
+      "added": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "The ids the field lacked."
+      },
+      "removed": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "The ids the field named that no source names any more."
+      }
+    }
+  }
+}

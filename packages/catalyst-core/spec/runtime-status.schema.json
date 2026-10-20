@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/runtime-status.schema.json",
+  "title": "catalyst runtime status",
+  "description": "What `catalyst runtime status --json` prints: the catalyst running, the per-version runtimes under the home, the launcher, and the catalyst in the current project's criterion.",
+  "type": "object",
+  "required": [
+    "version",
+    "home",
+    "runtimes",
+    "launcher",
+    "launcher_installed",
+    "criterion",
+    "criterion_runtime"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "home": {
+      "type": "string",
+      "description": "`$CATALYST_HOME`, by default `~/.catalyst`."
+    },
+    "runtimes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The versions installed under the home's runtimes."
+    },
+    "launcher": {
+      "type": "string"
+    },
+    "launcher_installed": {
+      "type": "boolean"
+    },
+    "criterion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The current project's criterion; null outside a project."
+    },
+    "criterion_runtime": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The catalyst in the criterion's `.venv`; null when it has none."
+    }
+  }
+}

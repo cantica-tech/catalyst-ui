@@ -8,3 +8,5 @@ packages/catalyst-core/src/test/fixtures
 # synced from the cantica-tech standards: never reformatted here
 .standards
 eslint-suppressions.json
+# catalyst's spec/, vendored byte-for-byte at one kernel release (scripts/spec.mjs)
+packages/catalyst-core/spec

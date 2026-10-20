@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/try.schema.json",
+  "title": "catalyst try",
+  "description": "What `catalyst try <verb …> --json` prints (design 27): one change made on a scratch copy of the criterion, and what it would do. Nothing in the criterion changes.",
+  "type": "object",
+  "required": [
+    "change",
+    "ok",
+    "refused",
+    "output",
+    "files",
+    "check",
+    "impact",
+    "gates",
+    "scratch"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "change": {
+      "type": "string",
+      "description": "The command tried, as a shell would read it."
+    },
+    "ok": {
+      "type": "boolean",
+      "description": "Whether the verb succeeded on the copy."
+    },
+    "refused": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "What the verb said when it refused: the answer to the try."
+    },
+    "output": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "description": "Every file the change wrote (the journal's own shards left out), with its blob before and after; null: absent.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "before",
+          "after"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "before": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "after": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "required": [
+        "added",
+        "cleared"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        },
+        "cleared": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/finding"
+          }
+        }
+      }
+    },
+    "impact": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "`catalyst impact --json` for the entity the change touched last (spec/impact.schema.json)."
+    },
+    "gates": {
+      "type": "array",
+      "description": "What the change would leave waiting for an approval (design 25).",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "gate",
+          "missing"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "gate": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "scratch": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The scratch copy, when kept (--keep)."
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "required": [
+        "level",
+        "text",
+        "entity"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "enum": [
+            "error",
+            "warning"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "entity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

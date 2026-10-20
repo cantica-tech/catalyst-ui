@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/module-install.schema.json",
+  "title": "catalyst module install",
+  "description": "What `catalyst module install <source> --json` prints: the module installed, where from, and how many files it wrote (journaled).",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "source",
+    "commit",
+    "files"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "files": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/share-info.schema.json",
+  "title": "catalyst share info",
+  "description": "What `catalyst share info --json` prints: the criterion's sharing driver, where its shared copy is, and what the driver can do.",
+  "type": "object",
+  "required": [
+    "driver",
+    "location",
+    "capabilities"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "driver": {
+      "type": "string",
+      "description": "`local` (not shared), `git` or `serve`."
+    },
+    "location": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "git: the shared branch."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -5,18 +5,19 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { EntityType, Graph } from "../client.js";
 import { layoutMap, typeMap, TypeMapDrawing, TypeMapTable } from "../TypeMap.js";
+import { art, entityType } from "./fixtures.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function type(plural: string, states: string[], closed: string[], refs: [string, string][]): EntityType {
-  return {
+  return entityType({
     name: plural.slice(0, -1),
     plural_name: plural,
     states,
     initial: states[0] ?? null,
     closed_states: closed,
     fields: refs.map(([name, target]) => ({ name, kind: "ref", required: false, target_type: target })),
-  };
+  });
 }
 
 const graph: Graph = {
@@ -34,9 +35,9 @@ const graph: Graph = {
     NOTE: type("Notes", ["Open"], [], []),
   },
   artifacts: [
-    { id: "WORK-1", type: "WORK", file: "a", links: {}, Status: "Open" },
-    { id: "WORK-2", type: "WORK", file: "b", links: {}, Status: "Done" },
-    { id: "GOAL-1", type: "GOAL", file: "c", links: {} },
+    art({ id: "WORK-1", type: "WORK", file: "a", links: {}, Status: "Open" }),
+    art({ id: "WORK-2", type: "WORK", file: "b", links: {}, Status: "Done" }),
+    art({ id: "GOAL-1", type: "GOAL", file: "c", links: {} }),
   ],
   rules: [
     { id: "br-A-1", title: "t", status: "", file: "r", line: 1, retired: false, domain: "A", mentions: [] },
