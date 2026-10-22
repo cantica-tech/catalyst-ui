@@ -40,6 +40,17 @@ export function describeEvidence(item: InboxItem): string {
         .filter(Boolean)
         .join(", ");
     }
+    case "overdue": {
+      const days = typeof e.days === "number" ? e.days : 0;
+      const to = words(e.escalate_to);
+      return [
+        words(e.due) && `due ${words(e.due)}`,
+        days > 0 && `${plural(days, "day")} over`,
+        to && `escalated to ${to}`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+    }
     default:
       return Object.entries(e)
         .filter(([, v]) => typeof v === "string" && v.trim())
