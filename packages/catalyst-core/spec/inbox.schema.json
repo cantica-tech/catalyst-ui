@@ -24,7 +24,8 @@
         "reconciliation",
         "analysis",
         "approval",
-        "proposal"
+        "proposal",
+        "overdue"
       ],
       "properties": {
         "unrecorded-commit": {
@@ -48,6 +49,10 @@
           "minimum": 0
         },
         "proposal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overdue": {
           "type": "integer",
           "minimum": 0
         }
@@ -74,7 +79,8 @@
             "reconciliation",
             "analysis",
             "approval",
-            "proposal"
+            "proposal",
+            "overdue"
           ]
         },
         "id": {
@@ -86,7 +92,7 @@
         },
         "evidence": {
           "type": "object",
-          "description": "What the item rests on. A commit: `commit`, `author`, `files` (each `path`, `before`, `after`). A change: `path`. A case: `status`, `entity`. An analysis: `status`, `scope`. An approval: `gate`, `role`, `approvals` (how many the gate asks), `counted` (who approved the current version, each counting), `missing`, `version` (the blob of the entity's file). A proposal: `status`, `entity`, `path` (the entity's file), `base` (its blob when proposed), `proposed` (the proposed content's blob), `author` (who wrote the proposed version).",
+          "description": "What the item rests on. A commit: `commit`, `author`, `files` (each `path`, `before`, `after`). A change: `path`. A case: `status`, `entity`. An analysis: `status`, `scope`. An approval: `gate`, `role`, `approvals` (how many the gate asks), `counted` (who approved the current version, each counting), `missing`, `version` (the blob of the entity's file). A proposal: `status`, `entity`, `path` (the entity's file), `base` (its blob when proposed), `proposed` (the proposed content's blob), `author` (who wrote the proposed version). An overdue entity (catalyst >= 0.104.0): `status`, `field` (the date field its type's `due` reads), `due` (YYYY-MM-DD), `days` (how many past it), `escalate_to` (the role its governing workflow escalates to, or null).",
           "properties": {
             "commit": {
               "type": "string"
@@ -176,6 +182,22 @@
               ]
             },
             "proposed": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "field": {
+              "type": "string"
+            },
+            "due": {
+              "type": "string"
+            },
+            "days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "escalate_to": {
               "type": [
                 "string",
                 "null"

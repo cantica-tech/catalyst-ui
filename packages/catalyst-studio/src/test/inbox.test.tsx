@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { EntityView, InboxItem, InboxReport } from "../client.js";
+import { describeEvidence } from "../evidence.js";
 import { fileChange, inboxGroups, InboxItemPage, InboxList, isCommand } from "../Inbox.js";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -174,5 +175,24 @@ describe("the inbox (studio-SHELL-000005)", () => {
     });
     expect(host.textContent).toContain("Could not copy");
     await axeClean();
+  });
+});
+
+describe("an overdue entity (catalyst >= 0.104.0)", () => {
+  const overdue: InboxItem = {
+    kind: "overdue",
+    id: "KSOURCE-000001-Ab3xR9pQ",
+    title: "The support wiki: due 2026-10-01, 21 days over",
+    evidence: { status: "Active", field: "Next check", due: "2026-10-01", days: 21, escalate_to: "Knowledge Curator" },
+    settle: ["catalyst status set KSOURCE-000001-Ab3xR9pQ <state> --intent <why>"],
+  };
+
+  it("is said with its date, how late it is and who it escalates to", () => {
+    expect(describeEvidence(overdue)).toBe("due 2026-10-01, 21 days over, escalated to Knowledge Curator");
+  });
+
+  it("has a heading of its own", () => {
+    const groups = inboxGroups({ items: [overdue], counts: { overdue: 1 } });
+    expect(groups.map((g) => [g.kind, g.heading])).toEqual([["overdue", "Overdue"]]);
   });
 });

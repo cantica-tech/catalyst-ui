@@ -18,6 +18,7 @@ const KINDS: { kind: string; heading: string }[] = [
   { kind: "analysis", heading: "Analyses being decided" },
   { kind: "approval", heading: "Approvals waiting" },
   { kind: "proposal", heading: "Proposals to decide" },
+  { kind: "overdue", heading: "Overdue" },
 ];
 
 function plural(n: number, word: string): string {
@@ -390,7 +391,8 @@ export function Inbox({
   }, [shown]);
 
   const item = load.state === "ready" && open ? load.report.items.find((i) => `${i.kind}:${i.id}` === open) : undefined;
-  const viewable = item && ["reconciliation", "analysis", "approval", "proposal"].includes(item.kind) ? item.id : null;
+  const viewable =
+    item && ["reconciliation", "analysis", "approval", "proposal", "overdue"].includes(item.kind) ? item.id : null;
 
   useEffect(() => {
     setArtifact(undefined);
