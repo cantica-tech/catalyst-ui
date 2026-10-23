@@ -1,102 +1,98 @@
 import * as assert from "assert";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import {
-  pointerProblems,
-  readIamSettings,
-  resolveIamAccount,
-  splitCommand,
-  type IamSettings,
-  type RunCommand,
-} from "../iam.js";
+import { readIamSettings, splitCommand, systemToken, systemWhoami, type RunCommand } from "../iam.js";
 
-const settings = (values: Record<string, unknown>): IamSettings => readIamSettings((key) => values[key]);
+const settings = (command?: unknown) => readIamSettings((key) => (key === "iam.command" ? command : undefined));
 
-describe("the local system account (REQ-000062, REQ-000063)", () => {
-  it("defaults to catalyst-users' local keycloak pointer, with the password from secret storage", () => {
-    assert.deepStrictEqual(settings({}), {
-      pointer: { provider: "keycloak", issuer: "http://localhost:8080/realms/catalyst", client: "catalyst-cli" },
-      username: "",
-      passwordSource: "secret",
-      passwordCommand: "",
-    });
-  });
+const WHOAMI = {
+  iss: "http://localhost:8080/realms/catalyst",
+  sub: "sa-1",
+  username: "service-account-catalyst-system",
+  name: "service-account-catalyst-system",
+  at: "2026-10-23T13:00:00Z",
+  email: null,
+  groups: [],
+  roles: ["catalyst-admin"],
+  grants: ["cmd:*"],
+};
 
-  it("reads the settings, and falls back on what is invalid", () => {
-    const read = settings({
-      "iam.provider": "ldap",
-      "iam.issuer": " https://id.example/realms/catalyst ",
-      "iam.client": "ui-cli",
-      "iam.username": "owner",
-      "iam.password.source": "command",
-      "iam.password.command": "get-pwd pwd",
-    });
-    assert.deepStrictEqual(read, {
-      pointer: { provider: "keycloak", issuer: "https://id.example/realms/catalyst", client: "ui-cli" },
-      username: "owner",
-      passwordSource: "command",
-      passwordCommand: "get-pwd pwd",
-    });
-    assert.strictEqual(settings({ "iam.client": "  " }).pointer.client, "catalyst-cli");
-    assert.strictEqual(settings({ "iam.password.source": "plain" }).passwordSource, "secret");
-  });
-
-  it("reports a pointer without an issuer as catalyst-users does", () => {
-    assert.deepStrictEqual(pointerProblems(settings({}).pointer), []);
-    assert.deepStrictEqual(pointerProblems(settings({ "iam.issuer": "  " }).pointer), [
-      'a "keycloak" pointer needs an "issuer"',
-    ]);
+describe("the local system account through catalyst-users (REQ-000064)", () => {
+  it("runs catalyst-users by default, or the command the setting names", () => {
+    assert.deepStrictEqual(settings(), { command: "catalyst-users" });
+    assert.deepStrictEqual(settings("  "), { command: "catalyst-users" });
+    assert.deepStrictEqual(settings(" uv run catalyst-users "), { command: "uv run catalyst-users" });
   });
 
   it("splits a command into words, without a shell", () => {
-    assert.deepStrictEqual(splitCommand("/a/get-keycloack-accnt.sh pwd"), ["/a/get-keycloack-accnt.sh", "pwd"]);
+    assert.deepStrictEqual(splitCommand("uv run --project ~/src/cu catalyst-users", "/home/me"), [
+      "uv",
+      "run",
+      "--project",
+      "/home/me/src/cu",
+      "catalyst-users",
+    ]);
     assert.deepStrictEqual(splitCommand(`  "/a b/run" 'x y'  z ""  `), ["/a b/run", "x y", "z", ""]);
-    assert.deepStrictEqual(splitCommand("~/bin/pwd ~ a~/b", "/home/me"), ["/home/me/bin/pwd", "/home/me", "a~/b"]);
     assert.deepStrictEqual(splitCommand("echo $(id); rm"), ["echo", "$(id);", "rm"]);
     assert.throws(() => splitCommand(`run "pwd`), /unclosed/);
   });
 
-  it("takes the password from secret storage, or says none is set", async () => {
-    const secret = settings({ "iam.username": "owner" });
-    const found = await resolveIamAccount(secret, () => Promise.resolve("s3cret"));
-    assert.strictEqual(found.password, "s3cret");
-    assert.strictEqual(found.problem, undefined);
-    const missing = await resolveIamAccount(secret, () => Promise.resolve(undefined));
-    assert.strictEqual(missing.password, undefined);
-    assert.match(missing.problem ?? "", /Set IAM Password/);
-  });
-
-  it("takes the password from the command's first line, never reading the secret", async () => {
+  it("asks catalyst-users who the system account is, after the command's own words", async () => {
     const ran: [string, string[]][] = [];
     const run: RunCommand = (file, args) => {
       ran.push([file, args]);
-      return Promise.resolve("p@ss word\nmore\n");
+      return Promise.resolve(JSON.stringify(WHOAMI));
     };
-    const account = await resolveIamAccount(
-      settings({ "iam.password.source": "command", "iam.password.command": "/a/get-keycloack-accnt.sh pwd" }),
-      () => Promise.reject(new Error("the secret store is not read")),
-      run,
-    );
-    assert.deepStrictEqual(ran, [["/a/get-keycloack-accnt.sh", ["pwd"]]]);
-    assert.strictEqual(account.password, "p@ss word");
+    const answer = await systemWhoami(settings("uv run --project /cu catalyst-users"), run);
+    assert.deepStrictEqual(ran, [
+      ["uv", ["run", "--project", "/cu", "catalyst-users", "--json", "whoami", "--system"]],
+    ]);
+    assert.deepStrictEqual(answer.value, {
+      issuer: WHOAMI.iss,
+      subject: "sa-1",
+      username: "service-account-catalyst-system",
+      name: "service-account-catalyst-system",
+      groups: [],
+      roles: ["catalyst-admin"],
+      grants: ["cmd:*"],
+    });
   });
 
-  it("yields no password, and says why, when the command is empty, fails or prints nothing", async () => {
-    const command = (line: string) => settings({ "iam.password.source": "command", "iam.password.command": line });
-    const none = () => Promise.resolve(undefined);
-    assert.match((await resolveIamAccount(command(""), none)).problem ?? "", /command is empty/);
-    const failing: RunCommand = () => Promise.reject(new Error("item not found"));
-    const failed = await resolveIamAccount(command("get-pwd"), none, failing);
-    assert.strictEqual(failed.password, undefined);
-    assert.match(failed.problem ?? "", /failed \(get-pwd\): item not found/);
-    const silent = await resolveIamAccount(command("get-pwd"), none, () => Promise.resolve("\n"));
-    assert.match(silent.problem ?? "", /printed nothing/);
+  it("gets the system account's token, never more than catalyst-users gives", async () => {
+    const run: RunCommand = (_file, args) => {
+      assert.deepStrictEqual(args, ["--json", "token", "--system"]);
+      return Promise.resolve(JSON.stringify({ access_token: "at-1", token_type: "Bearer", expires_at: 1_800_000_000 }));
+    };
+    assert.deepStrictEqual((await systemToken(settings(), run)).value, {
+      accessToken: "at-1",
+      expiresAt: 1_800_000_000,
+    });
+    const empty = await systemToken(settings(), () => Promise.resolve("{}"));
+    assert.match(empty.problem ?? "", /gave no token/);
   });
 
-  it("runs a real program without a shell", async () => {
-    const account = await resolveIamAccount(
-      settings({ "iam.password.source": "command", "iam.password.command": "printf 'secret\\n$(id)'" }),
-      () => Promise.resolve(undefined),
-    );
-    assert.strictEqual(account.password, "secret");
+  it("says why, when catalyst-users fails, is missing, or does not answer JSON", async () => {
+    const failing: RunCommand = () => Promise.reject(new Error("catalyst-users: error: no secret_command"));
+    const failed = await systemWhoami(settings(), failing);
+    assert.strictEqual(failed.value, undefined);
+    assert.match(failed.problem, /failed: catalyst-users: error: no secret_command — check catalyst\.iam\.command/);
+    const old = await systemWhoami(settings(), () => Promise.resolve("usage: catalyst-users …"));
+    assert.match(old.problem ?? "", /did not answer JSON/);
+    const nobody = await systemWhoami(settings(), () => Promise.resolve("{}"));
+    assert.match(nobody.problem ?? "", /named no system account/);
+    const unclosed = await systemWhoami(settings(`"catalyst-users`));
+    assert.match(unclosed.problem ?? "", /unclosed/);
+  });
+
+  it("runs a real program without a shell, and names a missing one", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "catalyst-users-"));
+    const fake = join(dir, "fake-catalyst-users.js");
+    writeFileSync(fake, `process.stdout.write(JSON.stringify(${JSON.stringify(WHOAMI)}));\n`);
+    const answer = await systemWhoami(settings(`"${process.execPath}" "${fake}"`));
+    assert.strictEqual(answer.value?.username, "service-account-catalyst-system");
+    const missing = await systemWhoami(settings("/no/such/catalyst-users"));
+    assert.match(missing.problem ?? "", /\/no\/such\/catalyst-users was not found/);
   });
 });
