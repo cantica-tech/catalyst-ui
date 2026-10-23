@@ -78,16 +78,40 @@ password grant off.
   tests). The built `iam.js` against the live stack answered `service-account-catalyst-system`. Every job of every pull
   request passed before its merge; the published `.vsix` holds `catalyst.iam.command` and the check command.
 
+## Then: setup, and the admin as the system account (catalyst-users 0.4.0)
+
+The owner specified setup: when `IAM/settings.json` is missing, ask for the provider type, its settings as JSON, the
+admin's username, and their password or a command; check the provider; create its realm (from JSON holding no person)
+and the admin if missing, else only sign the admin in. They decided: the file lives in `~/.catalyst-users/IAM/`; a
+typed password goes to the keychain and the command reading it is stored; Keycloak's server admin is asked for, used
+once; the admin replaces the `catalyst-system` service account as the local system account.
+
+| What                                                                                                       | Where                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| catalyst-users [0.4.0](https://github.com/cantica-tech/catalyst-users/releases/tag/0.4.0) (its REQ-000008) | `cantica-tech/catalyst-users` (PRs 9, 10); criterion PR 13 |
+| The decision (§10.8), in the identity knowledge base                                                       | `cantica-tech/catalyst-users-kb`; criterion PR 3           |
+
+- `catalyst-users setup` writes `IAM/settings.json` (`0600`): type, username, connection settings, password command;
+  never a secret or the realm definition. A command without it asks for setup in a terminal.
+- The admin signs in with the password grant on `catalyst-admin-cli`, a realm client with the groups, roles, grants
+  and audience mappers; Keycloak's built-in `admin-cli` was tried and carries none of them.
+- The realm file holds no person or secret; the integration tests create their people. Keycloak refused a created
+  admin without an email and names, so setup asks for them when it creates one.
+- The UI is unchanged: **Check IAM Account** still runs `whoami --system`, which now answers the admin.
+- The owner's machine: `catalyst-admin-cli` added to the dev realm, `catalyst-system` removed from it and from the
+  keychain, `config.toml` removed, setup run (the realm existed: signed in only). `whoami --system`, from the CLI and
+  from the UI's code, answered the owner in `/catalyst-admins` with grants `cmd:*` and `reconcile:full`.
+- Checks: 126 unit tests; in CI the integration suite against a fresh realm (setup creating a throwaway realm
+  included); every job of every pull request passed before its merge.
+
 ## What's left
 
-- **Run Catalyst: Check IAM Account in VS Code** (Reload Window first: 0.62.0 is installed). REQ-000064 stays `Active`
-  until it has been; REQ-000062 and REQ-000063 are `Completed`, superseded by it.
-- **The system account holds no catalyst role yet.** Grant one with
-  `uv run python keycloak/set_system_client.py --role <realm role>` (catalyst-users), e.g. `catalyst-admin`.
-- **Nothing uses the account yet.** The first consumer (catalyst acting on the system's behalf with
-  `systemToken`) is a later requirement.
+- **Run Catalyst: Check IAM Account in VS Code** (Reload Window first). REQ-000064 stays `Active` until it has been.
+- **Nothing uses the account yet.** The first consumer (catalyst acting on the system's behalf with `systemToken`) is
+  a later requirement.
 - **The owner's dev realm's `developer` role holds extra grants** (`adopt`, `run-analysis`, `journal`) from an earlier
   provisioning, so `test_provisioned_grants_reach_the_token` fails locally (CI, on a fresh realm, passes). Reset the
-  realm (`rm -rf .keycloack/data`, then `set_admin.py` and `set_system_client.py` again) or accept the extra grants.
-- **The identity knowledge base's build** is still 1.0.0; `/kb-build` would include the decision.
+  realm (`rm -rf .keycloack/data`, then `catalyst-users setup --force`, which recreates it with its admin) or accept
+  the extra grants.
+- **The identity knowledge base's build** is still 1.0.0; `/kb-build` would include §10.7 and §10.8.
 - The Marketplace was not published to (it never is without asking).
