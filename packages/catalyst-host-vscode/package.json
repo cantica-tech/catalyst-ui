@@ -241,29 +241,35 @@
         "title": "IAM",
         "order": 1,
         "properties": {
-          "catalyst.iam.type": {
+          "catalyst.iam.provider": {
             "type": "string",
             "enum": [
               "keycloak"
             ],
             "enumDescriptions": [
-              "Keycloak."
+              "Keycloak, through catalyst-users."
             ],
             "default": "keycloak",
             "order": 0,
-            "description": "The identity provider catalyst uses locally, on the system's behalf."
+            "markdownDescription": "The provider catalyst-users reaches the account through. With `#catalyst.iam.issuer#` and `#catalyst.iam.client#`, it is the pointer document catalyst-users reads: `{\"provider\", \"issuer\", \"client\"}`."
           },
-          "catalyst.iam.url": {
+          "catalyst.iam.issuer": {
             "type": "string",
-            "default": "http://localhost:8080/",
+            "default": "http://localhost:8080/realms/catalyst",
             "order": 1,
-            "description": "The identity provider's URL."
+            "markdownDescription": "The pointer's issuer: the provider's realm, e.g. `http://localhost:8080/realms/catalyst` for catalyst-users' local Keycloak."
+          },
+          "catalyst.iam.client": {
+            "type": "string",
+            "default": "catalyst-cli",
+            "order": 2,
+            "markdownDescription": "The pointer's client: the public client catalyst-users signs in with."
           },
           "catalyst.iam.username": {
             "type": "string",
             "default": "",
-            "order": 2,
-            "description": "The user name of the account catalyst uses locally, on the system's behalf."
+            "order": 3,
+            "description": "The user name of the account catalyst uses locally, on the system's behalf, through catalyst-users."
           },
           "catalyst.iam.password.source": {
             "type": "string",
@@ -272,7 +278,7 @@
               "command"
             ],
             "default": "secret",
-            "order": 3,
+            "order": 4,
             "enumDescriptions": [
               "The password entered, masked, with `Catalyst: Set IAM Password`, and kept in VS Code's secret storage.",
               "The first line printed by `#catalyst.iam.password.command#`, run on demand and never stored."
@@ -282,7 +288,7 @@
           "catalyst.iam.password.command": {
             "type": "string",
             "default": "",
-            "order": 4,
+            "order": 5,
             "markdownDescription": "When `#catalyst.iam.password.source#` is `command`: a command printing the password on its first line, e.g. `~/sources/catalyst-users/.keycloack/scripts/get-keycloack-accnt.sh pwd`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory."
           }
         }

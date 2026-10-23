@@ -1,14 +1,20 @@
 import * as assert from "assert";
 
-import { readIamSettings, resolveIamAccount, splitCommand, type IamSettings, type RunCommand } from "../iam.js";
+import {
+  pointerProblems,
+  readIamSettings,
+  resolveIamAccount,
+  splitCommand,
+  type IamSettings,
+  type RunCommand,
+} from "../iam.js";
 
 const settings = (values: Record<string, unknown>): IamSettings => readIamSettings((key) => values[key]);
 
-describe("the local system account (REQ-000062)", () => {
-  it("defaults to keycloak at http://localhost:8080/, with the password from secret storage", () => {
+describe("the local system account (REQ-000062, REQ-000063)", () => {
+  it("defaults to catalyst-users' local keycloak pointer, with the password from secret storage", () => {
     assert.deepStrictEqual(settings({}), {
-      type: "keycloak",
-      url: "http://localhost:8080/",
+      pointer: { provider: "keycloak", issuer: "http://localhost:8080/realms/catalyst", client: "catalyst-cli" },
       username: "",
       passwordSource: "secret",
       passwordCommand: "",
@@ -17,21 +23,28 @@ describe("the local system account (REQ-000062)", () => {
 
   it("reads the settings, and falls back on what is invalid", () => {
     const read = settings({
-      "iam.type": "ldap",
-      "iam.url": " https://id.example/ ",
+      "iam.provider": "ldap",
+      "iam.issuer": " https://id.example/realms/catalyst ",
+      "iam.client": "ui-cli",
       "iam.username": "owner",
       "iam.password.source": "command",
       "iam.password.command": "get-pwd pwd",
     });
     assert.deepStrictEqual(read, {
-      type: "keycloak",
-      url: "https://id.example/",
+      pointer: { provider: "keycloak", issuer: "https://id.example/realms/catalyst", client: "ui-cli" },
       username: "owner",
       passwordSource: "command",
       passwordCommand: "get-pwd pwd",
     });
-    assert.strictEqual(settings({ "iam.url": "  ", "iam.password.source": "plain" }).url, "http://localhost:8080/");
+    assert.strictEqual(settings({ "iam.client": "  " }).pointer.client, "catalyst-cli");
     assert.strictEqual(settings({ "iam.password.source": "plain" }).passwordSource, "secret");
+  });
+
+  it("reports a pointer without an issuer as catalyst-users does", () => {
+    assert.deepStrictEqual(pointerProblems(settings({}).pointer), []);
+    assert.deepStrictEqual(pointerProblems(settings({ "iam.issuer": "  " }).pointer), [
+      'a "keycloak" pointer needs an "issuer"',
+    ]);
   });
 
   it("splits a command into words, without a shell", () => {

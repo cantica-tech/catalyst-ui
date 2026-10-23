@@ -1,8 +1,10 @@
 /**
- * The local system account (`vscode-IAM-000001-UVqkd7cL`, `REQ-000062-UVqkd7cL`):
- * the identity provider account catalyst uses on this machine, named by the
- * `catalyst.iam.*` settings. Its password comes from VS Code's secret
- * storage or from a command's output, and is never written to settings.
+ * The local system account (`vscode-IAM-000001-UVqkd7cL`, `REQ-000062-UVqkd7cL`,
+ * `REQ-000063-UVqkd7cL`): the account catalyst uses on this machine, named by
+ * the `catalyst.iam.*` settings. Its provider is a catalyst-users pointer
+ * (`{provider, issuer, client}`), never the identity provider's bare URL. Its
+ * password comes from VS Code's secret storage or from a command's output,
+ * and is never written to settings.
  * Pure but for running the command, so it is unit-tested without a VS Code
  * host.
  */
@@ -10,14 +12,16 @@
 import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 
-export type IamType = "keycloak";
+export type IamProvider = "keycloak";
 export type IamPasswordSource = "secret" | "command";
 
-export const IAM_TYPES: readonly IamType[] = ["keycloak"];
-export const DEFAULT_IAM_URL = "http://localhost:8080/";
+export const IAM_PROVIDERS: readonly IamProvider[] = ["keycloak"];
+export const DEFAULT_IAM_ISSUER = "http://localhost:8080/realms/catalyst";
+export const DEFAULT_IAM_CLIENT = "catalyst-cli";
 
-export const IAM_TYPE_SETTING = "iam.type";
-export const IAM_URL_SETTING = "iam.url";
+export const IAM_PROVIDER_SETTING = "iam.provider";
+export const IAM_ISSUER_SETTING = "iam.issuer";
+export const IAM_CLIENT_SETTING = "iam.client";
 export const IAM_USERNAME_SETTING = "iam.username";
 export const IAM_PASSWORD_SOURCE_SETTING = "iam.password.source";
 export const IAM_PASSWORD_COMMAND_SETTING = "iam.password.command";
@@ -25,17 +29,22 @@ export const IAM_PASSWORD_COMMAND_SETTING = "iam.password.command";
 /** The secret storage key of the password entered with Catalyst: Set IAM Password. */
 export const IAM_PASSWORD_SECRET = "catalyst.iam.password";
 
+/** The pointer document catalyst-users reads to choose its backend (its `id-PROVIDER-000001`). */
+export interface IamPointer {
+  provider: IamProvider;
+  issuer: string;
+  client: string;
+}
+
 export interface IamSettings {
-  type: IamType;
-  url: string;
+  pointer: IamPointer;
   username: string;
   passwordSource: IamPasswordSource;
   passwordCommand: string;
 }
 
 export interface IamAccount {
-  type: IamType;
-  url: string;
+  pointer: IamPointer;
   username: string;
   password: string | undefined;
   /** Why there is no password, when there is none. */
@@ -48,14 +57,24 @@ export function readIamSettings(get: (key: string) => unknown): IamSettings {
     const value = get(key);
     return typeof value === "string" ? value.trim() || fallback : fallback;
   };
-  const type = get(IAM_TYPE_SETTING);
+  const provider = get(IAM_PROVIDER_SETTING);
+  const issuer = get(IAM_ISSUER_SETTING);
   return {
-    type: IAM_TYPES.includes(type as IamType) ? (type as IamType) : "keycloak",
-    url: text(IAM_URL_SETTING, DEFAULT_IAM_URL),
+    pointer: {
+      provider: IAM_PROVIDERS.includes(provider as IamProvider) ? (provider as IamProvider) : "keycloak",
+      // Unset is the default; set but blank is a pointer without an issuer, reported as such.
+      issuer: typeof issuer === "string" ? issuer.trim() : DEFAULT_IAM_ISSUER,
+      client: text(IAM_CLIENT_SETTING, DEFAULT_IAM_CLIENT),
+    },
     username: text(IAM_USERNAME_SETTING),
     passwordSource: get(IAM_PASSWORD_SOURCE_SETTING) === "command" ? "command" : "secret",
     passwordCommand: text(IAM_PASSWORD_COMMAND_SETTING),
   };
+}
+
+/** What is wrong with a pointer, worded as catalyst-users' `pointer_problems` words it. */
+export function pointerProblems(pointer: IamPointer): string[] {
+  return pointer.issuer ? [] : [`a "${pointer.provider}" pointer needs an "issuer"`];
 }
 
 /**
@@ -106,7 +125,7 @@ export async function resolveIamAccount(
   readSecret: () => Promise<string | undefined>,
   run: RunCommand = runCommand,
 ): Promise<IamAccount> {
-  const account = { type: settings.type, url: settings.url, username: settings.username };
+  const account = { pointer: settings.pointer, username: settings.username };
   if (settings.passwordSource === "secret") {
     const password = await readSecret();
     return password

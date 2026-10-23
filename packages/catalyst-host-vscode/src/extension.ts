@@ -65,7 +65,7 @@ import {
 } from "catalyst-app-model";
 import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
 import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
-import { IAM_PASSWORD_SECRET, readIamSettings, resolveIamAccount } from "./iam.js";
+import { IAM_PASSWORD_SECRET, pointerProblems, readIamSettings, resolveIamAccount } from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
@@ -506,13 +506,17 @@ export function activate(context: vscode.ExtensionContext): void {
         readIamSettings((key) => config.get(key)),
         () => Promise.resolve(context.secrets.get(IAM_PASSWORD_SECRET)),
       );
-      const who = `${account.type} at ${account.url} as ${account.username || "(no user name)"}`;
-      if (account.password && account.username) {
+      const { provider, issuer, client } = account.pointer;
+      const who = `catalyst-users ${provider} pointer (issuer ${issuer || "(none)"}, client ${client}) as ${account.username || "(no user name)"}`;
+      const problems = [
+        ...pointerProblems(account.pointer),
+        ...(account.username ? [] : ["no user name (catalyst.iam.username)"]),
+        ...(account.problem ? [account.problem] : []),
+      ];
+      if (problems.length === 0) {
         void vscode.window.showInformationMessage(`IAM account: ${who}, with a password.`);
       } else {
-        void vscode.window.showWarningMessage(
-          `IAM account: ${who}: ${account.problem ?? "no user name (catalyst.iam.username)"}.`,
-        );
+        void vscode.window.showWarningMessage(`IAM account: ${who}: ${problems.join("; ")}.`);
       }
     }),
   );
