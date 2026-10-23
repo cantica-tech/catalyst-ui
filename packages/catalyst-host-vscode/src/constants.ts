@@ -32,6 +32,10 @@ export const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
 
 export const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 
+/** The local system account's password and check (REQ-000062-UVqkd7cL). */
+export const SET_IAM_PASSWORD_COMMAND = "catalyst.setIamPassword";
+export const CHECK_IAM_ACCOUNT_COMMAND = "catalyst.checkIamAccount";
+
 export const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 
 export const ONBOARDING_DISMISSED_PREFIX = "catalyst.onboarding.dismissed:";

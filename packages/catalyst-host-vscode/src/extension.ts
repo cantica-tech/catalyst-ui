@@ -35,6 +35,7 @@ import { discoverCommandCandidates, pickCommandAndArgs } from "./command-picker.
 import { openStudio } from "./vscode/studio-panel.js";
 import { VscodeHost } from "./vscode/vscode-host.js";
 import {
+  CHECK_IAM_ACCOUNT_COMMAND,
   CONFIGURE_CRITERION_COMMAND,
   DIAGNOSTIC_COLLECTION_NAME,
   IGNORED_FOLDERS_SETTING,
@@ -47,6 +48,7 @@ import {
   SELECT_KERNEL_VERSION_COMMAND,
   OPEN_STUDIO_COMMAND,
   SEND_TO_AGENT_CHAT_COMMAND,
+  SET_IAM_PASSWORD_COMMAND,
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
   SWITCH_UI_MODULE_COMMAND,
@@ -63,6 +65,7 @@ import {
 } from "catalyst-app-model";
 import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
 import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
+import { IAM_PASSWORD_SECRET, readIamSettings, resolveIamAccount } from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
@@ -472,6 +475,45 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(OPEN_SETTINGS_COMMAND, () => {
       void vscode.commands.executeCommand("workbench.action.openSettings", "catalyst");
+    }),
+  );
+
+  // The local system account (REQ-000062-UVqkd7cL): its password is entered
+  // masked and kept in secret storage, never in a settings file.
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SET_IAM_PASSWORD_COMMAND, async () => {
+      const password = await vscode.window.showInputBox({
+        title: "Catalyst: IAM password",
+        prompt: "The password of the account catalyst uses locally. Leave empty to clear it.",
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (password === undefined) return;
+      if (password) await context.secrets.store(IAM_PASSWORD_SECRET, password);
+      else await context.secrets.delete(IAM_PASSWORD_SECRET);
+      const config = vscode.workspace.getConfiguration("catalyst");
+      const note =
+        readIamSettings((key) => config.get(key)).passwordSource === "command"
+          ? " catalyst.iam.password.source is `command`, so the command's password is used instead."
+          : "";
+      void vscode.window.showInformationMessage(
+        (password ? "IAM password saved in secret storage." : "IAM password cleared.") + note,
+      );
+    }),
+    vscode.commands.registerCommand(CHECK_IAM_ACCOUNT_COMMAND, async () => {
+      const config = vscode.workspace.getConfiguration("catalyst");
+      const account = await resolveIamAccount(
+        readIamSettings((key) => config.get(key)),
+        () => Promise.resolve(context.secrets.get(IAM_PASSWORD_SECRET)),
+      );
+      const who = `${account.type} at ${account.url} as ${account.username || "(no user name)"}`;
+      if (account.password && account.username) {
+        void vscode.window.showInformationMessage(`IAM account: ${who}, with a password.`);
+      } else {
+        void vscode.window.showWarningMessage(
+          `IAM account: ${who}: ${account.problem ?? "no user name (catalyst.iam.username)"}.`,
+        );
+      }
     }),
   );
 
