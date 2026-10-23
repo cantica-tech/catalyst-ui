@@ -104,6 +104,19 @@ once; the admin replaces the `catalyst-system` service account as the local syst
 - Checks: 126 unit tests; in CI the integration suite against a fresh realm (setup creating a throwaway realm
   included); every job of every pull request passed before its merge.
 
+## Then: the identity knowledge base rebuilt (build 1.1.0)
+
+- `/kb-audit` clean (the knowledge base and its source active, its one document marked Internal); build 1.1.0
+  (KBUILD-000003 of catalyst-users) holds §10.7 and §10.8, embedded locally with all-MiniLM-L6-v2, kept on this
+  machine; 1.0.0 superseded. Manifest in `cantica-tech/catalyst-users-kb` (`builds/1.1.0/`); criterion PRs 14 and 4.
+- Chunks are now at most 250 tokens with 32 of overlap (1.0.0: 512 and 64). The model embeds at most 256 tokens, so
+  14 of 1.0.0's 35 chunks were cut short when embedded; every 1.1.0 chunk (61) is embedded whole.
+- Checks: checksums, nothing above Internal, 61 rows of 384 in order, sample queries. "Which account does catalyst
+  use locally?" ranks §10.8 outside the top three (the three are within 0.02 of each other).
+- Found: `catalyst spec kb-build` prints only the command's first line, and its numbered steps under `kb-audit`.
+  The kernel's §4 splitter (`scripts/catalyst/spec.py`) gives a list paragraph to the command its first line names
+  before treating it as the previous procedure's continuation, and kb-build's step 1 names `/kb-audit`.
+
 ## What's left
 
 - **Run Catalyst: Check IAM Account in VS Code** (Reload Window first). REQ-000064 stays `Active` until it has been.
@@ -113,5 +126,6 @@ once; the admin replaces the `catalyst-system` service account as the local syst
   provisioning, so `test_provisioned_grants_reach_the_token` fails locally (CI, on a fresh realm, passes). Reset the
   realm (`rm -rf .keycloack/data`, then `catalyst-users setup --force`, which recreates it with its admin) or accept
   the extra grants.
-- **The identity knowledge base's build** is still 1.0.0; `/kb-build` would include §10.7 and §10.8.
+- **The kernel's spec splitter** misfiles a procedure's list that names another command (above): a fix to
+  `scripts/catalyst/spec.py`, with its bug record and a kernel release.
 - The Marketplace was not published to (it never is without asking).
