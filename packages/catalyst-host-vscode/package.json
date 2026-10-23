@@ -149,6 +149,14 @@
         "command": "catalyst.openSettings",
         "title": "Catalyst: Open Settings",
         "icon": "$(settings-gear)"
+      },
+      {
+        "command": "catalyst.setIamPassword",
+        "title": "Catalyst: Set IAM Password…"
+      },
+      {
+        "command": "catalyst.checkIamAccount",
+        "title": "Catalyst: Check IAM Account"
       }
     ],
     "menus": {
@@ -180,53 +188,106 @@
         }
       ]
     },
-    "configuration": {
-      "title": "Catalyst",
-      "properties": {
-        "catalyst.frameworkPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
-        },
-        "catalyst.moduleSourceUrl": {
-          "type": "string",
-          "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/",
-          "description": "Source location URL for downloading Catalyst process modules. Supports Git SSH URLs (git@github.com:owner/repo.git/path/), GitHub tree URLs (https://github.com/owner/repo/tree/branch/path), standard VCS URIs (git+https://github.com/owner/repo.git#branch:path), or raw GitHub HTTP URLs."
-        },
-        "catalyst.kernelSourceUrl": {
-          "type": "string",
-          "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/kernel/",
-          "description": "Source location URL for downloading Catalyst kernel releases."
-        },
-        "catalyst.detailPanelGroups": {
-          "type": "string",
-          "enum": [
-            "perProject",
-            "single"
-          ],
-          "default": "perProject",
-          "enumDescriptions": [
-            "Each project's detail panels open as tabs in one editor group of their own.",
-            "Every project's detail panels share one single editor group."
-          ],
-          "description": "Where entity detail panels open: at most one editor group per project (default), or one group for every project. A project's first panel opens beside the active editor; later ones join its group as tabs."
-        },
-        "catalyst.ignoredFolders": {
-          "type": "array",
-          "items": {
-            "type": "string"
+    "configuration": [
+      {
+        "title": "Catalyst",
+        "properties": {
+          "catalyst.frameworkPath": {
+            "type": "string",
+            "default": "",
+            "description": "Path to a local checkout of the catalyst framework repository (containing BOOTSTRAP.md), used by the install-offer when a workspace folder has no catalyst deployment. Only needed if the framework repo isn't cloned as a sibling of your project."
           },
-          "default": [],
-          "scope": "resource",
-          "description": "Folders this workspace leaves out of catalyst — absolute paths, or paths relative to their workspace folder. No deployment is shown and no install is offered for them or anything below. To leave a folder out for everyone, commit an empty .catalystignore in it instead."
+          "catalyst.moduleSourceUrl": {
+            "type": "string",
+            "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/",
+            "description": "Source location URL for downloading Catalyst process modules. Supports Git SSH URLs (git@github.com:owner/repo.git/path/), GitHub tree URLs (https://github.com/owner/repo/tree/branch/path), standard VCS URIs (git+https://github.com/owner/repo.git#branch:path), or raw GitHub HTTP URLs."
+          },
+          "catalyst.kernelSourceUrl": {
+            "type": "string",
+            "default": "git@github.com:cantica-tech/cantica-tech.git/catalyst/kernel/",
+            "description": "Source location URL for downloading Catalyst kernel releases."
+          },
+          "catalyst.detailPanelGroups": {
+            "type": "string",
+            "enum": [
+              "perProject",
+              "single"
+            ],
+            "default": "perProject",
+            "enumDescriptions": [
+              "Each project's detail panels open as tabs in one editor group of their own.",
+              "Every project's detail panels share one single editor group."
+            ],
+            "description": "Where entity detail panels open: at most one editor group per project (default), or one group for every project. A project's first panel opens beside the active editor; later ones join its group as tabs."
+          },
+          "catalyst.ignoredFolders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "scope": "resource",
+            "description": "Folders this workspace leaves out of catalyst — absolute paths, or paths relative to their workspace folder. No deployment is shown and no install is offered for them or anything below. To leave a folder out for everyone, commit an empty .catalystignore in it instead."
+          },
+          "catalyst.trackEntityInTree": {
+            "type": "boolean",
+            "default": true,
+            "description": "Select in the chain inspector the entity a detail panel shows — when it is opened from a link, or brought to the front. Only while the chain inspector is visible; it never opens the sidebar."
+          }
         },
-        "catalyst.trackEntityInTree": {
-          "type": "boolean",
-          "default": true,
-          "description": "Select in the chain inspector the entity a detail panel shows — when it is opened from a link, or brought to the front. Only while the chain inspector is visible; it never opens the sidebar."
+        "order": 0
+      },
+      {
+        "title": "IAM",
+        "order": 1,
+        "properties": {
+          "catalyst.iam.type": {
+            "type": "string",
+            "enum": [
+              "keycloak"
+            ],
+            "enumDescriptions": [
+              "Keycloak."
+            ],
+            "default": "keycloak",
+            "order": 0,
+            "description": "The identity provider catalyst uses locally, on the system's behalf."
+          },
+          "catalyst.iam.url": {
+            "type": "string",
+            "default": "http://localhost:8080/",
+            "order": 1,
+            "description": "The identity provider's URL."
+          },
+          "catalyst.iam.username": {
+            "type": "string",
+            "default": "",
+            "order": 2,
+            "description": "The user name of the account catalyst uses locally, on the system's behalf."
+          },
+          "catalyst.iam.password.source": {
+            "type": "string",
+            "enum": [
+              "secret",
+              "command"
+            ],
+            "default": "secret",
+            "order": 3,
+            "enumDescriptions": [
+              "The password entered, masked, with `Catalyst: Set IAM Password`, and kept in VS Code's secret storage.",
+              "The first line printed by `#catalyst.iam.password.command#`, run on demand and never stored."
+            ],
+            "markdownDescription": "Where the account's password comes from. It is never written to a settings file: enter it with [Catalyst: Set IAM Password](command:catalyst.setIamPassword), or set a command that prints it."
+          },
+          "catalyst.iam.password.command": {
+            "type": "string",
+            "default": "",
+            "order": 4,
+            "markdownDescription": "When `#catalyst.iam.password.source#` is `command`: a command printing the password on its first line, e.g. `~/sources/catalyst-users/.keycloack/scripts/get-keycloack-accnt.sh pwd`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory."
+          }
         }
       }
-    },
+    ],
     "languages": [
       {
         "id": "catalyst",
