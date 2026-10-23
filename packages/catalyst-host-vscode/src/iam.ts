@@ -1,80 +1,50 @@
 /**
- * The local system account (`vscode-IAM-000001-UVqkd7cL`, `REQ-000062-UVqkd7cL`,
- * `REQ-000063-UVqkd7cL`): the account catalyst uses on this machine, named by
- * the `catalyst.iam.*` settings. Its provider is a catalyst-users pointer
- * (`{provider, issuer, client}`), never the identity provider's bare URL. Its
- * password comes from VS Code's secret storage or from a command's output,
- * and is never written to settings.
- * Pure but for running the command, so it is unit-tested without a VS Code
- * host.
+ * The local system account (`vscode-IAM-000001-UVqkd7cL`, `REQ-000064-UVqkd7cL`):
+ * the account catalyst uses on this machine is whoever catalyst-users signs
+ * in as the system account. catalyst-users is the facade to whatever identity
+ * provider it is configured for, and holds the provider's settings and the
+ * account's secret; the extension only runs its command, named by
+ * `catalyst.iam.command`, and holds no credential. Pure but for running the
+ * command, so it is unit-tested without a VS Code host.
  */
 
 import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 
-export type IamProvider = "keycloak";
-export type IamPasswordSource = "secret" | "command";
+export const IAM_COMMAND_SETTING = "iam.command";
+export const DEFAULT_IAM_COMMAND = "catalyst-users";
 
-export const IAM_PROVIDERS: readonly IamProvider[] = ["keycloak"];
-export const DEFAULT_IAM_ISSUER = "http://localhost:8080/realms/catalyst";
-export const DEFAULT_IAM_CLIENT = "catalyst-cli";
-
-export const IAM_PROVIDER_SETTING = "iam.provider";
-export const IAM_ISSUER_SETTING = "iam.issuer";
-export const IAM_CLIENT_SETTING = "iam.client";
-export const IAM_USERNAME_SETTING = "iam.username";
-export const IAM_PASSWORD_SOURCE_SETTING = "iam.password.source";
-export const IAM_PASSWORD_COMMAND_SETTING = "iam.password.command";
-
-/** The secret storage key of the password entered with Catalyst: Set IAM Password. */
-export const IAM_PASSWORD_SECRET = "catalyst.iam.password";
-
-/** The pointer document catalyst-users reads to choose its backend (its `id-PROVIDER-000001`). */
-export interface IamPointer {
-  provider: IamProvider;
-  issuer: string;
-  client: string;
-}
+/** Where 0.60/0.61 kept a password entered with Catalyst: Set IAM Password; deleted, it is no longer used. */
+export const LEGACY_IAM_PASSWORD_SECRET = "catalyst.iam.password";
 
 export interface IamSettings {
-  pointer: IamPointer;
-  username: string;
-  passwordSource: IamPasswordSource;
-  passwordCommand: string;
+  /** The catalyst-users command line, e.g. `uv run --project ~/sources/catalyst-users catalyst-users`. */
+  command: string;
 }
 
-export interface IamAccount {
-  pointer: IamPointer;
+/** Who the system account is, as `catalyst-users --json whoami --system` says. */
+export interface SystemAccount {
+  issuer: string;
+  subject: string;
   username: string;
-  password: string | undefined;
-  /** Why there is no password, when there is none. */
-  problem?: string;
+  name: string;
+  groups: string[];
+  roles: string[];
+  grants: string[];
 }
 
-/** Reads the settings through `get` (a `catalyst.*` key, without the prefix), defaulting what is unset or invalid. */
+export interface SystemToken {
+  accessToken: string;
+  /** Seconds since the epoch. */
+  expiresAt: number | undefined;
+}
+
+export type Answer<T> = { value: T; problem?: undefined } | { value?: undefined; problem: string };
+
+/** Reads the settings through `get` (a `catalyst.*` key, without the prefix), defaulting what is unset or blank. */
 export function readIamSettings(get: (key: string) => unknown): IamSettings {
-  const text = (key: string, fallback = ""): string => {
-    const value = get(key);
-    return typeof value === "string" ? value.trim() || fallback : fallback;
-  };
-  const provider = get(IAM_PROVIDER_SETTING);
-  const issuer = get(IAM_ISSUER_SETTING);
-  return {
-    pointer: {
-      provider: IAM_PROVIDERS.includes(provider as IamProvider) ? (provider as IamProvider) : "keycloak",
-      // Unset is the default; set but blank is a pointer without an issuer, reported as such.
-      issuer: typeof issuer === "string" ? issuer.trim() : DEFAULT_IAM_ISSUER,
-      client: text(IAM_CLIENT_SETTING, DEFAULT_IAM_CLIENT),
-    },
-    username: text(IAM_USERNAME_SETTING),
-    passwordSource: get(IAM_PASSWORD_SOURCE_SETTING) === "command" ? "command" : "secret",
-    passwordCommand: text(IAM_PASSWORD_COMMAND_SETTING),
-  };
-}
-
-/** What is wrong with a pointer, worded as catalyst-users' `pointer_problems` words it. */
-export function pointerProblems(pointer: IamPointer): string[] {
-  return pointer.issuer ? [] : [`a "${pointer.provider}" pointer needs an "issuer"`];
+  const command = get(IAM_COMMAND_SETTING);
+  return { command: typeof command === "string" && command.trim() ? command.trim() : DEFAULT_IAM_COMMAND };
 }
 
 /**
@@ -113,45 +83,78 @@ export type RunCommand = (file: string, args: string[]) => Promise<string>;
 
 export const runCommand: RunCommand = (file, args) =>
   new Promise((resolve, reject) => {
-    execFile(file, args, { timeout: 30_000, windowsHide: true }, (error, stdout, stderr) => {
-      if (error) reject(new Error(stderr.trim() || error.message));
-      else resolve(stdout);
+    execFile(file, args, { timeout: 60_000, windowsHide: true }, (error, stdout, stderr) => {
+      if (!error) resolve(stdout);
+      else if ((error as NodeJS.ErrnoException).code === "ENOENT") reject(new Error(`${file} was not found`));
+      else reject(new Error(stderr.trim() || error.message));
     });
   });
 
-/** The account the settings name, with its password from the secret store or the command. */
-export async function resolveIamAccount(
-  settings: IamSettings,
-  readSecret: () => Promise<string | undefined>,
-  run: RunCommand = runCommand,
-): Promise<IamAccount> {
-  const account = { pointer: settings.pointer, username: settings.username };
-  if (settings.passwordSource === "secret") {
-    const password = await readSecret();
-    return password
-      ? { ...account, password }
-      : { ...account, password: undefined, problem: "no password is set (Catalyst: Set IAM Password)" };
-  }
-  if (!settings.passwordCommand) {
-    return { ...account, password: undefined, problem: "catalyst.iam.password.command is empty" };
-  }
+/** Runs `<command> --json <args>` and parses what it prints. */
+async function catalystUsers(settings: IamSettings, args: string[], run: RunCommand): Promise<Answer<unknown>> {
+  let words: string[];
   try {
-    const [file, ...args] = splitCommand(settings.passwordCommand);
-    if (!file) throw new Error("catalyst.iam.password.command is empty");
-    const password = (await run(file, args)).split(/\r?\n/)[0];
-    return password
-      ? { ...account, password }
-      : {
-          ...account,
-          password: undefined,
-          problem: `the password command printed nothing: ${settings.passwordCommand}`,
-        };
+    words = splitCommand(settings.command);
+  } catch (error) {
+    return { problem: `catalyst.iam.command: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const [file, ...prefix] = words;
+  if (!file) return { problem: "catalyst.iam.command is empty" };
+  let out: string;
+  try {
+    out = await run(file, [...prefix, "--json", ...args]);
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+    return { problem: `catalyst-users (${settings.command}) failed: ${reason} — check catalyst.iam.command` };
+  }
+  try {
+    return { value: JSON.parse(out) as unknown };
+  } catch {
     return {
-      ...account,
-      password: undefined,
-      problem: `the password command failed (${settings.passwordCommand}): ${reason}`,
+      problem: `catalyst-users (${settings.command}) did not answer JSON: is it catalyst-users 0.3.0 or later?`,
     };
   }
+}
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+
+/** Who the system account is: `<command> --json whoami --system`, which signs it in through the provider. */
+export async function systemWhoami(
+  settings: IamSettings,
+  run: RunCommand = runCommand,
+): Promise<Answer<SystemAccount>> {
+  const answer = await catalystUsers(settings, ["whoami", "--system"], run);
+  if (answer.problem !== undefined) return answer;
+  const data = (answer.value ?? {}) as Record<string, unknown>;
+  if (typeof data.username !== "string" || typeof data.iss !== "string") {
+    return { problem: `catalyst-users (${settings.command}) named no system account` };
+  }
+  return {
+    value: {
+      issuer: data.iss,
+      subject: typeof data.sub === "string" ? data.sub : "",
+      username: data.username,
+      name: typeof data.name === "string" ? data.name : data.username,
+      groups: strings(data.groups),
+      roles: strings(data.roles),
+      grants: strings(data.grants),
+    },
+  };
+}
+
+/** The system account's access token: `<command> --json token --system`. Never show it. */
+export async function systemToken(settings: IamSettings, run: RunCommand = runCommand): Promise<Answer<SystemToken>> {
+  const answer = await catalystUsers(settings, ["token", "--system"], run);
+  if (answer.problem !== undefined) return answer;
+  const data = (answer.value ?? {}) as Record<string, unknown>;
+  if (typeof data.access_token !== "string" || !data.access_token) {
+    return { problem: `catalyst-users (${settings.command}) gave no token` };
+  }
+  return {
+    value: {
+      accessToken: data.access_token,
+      expiresAt: typeof data.expires_at === "number" ? data.expires_at : undefined,
+    },
+  };
 }

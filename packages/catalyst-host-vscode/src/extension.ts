@@ -48,7 +48,6 @@ import {
   SELECT_KERNEL_VERSION_COMMAND,
   OPEN_STUDIO_COMMAND,
   SEND_TO_AGENT_CHAT_COMMAND,
-  SET_IAM_PASSWORD_COMMAND,
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
   SWITCH_UI_MODULE_COMMAND,
@@ -65,7 +64,7 @@ import {
 } from "catalyst-app-model";
 import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
 import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
-import { IAM_PASSWORD_SECRET, pointerProblems, readIamSettings, resolveIamAccount } from "./iam.js";
+import { LEGACY_IAM_PASSWORD_SECRET, readIamSettings, systemWhoami } from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
@@ -478,46 +477,27 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
-  // The local system account (REQ-000062-UVqkd7cL): its password is entered
-  // masked and kept in secret storage, never in a settings file.
+  // The local system account (REQ-000064-UVqkd7cL): whoever catalyst-users
+  // signs in; the extension runs its command and holds no credential. A
+  // password 0.60/0.61 kept in secret storage is no longer used: delete it.
+  void context.secrets.delete(LEGACY_IAM_PASSWORD_SECRET);
   context.subscriptions.push(
-    vscode.commands.registerCommand(SET_IAM_PASSWORD_COMMAND, async () => {
-      const password = await vscode.window.showInputBox({
-        title: "Catalyst: IAM password",
-        prompt: "The password of the account catalyst uses locally. Leave empty to clear it.",
-        password: true,
-        ignoreFocusOut: true,
-      });
-      if (password === undefined) return;
-      if (password) await context.secrets.store(IAM_PASSWORD_SECRET, password);
-      else await context.secrets.delete(IAM_PASSWORD_SECRET);
-      const config = vscode.workspace.getConfiguration("catalyst");
-      const note =
-        readIamSettings((key) => config.get(key)).passwordSource === "command"
-          ? " catalyst.iam.password.source is `command`, so the command's password is used instead."
-          : "";
-      void vscode.window.showInformationMessage(
-        (password ? "IAM password saved in secret storage." : "IAM password cleared.") + note,
-      );
-    }),
     vscode.commands.registerCommand(CHECK_IAM_ACCOUNT_COMMAND, async () => {
       const config = vscode.workspace.getConfiguration("catalyst");
-      const account = await resolveIamAccount(
-        readIamSettings((key) => config.get(key)),
-        () => Promise.resolve(context.secrets.get(IAM_PASSWORD_SECRET)),
+      const settings = readIamSettings((key) => config.get(key));
+      const answer = await vscode.window.withProgress(
+        { location: vscode.ProgressLocation.Notification, title: "Catalyst: signing the IAM system account in…" },
+        () => systemWhoami(settings),
       );
-      const { provider, issuer, client } = account.pointer;
-      const who = `catalyst-users ${provider} pointer (issuer ${issuer || "(none)"}, client ${client}) as ${account.username || "(no user name)"}`;
-      const problems = [
-        ...pointerProblems(account.pointer),
-        ...(account.username ? [] : ["no user name (catalyst.iam.username)"]),
-        ...(account.problem ? [account.problem] : []),
-      ];
-      if (problems.length === 0) {
-        void vscode.window.showInformationMessage(`IAM account: ${who}, with a password.`);
-      } else {
-        void vscode.window.showWarningMessage(`IAM account: ${who}: ${problems.join("; ")}.`);
+      if (answer.problem !== undefined) {
+        void vscode.window.showWarningMessage(`IAM system account: ${answer.problem}.`);
+        return;
       }
+      const who = answer.value;
+      const list = (values: string[]) => (values.length ? values.join(", ") : "none");
+      void vscode.window.showInformationMessage(
+        `IAM system account: ${who.username} at ${who.issuer} (via ${settings.command}); roles ${list(who.roles)}; grants ${list(who.grants)}.`,
+      );
     }),
   );
 
