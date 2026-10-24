@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "catalyst identity whoami",
-  "description": "Who catalyst-users says is signing (design 29, fw-IDENTITY-000002, -000008, -000010): the logged-in person, or with no one logged in this machine's system account; the userid the signers ledger gives them (null before their first signature); their groups and roles (shown by the roles template's names), their grants (`cmd:<command>`, `reconcile:<level>`) and the reconciliation level those give.",
+  "description": "Who catalyst-users says is signing (design 29, fw-IDENTITY-000002, -000008, -000010, -000011): the logged-in person, or with no one logged in this machine's system account; the userid the signers ledger gives them (null before their first signature); their groups and roles (shown by the roles template's names), their grants in this deployment (`cmd:<command>`, `reconcile:<level>`; every grant where they administer its criterion) and the reconciliation level those give; and the criteria they administer.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -58,6 +58,13 @@
         "propose",
         "full"
       ]
+    },
+    "administers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "the criteria (deployments' project names) catalyst-users says they administer, as a criterion-admin"
     }
   }
 }
