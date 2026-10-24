@@ -110,6 +110,13 @@
       "type": "integer",
       "minimum": 0,
       "description": "The approvals the gate still needs; 0 when it is satisfied."
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "With an identity provider: the approver's roles when they approved, which the gate counts (fw-IDENTITY-000004)."
     }
   }
 }

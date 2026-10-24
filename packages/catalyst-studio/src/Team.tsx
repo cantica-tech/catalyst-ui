@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { ActionForm } from "./ActionForm.js";
 import type { Graph, JournalEntry, Role, StudioClient, User } from "./client.js";
 import { useHost } from "./host.js";
+import { compareVersions } from "./Overview.js";
 import { useNavigate } from "./Shell.js";
 import { Status } from "./Status.js";
 
@@ -198,12 +199,15 @@ function Person({
   act,
   work = [],
   roles = [],
+  admin = true,
 }: {
   name: string;
   user?: User;
   act?: Activity;
   work?: OpenItem[];
   roles?: Role[];
+  /** Whether people change here: not once they are catalyst-users' (kernel 0.106.0). */
+  admin?: boolean;
 }) {
   const navigate = useNavigate();
   const open = (id: string) => {
@@ -223,11 +227,12 @@ function Person({
           <Status tone="warn" label="Not registered" />
         )}
       </p>
-      {user ? (
-        <PersonAdmin user={user} roles={roles} />
-      ) : (
-        roles.length > 0 && <AddUser roles={roles} defaultName={name} />
-      )}
+      {admin &&
+        (user ? (
+          <PersonAdmin user={user} roles={roles} />
+        ) : (
+          roles.length > 0 && <AddUser roles={roles} defaultName={name} />
+        ))}
       {work.length > 0 && (
         <section aria-label={`${name}'s open work`}>
           <p>
@@ -291,6 +296,9 @@ function Person({
   );
 }
 
+/** The kernel from which people, roles and grants are catalyst-users' (design 29): `user` and `role` refuse. */
+export const PEOPLE_IN_CATALYST_USERS = "0.106.0";
+
 /** The team (studio-SHELL-000012): every registered user with their recent work; unregistered actors apart. */
 export function TeamView({
   users,
@@ -298,6 +306,7 @@ export function TeamView({
   since,
   graph,
   roles = [],
+  kernel,
 }: {
   users: User[];
   entries: JournalEntry[];
@@ -305,8 +314,12 @@ export function TeamView({
   graph?: Graph;
   /** The roles, for the changes a host that acts may make (R6.25). */
   roles?: Role[];
+  /** The deployment's kernel: from 0.106.0 its people are catalyst-users', and no change is offered here. */
+  kernel?: string | null;
 }) {
   const host = useHost();
+  const elsewhere = kernel ? compareVersions(kernel, PEOPLE_IN_CATALYST_USERS) >= 0 : false;
+  const offered = elsewhere ? [] : roles; // no form: `catalyst user` and `catalyst role` refuse
   const acts = activity(entries);
   const work = graph ? openWork(graph) : new Map<string, OpenItem[]>();
   const registered = new Set(users.map((u) => u.name));
@@ -316,9 +329,19 @@ export function TeamView({
     <>
       <h2>Team</h2>
       <p className="muted">
-        {users.length} registered user{users.length === 1 ? "" : "s"}; the journal since {since}. Users and roles change
-        through <code>/user</code> and <code>/role</code>
-        {host?.act ? ", or here" : ""}.
+        {users.length} registered user{users.length === 1 ? "" : "s"}; the journal since {since}.{" "}
+        {elsewhere ? (
+          <>
+            People, roles and what each may do are managed in catalyst-users, the deployment&apos;s identity provider:
+            add, disable and grant them there (<code>catalyst-users users …</code>,{" "}
+            <code>catalyst-users roles provision</code>).
+          </>
+        ) : (
+          <>
+            Users and roles change through <code>/user</code> and <code>/role</code>
+            {host?.act ? ", or here" : ""}.
+          </>
+        )}
       </p>
       {sorted.map((u) => (
         <Person
@@ -327,20 +350,21 @@ export function TeamView({
           user={u}
           act={acts.get(u.name)}
           work={workOf(work, u.name, u)}
-          roles={roles}
+          roles={offered}
+          admin={!elsewhere}
         />
       ))}
-      {host?.act && roles.length > 0 && (
+      {host?.act && offered.length > 0 && (
         <section aria-labelledby="add-user">
           <h3 id="add-user">Register a user</h3>
-          <AddUser roles={roles} />
+          <AddUser roles={offered} />
         </section>
       )}
       {strangers.length > 0 && (
         <section aria-labelledby="strangers">
           <h3 id="strangers">In the journal, not registered</h3>
           {strangers.map((a) => (
-            <Person key={a} name={a} act={acts.get(a)} roles={roles} />
+            <Person key={a} name={a} act={acts.get(a)} roles={offered} admin={!elsewhere} />
           ))}
         </section>
       )}
@@ -354,7 +378,7 @@ function daysAgo(n: number): string {
 
 type Load =
   | { state: "loading" }
-  | { state: "ready"; users: User[]; entries: JournalEntry[]; graph?: Graph; roles: Role[] }
+  | { state: "ready"; users: User[]; entries: JournalEntry[]; graph?: Graph; roles: Role[]; kernel?: string | null }
   | { state: "failed"; message: string };
 
 const WINDOW = 14;
@@ -383,9 +407,10 @@ export function Team({ client }: { client: StudioClient }) {
       client.journal(daysAgo(WINDOW)),
       client.graph().catch(() => undefined), // without the graph, the activity still shows
       client.roles().catch(() => [] as Role[]), // without the roles, no changes are offered
+      client.head().catch(() => undefined), // without the kernel, an older deployment's forms
     ]).then(
-      ([users, entries, graph, roles]) => {
-        if (live) setLoad({ state: "ready", users, entries, graph, roles });
+      ([users, entries, graph, roles, head]) => {
+        if (live) setLoad({ state: "ready", users, entries, graph, roles, kernel: head?.kernel });
       },
       (err: unknown) => {
         if (live) setLoad({ state: "failed", message: String(err) });
@@ -411,6 +436,13 @@ export function Team({ client }: { client: StudioClient }) {
     );
   }
   return (
-    <TeamView users={load.users} entries={load.entries} since={daysAgo(WINDOW)} graph={load.graph} roles={load.roles} />
+    <TeamView
+      users={load.users}
+      entries={load.entries}
+      since={daysAgo(WINDOW)}
+      graph={load.graph}
+      roles={load.roles}
+      kernel={load.kernel}
+    />
   );
 }

@@ -39,6 +39,14 @@
     "userid": {
       "type": "string",
       "description": "The 8-character suffix of every ID the user signs."
+    },
+    "iss": {
+      "type": "string",
+      "description": "A signer from an identity provider: its issuer (fw-IDENTITY-000003)."
+    },
+    "sub": {
+      "type": "string",
+      "description": "A signer from an identity provider: its subject at that issuer."
     }
   }
 }
