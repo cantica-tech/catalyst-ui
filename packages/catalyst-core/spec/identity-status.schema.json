@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "catalyst identity status",
+  "description": "The provider the deployment points at (IAM/identity.json, design 29) and whether this machine holds a person's tokens for it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provider",
+    "issuer",
+    "logged_in"
+  ],
+  "properties": {
+    "provider": {
+      "type": "string"
+    },
+    "issuer": {
+      "type": "string"
+    },
+    "logged_in": {
+      "type": "boolean"
+    }
+  }
+}

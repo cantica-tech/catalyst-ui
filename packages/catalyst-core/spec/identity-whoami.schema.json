@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "catalyst identity whoami",
+  "description": "Who catalyst-users says is signing (design 29, fw-IDENTITY-000002, -000008, -000010): the logged-in person, or with no one logged in this machine's system account; the userid the signers ledger gives them (null before their first signature); their groups and roles (shown by the roles template's names), their grants (`cmd:<command>`, `reconcile:<level>`) and the reconciliation level those give.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "username",
+    "name",
+    "issuer",
+    "subject",
+    "userid",
+    "groups",
+    "roles",
+    "grants",
+    "reconciliation"
+  ],
+  "properties": {
+    "username": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "issuer": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "userid": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "grants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "reconciliation": {
+      "enum": [
+        "none",
+        "propose",
+        "full"
+      ]
+    }
+  }
+}
