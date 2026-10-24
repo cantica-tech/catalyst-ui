@@ -165,6 +165,36 @@ describe("user administration in the Team view (R6.25)", () => {
     await noViolations();
   });
 
+  it("offers no change from catalyst 0.106.0, and says people are catalyst-users' (REQ-000065)", async () => {
+    const { h, asked } = host();
+    act(() => {
+      root.render(
+        <HostContext.Provider value={h}>
+          <TeamView users={users} entries={[]} since="2026-10-04" roles={roles} kernel="0.106.0" />
+        </HostContext.Provider>,
+      );
+    });
+    expect(el.querySelector("form")).toBeNull();
+    expect(el.querySelector(".add-user")).toBeNull();
+    expect(el.textContent).not.toContain("Register a user");
+    expect(el.textContent).toContain("managed in catalyst-users");
+    expect(asked).toEqual([]);
+    await noViolations();
+  });
+
+  it("keeps the forms for a deployment before 0.106.0", () => {
+    const { h } = host();
+    act(() => {
+      root.render(
+        <HostContext.Provider value={h}>
+          <TeamView users={users} entries={[]} since="2026-10-04" roles={roles} kernel="0.105.1" />
+        </HostContext.Provider>,
+      );
+    });
+    expect(el.querySelector(".add-user")).not.toBeNull();
+    expect(el.textContent).not.toContain("managed in catalyst-users");
+  });
+
   it("offers no change without a host", () => {
     act(() => {
       root.render(<TeamView users={users} entries={[]} since="2026-10-04" roles={roles} />);

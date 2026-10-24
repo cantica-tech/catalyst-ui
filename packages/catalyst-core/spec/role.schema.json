@@ -27,6 +27,10 @@
         "propose",
         "none"
       ]
+    },
+    "provider_role": {
+      "type": "string",
+      "description": "The identity provider's role that grants this role (identity = oidc, fw-IDENTITY-000004)."
     }
   }
 }
