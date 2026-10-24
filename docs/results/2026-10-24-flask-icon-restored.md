@@ -4,10 +4,10 @@ The VS Code extension showed a "three dots" icon since 0.52.0. It was not an acc
 the flask with a placeholder mark because the flask's licence was unknown. The owner confirmed the flask is theirs, so
 it is back.
 
-| What                                                                                       | Where                                                      |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| UI [0.64.0](https://github.com/cantica-tech/catalyst-ui/releases/tag/v0.64.0) (REQ-000066) | `cantica-tech/catalyst-ui` (PRs 174, 175); criterion PR 94 |
-| The `.vsix` of 0.64.0                                                                      | `cantica-tech/cantica-tech`, `catalyst/vsix/v0.64.0/`      |
+| What                                                                                      | Where                                                      |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| UI [0.64.0](https://github.com/cantica-tech/catalyst-ui/releases/tag/0.64.0) (REQ-000066) | `cantica-tech/catalyst-ui` (PRs 174, 175); criterion PR 94 |
+| The `.vsix` of 0.64.0                                                                     | `cantica-tech/cantica-tech`, `catalyst/vsix/v0.64.0/`      |
 
 - **The app icons** are the flask again: the Marketplace icon (`resources/icon.png`), the activity bar, views and
   `.catalyst` file icon (`resources/catalyst.svg`) and the desktop app icon (`build/icon.png`), restored from the
@@ -19,7 +19,5 @@ it is back.
 
 ## What's left
 
-- **The release tag** is `v0.64.0`; earlier releases are tagged without the `v` (`0.63.0`). Renaming it needs the
-  owner's go-ahead (it deletes a pushed tag).
 - **The brand's own mark** (brand roadmap item 6) will replace the flask when it exists.
 - **This deployment** (kernel 0.78.0) still signs with its registry; its move to catalyst-users is pending.
