@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
   "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
-  "version": "0.63.0",
+  "version": "0.64.0",
   "private": true,
   "license": "Apache-2.0",
   "publisher": "CanticaTech",
