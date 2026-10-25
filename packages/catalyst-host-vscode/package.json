@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
   "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
-  "version": "0.64.1",
+  "version": "0.64.2",
   "private": true,
   "license": "Apache-2.0",
   "publisher": "CanticaTech",
@@ -241,7 +241,7 @@
             "type": "string",
             "default": "catalyst-users",
             "order": 0,
-            "markdownDescription": "The catalyst-users command line: the facade to whatever identity provider catalyst-users is configured for (its `~/.catalyst-users/config.toml`), which signs in the account catalyst uses locally, on the system's behalf. The extension holds no credential. E.g. `uv run --project ~/sources/catalyst-users catalyst-users`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory. [Check the account](command:catalyst.checkIamAccount)."
+            "markdownDescription": "The catalyst-users command line: the facade to whatever identity provider catalyst-users is configured for (its home, `~/.catalyst/users`), which signs in the account catalyst uses locally, on the system's behalf. The extension holds no credential. E.g. `uv run --project ~/sources/catalyst-users catalyst-users`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory. [Check the account](command:catalyst.checkIamAccount)."
           }
         }
       }
