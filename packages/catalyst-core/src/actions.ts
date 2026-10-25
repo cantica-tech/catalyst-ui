@@ -9,12 +9,12 @@ import { catalystCommand } from "./catalyst-source.js";
  * runs it with no shell; catalyst journals the change as for any command.
  */
 export type StudioAction =
-  | { verb: "status-set"; id: string; state: string; intent: string; tier?: string }
+  | { verb: "status-set"; id: string; state: string; intent: string; tier?: string; forewarned?: boolean }
   | { verb: "journal-adopt"; commit: string; intent: string; tier: string; target?: string }
   | { verb: "journal-append"; path: string; intent: string; tier: string; target?: string; artifact?: string }
-  | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string }
-  | { verb: "restore"; id: string; to: string; intent: string; tier?: string }
-  | { verb: "approve"; id: string; gate: string; intent: string }
+  | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string; forewarned?: boolean }
+  | { verb: "restore"; id: string; to: string; intent: string; tier?: string; forewarned?: boolean }
+  | { verb: "approve"; id: string; gate: string; intent: string; forewarned?: boolean }
   | { verb: "analysis-decide"; id: string; finding: string; verdict: string; intent: string; artifact?: string }
   | { verb: "user-add"; name: string; role: string; intent: string; git_username?: string }
   | { verb: "user-remove"; name: string; intent: string }
@@ -93,7 +93,20 @@ function projectPath(value: unknown): string {
  * so no value can be read as another option; positional values never start
  * with `-`.
  */
+/** The actions catalyst's writing verbs make, which take `--forewarned` (catalyst >= 0.112.0, its design 31). */
+const FOREWARNABLE = new Set(["status-set", "reconcile", "restore", "approve"]);
+
+/**
+ * The action's arguments; with `forewarned`, a writing verb's `--forewarned` (studio-SHELL-000029): catalyst tries
+ * the change first and records in its journal entry what it would add to `check`.
+ */
 export function actionArgs(action: unknown): string[] {
+  const args = verbArgs(action);
+  const a = action as Record<string, unknown>;
+  return a.forewarned === true && FOREWARNABLE.has(String(a.verb)) ? [...args, "--forewarned"] : args;
+}
+
+function verbArgs(action: unknown): string[] {
   if (!action || typeof action !== "object") throw new ActionError("not an action");
   const a = action as Record<string, unknown>;
   const intent = () => `--intent=${words(a.intent, "intent", 500)}`;
@@ -216,7 +229,7 @@ export function actionArgs(action: unknown): string[] {
  * the criterion, so nothing the person owns changes.
  */
 export function tryArgs(action: unknown): string[] {
-  return ["try", "--json", ...actionArgs(action)];
+  return ["try", "--json", ...verbArgs(action)]; // never `--forewarned`: a try is not made
 }
 
 /** The command as the person reads it in the host's dialog. */

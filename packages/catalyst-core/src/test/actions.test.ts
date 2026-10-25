@@ -223,3 +223,21 @@ describe("IAM and share actions (R6.25)", () => {
     expect(() => actionArgs({ verb: "share-push", intent: "" })).toThrow("message:");
   });
 });
+
+describe("forewarned actions (studio-SHELL-000029, catalyst >= 0.112.0)", () => {
+  const move = { verb: "status-set", id: "REQ-000001", state: "Done", intent: "x" } as const;
+
+  it("adds --forewarned to a writing verb's arguments", () => {
+    expect(actionArgs({ ...move, forewarned: true }).at(-1)).toBe("--forewarned");
+    expect(actionArgs({ ...move, forewarned: false })).not.toContain("--forewarned");
+    expect(actionArgs(move)).not.toContain("--forewarned");
+  });
+
+  it("never in a try, which is not made", () => {
+    expect(tryArgs({ ...move, forewarned: true })).not.toContain("--forewarned");
+  });
+
+  it("only to the verbs that write the criterion", () => {
+    expect(actionArgs({ verb: "share-push", intent: "x", forewarned: true })).not.toContain("--forewarned");
+  });
+});
