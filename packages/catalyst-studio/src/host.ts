@@ -32,7 +32,7 @@ export interface BatchResult {
 }
 
 /** An action the Studio may ask for: a verb of the host's allow-list and its named fields. */
-export type StudioAction = { verb: string } & Record<string, string | undefined>;
+export type StudioAction = { verb: string } & Record<string, string | boolean | undefined>;
 
 export interface HostRuns {
   /** Asks the host to run `/command arguments`; `onDeclined` when the person says no. */

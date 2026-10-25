@@ -1,8 +1,9 @@
 import { useId, useState } from "react";
 
 import type { ActionResult, HostRuns, StudioAction } from "./host.js";
+import { forewarns, useKernel } from "./kernel.js";
 import { Status } from "./Status.js";
-import { TryOutcome } from "./Trial.js";
+import { TryOutcome, tryReport } from "./Trial.js";
 
 /** The tiers catalyst knows by default (a module may declare others; the host and catalyst check them). */
 export const TIERS = ["chore", "fix", "feature"] as const;
@@ -12,6 +13,12 @@ export const TIERS = ["chore", "fix", "feature"] as const;
  * its tier and what it serves: law L2), then sent to the host, which shows
  * the exact command and runs it only on the person's yes
  * (studio-SHELL-000016). The result is said, never assumed.
+ *
+ * With catalyst >= 0.112.0 a tryable action is tried when submitted
+ * (studio-SHELL-000029): what it would change is shown, and it is made only
+ * on "Make it permanent", with `--forewarned`, so catalyst journals what it
+ * added to `check`. The Studio signs as the machine's system account, an
+ * admin: every write it offers is an admin's.
  */
 export function ActionForm({
   host,
@@ -46,6 +53,7 @@ export function ActionForm({
   const [result, setResult] = useState<ActionResult | null>(null);
   const [tried, setTried] = useState<ActionResult | null>(null);
   const [trying, setTrying] = useState(false);
+  const kernel = useKernel();
   if (!host.act) return null;
   const act = host.act;
   const full = (reason: string): StudioAction => ({
@@ -56,6 +64,7 @@ export function ActionForm({
     ...(textLabel ? { text: text.trim() } : {}),
   });
   const tryIt = tryable ? host.tryIt : undefined;
+  const forewarn = tryIt !== undefined && forewarns(kernel);
   const tryFirst = () => {
     if (!tryIt) return;
     setTrying(true);
@@ -65,14 +74,21 @@ export function ActionForm({
       setTried(r);
     });
   };
-  const submit = () => {
+  const makeIt = (forewarned: boolean) => {
     setBusy(true);
     setResult(null);
-    void act(full(why.trim())).then((r) => {
+    void act(forewarned ? { ...full(why.trim()), forewarned: true } : full(why.trim())).then((r) => {
       setBusy(false);
       setResult(r);
+      if (forewarned) setTried(null);
       onDone?.(r);
     });
+  };
+  const report = tried ? tryReport(tried) : null;
+  const findings = report?.ok ? report.check.added.length : 0;
+  const submit = () => {
+    if (forewarn) tryFirst();
+    else makeIt(false);
   };
   return (
     <form
@@ -135,10 +151,32 @@ export function ActionForm({
           />{" "}
         </>
       )}
-      <button type="submit" disabled={busy || !why.trim() || (textLabel !== undefined && !text.trim())}>
+      <button type="submit" disabled={busy || trying || !why.trim() || (textLabel !== undefined && !text.trim())}>
         {label}
       </button>{" "}
-      {tryIt && (
+      {forewarn && report?.ok && (
+        <>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              makeIt(true);
+            }}
+          >
+            {findings > 0 ? "Make it permanent anyway" : "Make it permanent"}
+          </button>{" "}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setTried(null);
+            }}
+          >
+            Cancel
+          </button>{" "}
+        </>
+      )}
+      {tryIt && !forewarn && (
         <>
           <button type="button" disabled={trying || busy} onClick={tryFirst}>
             Try it

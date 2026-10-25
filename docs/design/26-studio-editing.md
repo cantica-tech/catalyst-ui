@@ -1,6 +1,6 @@
 # 26 — Editing in the Studio: create, edit and retire, by who may (design for the owner, 2026-10-25)
 
-> **Status: proposed.** The owner's request of 2026-10-25. The rules it shows are the kernel's, in catalyst's design
+> **Status: decided (owner, 2026-10-25)**, with §8's two questions as proposed. The owner's request of 2026-10-25. The rules it shows are the kernel's, in catalyst's design
 > `31` (who creates, edits and retires what, and through which workflow) and `30` (visibility); this note is what the
 > Studio shows for them. It writes through the host, as decision W1 has every write ([`24`](24-studio-gaps-roadmap.md)
 > §2): the host confirms in its own dialog and runs a catalyst verb, journaled.
@@ -90,8 +90,7 @@ stays read-only, as today: the editor opens, its buttons do not.
 - The host's action allow-list ([`24`](24-studio-gaps-roadmap.md), R6.30) gaining `new`, `propose`, the field edits
   and `try` for the preview.
 
-## 8. Still to decide
+## 8. Decided (owner, 2026-10-25)
 
-1. **Editing many at once** (batch, R6.17): admins only (proposed), or anyone on unlinked entities of theirs.
-2. **Fields edited in the form, or a markdown view too** for an admin who wants the raw file (proposed: the form
-   only; the raw file stays in the editor of the host).
+1. **Editing many at once** (batch, R6.17): admins only.
+2. **The form only**: fields and sections are edited in the Studio's form; the raw file stays in the host's editor.
