@@ -241,7 +241,7 @@
             "type": "string",
             "default": "catalyst-users",
             "order": 0,
-            "markdownDescription": "The catalyst-users command line: the facade to whatever identity provider catalyst-users is configured for (its `~/.catalyst-users/config.toml`), which signs in the account catalyst uses locally, on the system's behalf. The extension holds no credential. E.g. `uv run --project ~/sources/catalyst-users catalyst-users`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory. [Check the account](command:catalyst.checkIamAccount)."
+            "markdownDescription": "The catalyst-users command line: the facade to whatever identity provider catalyst-users is configured for (its home, `~/.catalyst/users`), which signs in the account catalyst uses locally, on the system's behalf. The extension holds no credential. E.g. `uv run --project ~/sources/catalyst-users catalyst-users`. Run without a shell: its words are split on blanks, quotes keep a word together, and a leading `~/` is your home directory. [Check the account](command:catalyst.checkIamAccount)."
           }
         }
       }
