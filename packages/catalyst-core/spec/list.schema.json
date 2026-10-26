@@ -61,13 +61,20 @@
         "type"
       ],
       "additionalProperties": false,
-      "description": "An item kept as a row of a table (a type the module stores as rows).",
+      "description": "An item kept as a row of a table (a type the module stores as rows), with the table's file and the row's line when its table is found; `catalyst view` shows it from there.",
       "properties": {
         "id": {
           "type": "string"
         },
         "type": {
           "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "catalyst serve members check",
+  "description": "What the membership ledger's check finds (design 32): a broken chain or signature, a criterion fingerprint no entry matches, and where the provider's group and the ledger disagree. No finding: the check passes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "criterion",
+    "findings"
+  ],
+  "properties": {
+    "criterion": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
