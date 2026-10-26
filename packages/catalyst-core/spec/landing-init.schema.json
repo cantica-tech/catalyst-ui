@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/landing-init.schema.json",
+  "title": "catalyst landing init",
+  "description": "The landing policy chosen and the file it was written to, journaled as the Admin's assent (design 33, fw-STRUCTURE-000023).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policy", "file"],
+  "properties": {
+    "policy": { "enum": ["standard", "open", "reviewed", "host"] },
+    "file": { "type": "string", "description": "IAM/landing.json in the criterion, absolute" }
+  }
+}

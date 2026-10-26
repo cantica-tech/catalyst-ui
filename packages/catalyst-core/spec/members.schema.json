@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "catalyst members",
+  "description": "A served criterion's members (design 32): `list` gives them; `add`, `remove` and `adopt` give the change made, at the provider and in the server's ledger.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "criterion"
+  ],
+  "properties": {
+    "criterion": {
+      "type": "string",
+      "description": "The served criterion's project_name."
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "list: the usernames the ledger names, sorted."
+    },
+    "op": {
+      "enum": [
+        "add",
+        "remove",
+        "adopt"
+      ]
+    },
+    "member": {
+      "type": "string"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The ledger entry the change was written as."
+    }
+  }
+}

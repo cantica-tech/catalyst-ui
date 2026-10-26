@@ -9,7 +9,7 @@
  *   node scripts/spec.mjs check                            fail when src/spec.ts is not what generate writes
  *
  * The schemas use few keywords (type, properties, required,
- * additionalProperties, items, enum, const, anyOf, $ref to #/$defs); any
+ * additionalProperties, items, enum, const, anyOf, oneOf, $ref to #/$defs); any
  * other that would change a type is refused, so a new one is never silently
  * dropped.
  */
@@ -32,6 +32,7 @@ const KNOWN = new Set([
   "enum",
   "const",
   "anyOf",
+  "oneOf",
   "$ref",
   "$defs",
 ]);
@@ -62,7 +63,14 @@ function type(schema, defs, where, pad = "") {
     if (!name) throw new Error(`${where}: ${schema.$ref} is not a $defs entry`);
     return name;
   }
-  if (schema.anyOf) return schema.anyOf.map((s, i) => type(s, defs, `${where}/anyOf/${i}`, pad)).join(" | ");
+  if (schema.anyOf || schema.oneOf) {
+    // A union either way: TypeScript cannot say "exactly one". Fields beside it would be dropped, so they are refused.
+    const kw = schema.anyOf ? "anyOf" : "oneOf";
+    if ((schema.anyOf && schema.oneOf) || schema.properties || schema.items) {
+      throw new Error(`${where}: ${kw} beside oneOf/anyOf, properties or items is not supported`);
+    }
+    return schema[kw].map((s, i) => type(s, defs, `${where}/${kw}/${i}`, pad)).join(" | ");
+  }
   if ("const" in schema) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map((v) => JSON.stringify(v)).join(" | ");
   let kinds = schema.type === undefined ? [] : [].concat(schema.type);
@@ -117,7 +125,8 @@ function object(schema, defs, where, pad) {
 /** A named type: an interface when the schema is one object with fields (the repository's lint), else a type alias. */
 function declare(name, schema, defs, where) {
   const t = type(schema, defs, where);
-  const single = [].concat(schema.type ?? []).join() === "object" && schema.properties && !schema.anyOf;
+  const single =
+    [].concat(schema.type ?? []).join() === "object" && schema.properties && !schema.anyOf && !schema.oneOf;
   return single ? `export interface ${name} ${t}` : `export type ${name} = ${t};`;
 }
 

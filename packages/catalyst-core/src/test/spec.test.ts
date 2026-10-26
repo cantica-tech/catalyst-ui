@@ -19,6 +19,16 @@ describe("the types generated from catalyst's spec/ (R6.50)", () => {
     expect(readFileSync(join(PACKAGE, "src", "spec.ts"), "utf8")).toContain(`from catalyst ${kernel}'s`);
   });
 
+  it("make a oneOf a union of its shapes, as an anyOf (BUG-000033)", () => {
+    const generated = readFileSync(join(PACKAGE, "src", "spec.ts"), "utf8");
+    const landing = generated.slice(generated.indexOf("export type ServeLandingJson ="));
+    const union = landing.slice(0, landing.indexOf(";\n\n"));
+    for (const shape of ["url: string", "taken_in", "busy", "retried", "ServeLandingLandingJson[]"]) {
+      expect(union).toContain(shape);
+    }
+    expect(union.match(/^ {2}\| /gm)).toHaveLength(5);
+  });
+
   it("are the kernel's the desktop app ships: syncing one means syncing the other", () => {
     const kernel = readFileSync(join(PACKAGE, "spec", "KERNEL"), "utf8").trim();
     const pinned = readFileSync(join(PACKAGE, "..", "catalyst-host-electron", "catalyst-version.txt"), "utf8").trim();
