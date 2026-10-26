@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/landing-show.schema.json",
+  "title": "catalyst landing show",
+  "description": "The landing policy in force (design 33, fw-STRUCTURE-000023) and where it comes from: IAM/landing.json, or the kernel's standard policy when there is none. `policy` holds to framework/kernel/schemas/landing.schema.json once `check` passes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source", "policy"],
+  "properties": {
+    "source": { "type": "string" },
+    "policy": { "type": "object" }
+  }
+}

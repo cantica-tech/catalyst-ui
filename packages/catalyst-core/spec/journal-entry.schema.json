@@ -78,6 +78,10 @@
       "type": "string",
       "description": "`chore`, `fix` or `feature`; an entry written before tiers existed may lack it."
     },
+    "via": {
+      "enum": ["agent", "person", "server"],
+      "description": "How the change was made (fw-STRUCTURE-000022): in an agent's session, by a person, or by a server itself; an entry written before kernel 0.116.0 lacks it."
+    },
     "writer": {
       "type": "string",
       "description": "`catalyst/<version>`: the catalyst that wrote the entry."

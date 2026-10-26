@@ -1,12 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/cantica-tech/catalyst/spec/change.schema.json",
-  "title": "catalyst new, rename, restore, status set, link",
-  "description": "What a writing verb prints with `--json`: the entity it changed, its file, and every file it touched (back-references and indexes included), each journaled (catalyst >= 0.97.0 describes it).",
+  "title": "catalyst new, edit, rename, restore, status set, link",
+  "description": "What a writing verb prints with `--json`: the entity it changed, its file, and every file it touched (back-references and indexes included), each journaled (catalyst >= 0.97.0 describes it). `catalyst edit` of a linked entity by someone other than an admin prints the proposal it opened instead of a file (catalyst >= 0.114.0).",
   "type": "object",
   "required": [
     "id",
-    "file",
     "touched"
   ],
   "additionalProperties": false,
@@ -17,7 +16,7 @@
     },
     "file": {
       "type": "string",
-      "description": "Its file."
+      "description": "Its file (absent when an edit was opened as a proposal)."
     },
     "touched": {
       "type": "array",
@@ -25,6 +24,10 @@
         "type": "string"
       },
       "description": "Every file the change wrote."
+    },
+    "proposal": {
+      "type": "string",
+      "description": "The reconciliation case an edit was opened as, waiting for an admin's decision (`catalyst edit`, design 31)."
     }
   }
 }

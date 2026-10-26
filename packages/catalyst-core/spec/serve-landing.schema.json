@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/serve-landing.schema.json",
+  "title": "catalyst serve landing",
+  "description": "What `catalyst serve landing <action> --json` prints (design 33 phase 2, fw-STRUCTURE-000024): `connect`, the target; `tick`, what it took in, landed, merged, left waiting or found in conflict; `list`, each landing; `retry`, the batches held again.",
+  "$defs": {
+    "landing": {
+      "type": "object",
+      "required": ["id", "state"],
+      "properties": {
+        "id": { "type": ["integer", "null"] },
+        "state": { "enum": ["new", "open", "waiting-review", "waiting-admin", "check-failed", "conflict", "failed", "merged", "closed", "retried", "held"] },
+        "batches": { "type": "array", "items": { "type": "integer" } },
+        "rule": { "type": "string" },
+        "url": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["url", "forge", "branch", "credential"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "forge": { "enum": ["github", "git"] },
+        "branch": { "type": "string" },
+        "credential": { "type": "string" }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["taken_in", "landed", "merged", "waiting", "conflicts", "errors"],
+      "additionalProperties": false,
+      "properties": {
+        "taken_in": { "type": ["integer", "null"], "description": "the server batch the shared branch became, if any" },
+        "landed": { "type": "array", "items": { "$ref": "#/$defs/landing" } },
+        "merged": { "type": "array", "items": { "$ref": "#/$defs/landing" } },
+        "waiting": { "type": "array", "items": { "$ref": "#/$defs/landing" } },
+        "conflicts": { "type": "array", "items": { "$ref": "#/$defs/landing" } },
+        "errors": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["busy"],
+      "additionalProperties": false,
+      "properties": { "busy": { "const": true } }
+    },
+    { "type": "array", "items": { "$ref": "#/$defs/landing" } },
+    {
+      "type": "object",
+      "required": ["retried", "batches"],
+      "additionalProperties": false,
+      "properties": { "retried": { "type": "integer" }, "batches": { "type": "array", "items": { "type": "integer" } } }
+    }
+  ]
+}

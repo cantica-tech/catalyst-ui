@@ -2,13 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/cantica-tech/catalyst/spec/view.schema.json",
   "title": "catalyst view",
-  "description": "What `catalyst view <id> --json` prints and `GET /v1/view/<id>` returns: one artifact or rule, what it links to (`links`), what links to it (`linked_from`: the entity and its field), the journal entries labelled with it or targeting it, for an artifact its sections and the states it may move to, and for a rule its title, status, domain and own text.",
+  "description": "What `catalyst view <id> --json` prints and `GET /v1/view/<id>` returns: one artifact, rule or table row, what it links to (`links`), what links to it (`linked_from`: the entity and its field), the journal entries labelled with it or targeting it, for an artifact its sections and the states it may move to, and for a rule its title, status, domain and own text.",
   "anyOf": [
     {
       "$ref": "#/$defs/artifact"
     },
     {
       "$ref": "#/$defs/rule"
+    },
+    {
+      "$ref": "#/$defs/tableRow"
     }
   ],
   "$defs": {
@@ -355,6 +358,136 @@
         "strength": {
           "type": "string",
           "description": "Its strength, from its `**Strength**` line; `must` when it states none (catalyst >= 0.83.0). An unknown value is `check`'s `rule-strength` error and is passed on as written, lowercased."
+        }
+      }
+    },
+    "tableRow": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "file",
+        "line",
+        "row",
+        "text",
+        "fields",
+        "links",
+        "linked_from",
+        "journal"
+      ],
+      "additionalProperties": false,
+      "description": "An item kept as a row of a table: its table's file and its line, the row as written (`text`), its cells by column (`fields`), its title (the Title, Name, Feature or Item column, else its ID) and its Status column when there is one.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "row": {
+          "const": true
+        },
+        "text": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string"
+        },
+        "links": {
+          "type": "object",
+          "description": "Each reference field of the entity's type that it fills, and the IDs it cites.",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "linked_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "field"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "journal": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "timestamp",
+              "actor",
+              "command",
+              "action",
+              "intent"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "timestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "actor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "command": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "intent": {
+                "type": [
+                  "array",
+                  "string",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
         }
       }
     }
