@@ -49,50 +49,8 @@
       "catalyst": [
         {
           "id": "catalystChainInspector",
-          "name": "Chain Inspector",
+          "name": "Instance(s)",
           "icon": "resources/catalyst.svg"
-        },
-        {
-          "id": "catalystChainInspector1",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot1"
-        },
-        {
-          "id": "catalystChainInspector2",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot2"
-        },
-        {
-          "id": "catalystChainInspector3",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot3"
-        },
-        {
-          "id": "catalystChainInspector4",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot4"
-        },
-        {
-          "id": "catalystChainInspector5",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot5"
-        },
-        {
-          "id": "catalystChainInspector6",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot6"
-        },
-        {
-          "id": "catalystChainInspector7",
-          "name": "Chain Inspector",
-          "icon": "resources/catalyst.svg",
-          "when": "catalyst.inspectorSlot7"
         }
       ]
     },
@@ -151,6 +109,10 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "catalyst.setUpFolder",
+        "title": "Catalyst: Set Up Catalyst in a Folder…"
+      },
+      {
         "command": "catalyst.checkIamAccount",
         "title": "Catalyst: Check IAM Account"
       }
@@ -159,27 +121,27 @@
       "view/title": [
         {
           "command": "catalyst.switchUiModule",
-          "when": "view =~ /^catalystChainInspector/",
+          "when": "view == catalystChainInspector",
           "group": "navigation@0"
         },
         {
           "command": "catalyst.refreshChainInspector",
-          "when": "view =~ /^catalystChainInspector/",
+          "when": "view == catalystChainInspector",
           "group": "navigation@1"
         },
         {
           "command": "catalyst.sendToAgentChat",
-          "when": "view =~ /^catalystChainInspector/",
+          "when": "view == catalystChainInspector",
           "group": "navigation@2"
         },
         {
           "command": "catalyst.configureCriterion",
-          "when": "view =~ /^catalystChainInspector/",
+          "when": "view == catalystChainInspector",
           "group": "navigation@3"
         },
         {
           "command": "catalyst.openSettings",
-          "when": "view =~ /^catalystChainInspector/",
+          "when": "view == catalystChainInspector",
           "group": "navigation@4"
         }
       ]
