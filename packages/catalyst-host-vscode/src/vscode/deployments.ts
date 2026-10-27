@@ -13,6 +13,9 @@ export interface DeploymentTarget {
   path: string;
 }
 
+/** The instances already notified that catalyst cannot serve them, this session. */
+const notifiedUnavailable = new Set<string>();
+
 /** Each deployment's journal, oldest first, as catalyst last served it (the journal view reads it). */
 export const journalByCorpus = new Map<string, JournalEntry[]>();
 
@@ -48,6 +51,9 @@ export function setupDeployment(
     },
     log,
     (reason) => {
+      // Once per instance per session; a later failure is only logged (REQ-000069-UVqkd7cL).
+      if (notifiedUnavailable.has(target.path)) return;
+      notifiedUnavailable.add(target.path);
       void vscode.window.showWarningMessage(`Catalyst: ${reason}`);
     },
   );

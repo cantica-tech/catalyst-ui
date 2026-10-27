@@ -22,6 +22,7 @@ import {
 } from "../constants.js";
 import type { DeploymentTarget } from "./deployments.js";
 import { buildInstantiationPrompt, findSiblingFrameworkRepo } from "../framework-discovery.js";
+import { syncOfferMessage, type SyncOffer } from "../sync-offer.js";
 
 /**
  * The chat participant for a known, detected coding-agent extension —
@@ -43,35 +44,49 @@ export function detectDefaultAgentBinding(): {
   return null;
 }
 
-/**
- * A workspace folder with no `*.catalyst` pointer file gets an actionable
- * offer rather than silence — gated purely on that file's existence
- * (`hasCatalystPointer`, checked by the caller), not on whether a working
- * copy can actually be located, since that's a different question with
- * its own richer fallback chain (`resolveCorpusRoot`). The two paths this
- * offers reflect the only two ways a project's catalyst-existence
- * question ever resolves: it's already backed by a repo somewhere
- * (`connectExistingCriterionRepo`, fully code-driven), or it genuinely
- * needs a first-time install (`offerAgentDrivenInstantiation`, which still
- * needs a reasoning agent for BOOTSTRAP.md's judgment calls).
- */
-export async function offerToInstall(context: vscode.ExtensionContext, folder: vscode.WorkspaceFolder): Promise<void> {
-  const dismissKey = ONBOARDING_DISMISSED_PREFIX + folder.uri.fsPath;
-  if (context.workspaceState.get<boolean>(dismissKey)) return;
+/** Whether `folder`'s set-up entry was hidden ("Hide here", remembered per folder). */
+export function installOfferHidden(context: vscode.ExtensionContext, folder: vscode.WorkspaceFolder): boolean {
+  return context.workspaceState.get<boolean>(ONBOARDING_DISMISSED_PREFIX + folder.uri.fsPath) === true;
+}
 
-  const choice = await vscode.window.showInformationMessage(
-    `No catalyst deployment found in "${folder.name}".`,
-    "Set up catalyst…",
-    "Never offer here",
-    "Not in this workspace",
-    "Don't ask again",
+/**
+ * A workspace folder with no `*.catalyst` pointer file is an entry of the
+ * Instance(s) view rather than a notification (REQ-000069-UVqkd7cL);
+ * selecting it runs this. The two set-up paths reflect the only two ways a
+ * project's catalyst-existence question ever resolves: it's already backed
+ * by a repo somewhere (`connectExistingCriterionRepo`, fully code-driven),
+ * or it genuinely needs a first-time install
+ * (`offerAgentDrivenInstantiation`, which still needs a reasoning agent for
+ * BOOTSTRAP.md's judgment calls). Resolves `true` when the folder's entry
+ * should go.
+ */
+export async function offerToInstall(
+  context: vscode.ExtensionContext,
+  folder: vscode.WorkspaceFolder,
+): Promise<boolean> {
+  const choice = await vscode.window.showQuickPick(
+    [
+      { label: "Set up catalyst…", action: "set-up" as const },
+      {
+        label: "Never offer here",
+        detail: "Writes an empty .catalystignore: every catalyst host and agent leaves this folder alone.",
+        action: "never" as const,
+      },
+      {
+        label: "Not in this workspace",
+        detail: "Adds the folder to catalyst.ignoredFolders, for you, in this workspace.",
+        action: "workspace" as const,
+      },
+      { label: "Hide here", detail: "Removes this entry from the Instance(s) view.", action: "hide" as const },
+    ],
+    { placeHolder: `No catalyst deployment found in "${folder.name}".` },
   );
 
-  if (choice === "Don't ask again") {
-    await context.workspaceState.update(dismissKey, true);
-    return;
+  if (choice?.action === "hide") {
+    await context.workspaceState.update(ONBOARDING_DISMISSED_PREFIX + folder.uri.fsPath, true);
+    return true;
   }
-  if (choice === "Never offer here") {
+  if (choice?.action === "never") {
     // The kernel's own opt-out (fw-STRUCTURE-000017): every catalyst host
     // and agent leaves this folder alone, for everyone (REQ-000015-UVqkd7cL).
     writeFileSync(
@@ -81,16 +96,16 @@ export async function offerToInstall(context: vscode.ExtensionContext, folder: v
     void vscode.window.showInformationMessage(
       `Wrote ${IGNORE_FILE} in "${folder.name}": catalyst leaves it alone. Commit it to share that choice.`,
     );
-    return;
+    return true;
   }
-  if (choice === "Not in this workspace") {
+  if (choice?.action === "workspace") {
     // Personal, this workspace only: catalyst.ignoredFolders.
     const config = vscode.workspace.getConfiguration("catalyst", folder.uri);
     const ignored = config.get<string[]>(IGNORED_FOLDERS_SETTING, []);
     await config.update(IGNORED_FOLDERS_SETTING, [...ignored, folder.uri.fsPath], vscode.ConfigurationTarget.Workspace);
-    return;
+    return true;
   }
-  if (choice !== "Set up catalyst…") return;
+  if (choice?.action !== "set-up") return false;
 
   const pick = await vscode.window.showQuickPick(
     [
@@ -114,7 +129,7 @@ export async function offerToInstall(context: vscode.ExtensionContext, folder: v
     ],
     { placeHolder: `How should catalyst be set up for "${folder.name}"?` },
   );
-  if (!pick) return;
+  if (!pick) return false;
 
   if (pick.action === "version") {
     await vscode.commands.executeCommand(SELECT_KERNEL_VERSION_COMMAND);
@@ -123,6 +138,7 @@ export async function offerToInstall(context: vscode.ExtensionContext, folder: v
   } else {
     await offerAgentDrivenInstantiation(folder);
   }
+  return false;
 }
 
 /**
@@ -216,7 +232,7 @@ export function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
 /**
  * A resolved deployment behind the highest catalyst kernel version
  * this extension build has been verified against gets an actionable
- * offer, mirroring `offerToInstall`'s own bar: nothing runs until the
+ * offer: nothing runs until the
  * user explicitly clicks "Sync now" — `/sync-framework` mutates real
  * deployment files, so this must never fire silently. The dismiss key
  * includes the target version, so a future bump of
@@ -233,40 +249,59 @@ export function resolveChatAgentDef(projectRoot: string): AgentBinding | null {
  * "supports syncing to" — a deployment there parses correctly today,
  * syncing just gets it the newer entity types.
  */
-export async function offerToSyncKernel(
+export interface PendingSync extends SyncOffer {
+  path: string;
+  dismissKey: string;
+}
+
+/** `target`'s sync offer, when it is behind and has not dismissed this version (B-08: never a downgrade). */
+export function pendingSyncFor(
   context: vscode.ExtensionContext,
   target: DeploymentTarget,
   corpusRoot: string,
+): PendingSync | undefined {
+  const deployed = readDeployedKernelVersion(corpusRoot);
+  const syncTarget = kernelSyncTarget(deployed);
+  if (!deployed || !syncTarget) return undefined;
+  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${target.path}:${syncTarget}`;
+  if (context.workspaceState.get<boolean>(dismissKey)) return undefined;
+  return {
+    name: target.name,
+    path: target.path,
+    deployed,
+    target: syncTarget,
+    belowRequired: !meetsRequiredKernelVersion(deployed),
+    dismissKey,
+  };
+}
+
+/** Every pending sync in one notification (REQ-000069-UVqkd7cL): "Sync now" syncs each, "Don't ask again" dismisses each. */
+export async function offerToSyncKernels(
+  context: vscode.ExtensionContext,
+  offers: PendingSync[],
   outputChannel: vscode.OutputChannel,
 ): Promise<void> {
-  const deployed = readDeployedKernelVersion(corpusRoot);
-  // Unknown version, or already at/above what this build was verified
-  // against: nothing to offer — never a downgrade target (B-08).
-  const syncTarget = kernelSyncTarget(deployed);
-  if (!deployed || !syncTarget) return;
-
-  const dismissKey = `${SYNC_OFFER_DISMISSED_PREFIX}${target.path}:${syncTarget}`;
-  if (context.workspaceState.get<boolean>(dismissKey)) return;
-
-  const message = meetsRequiredKernelVersion(deployed)
-    ? `"${target.name}" is on catalyst ${deployed}; this extension supports syncing to ${syncTarget}.`
-    : `"${target.name}" is on catalyst ${deployed}, below the ${REQUIRED_KERNEL_VERSION} this extension requires — some entities may not parse correctly. Sync to ${syncTarget}?`;
-
-  const choice = await vscode.window.showInformationMessage(message, "Sync now", "Don't ask again");
+  if (offers.length === 0) return;
+  const choice = await vscode.window.showInformationMessage(
+    syncOfferMessage(offers, REQUIRED_KERNEL_VERSION),
+    "Sync now",
+    "Don't ask again",
+  );
 
   if (choice === "Don't ask again") {
-    await context.workspaceState.update(dismissKey, true);
+    for (const offer of offers) await context.workspaceState.update(offer.dismissKey, true);
     return;
   }
   if (choice !== "Sync now") return;
 
-  const agentDef = resolveChatAgentDef(target.path);
-  if (!agentDef) {
-    void vscode.window.showErrorMessage(
-      'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
-    );
-    return;
+  for (const offer of offers) {
+    const agentDef = resolveChatAgentDef(offer.path);
+    if (!agentDef) {
+      void vscode.window.showErrorMessage(
+        `Couldn't determine which agent to chat with for "${offer.name}" — no *.catalyst pointer with an "agent" or "chatAgents" field found.`,
+      );
+      continue;
+    }
+    await resolveAndInvoke(agentDef, "/sync-framework", offer.target, outputChannel);
   }
-
-  await resolveAndInvoke(agentDef, "/sync-framework", syncTarget, outputChannel);
 }

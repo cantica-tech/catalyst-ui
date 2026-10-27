@@ -6,6 +6,7 @@ import {
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
   SHOW_DETAIL_COMMAND,
+  SET_UP_FOLDER_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
 } from "../constants.js";
 import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
@@ -33,6 +34,7 @@ export interface DeploymentView {
 
 export type InspectorTreeItem =
   | { type: "deployment"; corpusRoot: string; folderName: string }
+  | { type: "unset-folder"; folderUri: string; folderName: string }
   | { type: "artifact-group"; corpusRoot: string; group: ArtifactGroup }
   | { type: "rule-group"; corpusRoot: string; group: RuleGroup }
   | { type: "rule-type-section"; corpusRoot: string; section: RuleTypeSection }
@@ -96,41 +98,15 @@ export function typeIconCandidates(type: ModuleType | undefined, prefix: string)
 }
 
 /**
- * Deployment-aware: with exactly one resolved deployment its root shows
- * that deployment's sections directly (today's single-folder UX,
- * unchanged); with more than one, the root shows one collapsible entry
- * per deployment (named after its workspace folder) expanding into its
- * own sections — node ids are only unique within one corpus, so every
- * item below the root carries which deployment it came from.
+ * The Instance(s) view (REQ-000068-UVqkd7cL): one top-level entry per
+ * resolved deployment, labelled with its name, expanding into its own
+ * sections — node ids are only unique within one corpus, so every item
+ * below the root carries which deployment it came from.
  */
-/**
- * One chain inspector panel, showing one deployment (REQ-000017-UVqkd7cL):
- * a view slot of its own, delegating to the shared provider.
- */
-export class InspectorPanelProvider implements vscode.TreeDataProvider<InspectorTreeItem> {
-  corpusRoot: string | undefined;
-  readonly onDidChangeTreeData: vscode.Event<void>;
-
-  constructor(private readonly shared: ChainInspectorProvider) {
-    this.onDidChangeTreeData = shared.onDidChangeTreeData;
-  }
-
-  getTreeItem(element: InspectorTreeItem): vscode.TreeItem {
-    return this.shared.getTreeItem(element);
-  }
-
-  getChildren(element?: InspectorTreeItem): InspectorTreeItem[] {
-    if (element) return this.shared.getChildren(element);
-    return this.corpusRoot ? this.shared.rootFor(this.corpusRoot) : [];
-  }
-
-  getParent(element: InspectorTreeItem): InspectorTreeItem | undefined {
-    return this.shared.getParent(element);
-  }
-}
-
 export class ChainInspectorProvider implements vscode.TreeDataProvider<InspectorTreeItem> {
   private readonly deployments = new Map<string, DeploymentView>();
+  /** Workspace folders with no catalyst yet, offered a set-up (REQ-000069-UVqkd7cL): uri → name. */
+  private readonly unsetFolders = new Map<string, string>();
   private readonly changeEmitter = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
@@ -169,6 +145,13 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   removeDeployment(corpusRoot: string): void {
     this.deployments.delete(corpusRoot);
+    this.changeEmitter.fire();
+  }
+
+  /** Offer `folderUri` a set-up in the tree, or stop offering it (`name` undefined). */
+  setUnsetFolder(folderUri: string, name: string | undefined): void {
+    if (name === undefined ? !this.unsetFolders.delete(folderUri) : this.unsetFolders.get(folderUri) === name) return;
+    if (name !== undefined) this.unsetFolders.set(folderUri, name);
     this.changeEmitter.fire();
   }
 
@@ -212,6 +195,13 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   private treeItemOf(element: InspectorTreeItem): vscode.TreeItem {
     if (element.type === "deployment") {
       return new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.Expanded);
+    }
+    if (element.type === "unset-folder") {
+      const item = new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.None);
+      item.description = "no catalyst — set up…";
+      item.iconPath = new vscode.ThemeIcon("add");
+      item.command = { command: SET_UP_FOLDER_COMMAND, title: "Set up catalyst…", arguments: [element.folderUri] };
+      return item;
     }
     if (element.type === "artifact-group") {
       const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
@@ -438,28 +428,12 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return this.parents.get(element);
   }
 
-  /**
-   * The top level of one deployment's own chain inspector panel: its
-   * sections, with no parent (REQ-000017-UVqkd7cL — every deployment has a
-   * panel of its own).
-   */
-  rootFor(corpusRoot: string): InspectorTreeItem[] {
-    const view = this.deployments.get(corpusRoot);
-    const sections = view ? this.sectionsFor(view) : [];
-    const taken = new Map<string, number>();
-    for (const child of sections) {
-      const label = this.treeItemOf(child).label;
-      const text = typeof label === "string" ? label : (label?.label ?? "");
-      this.parents.set(child, undefined);
-      this.ids.set(child, childId(`panel:${corpusRoot}`, itemKey(child, text), taken));
-    }
-    return sections;
-  }
-
-  /** A node's first, shallowest occurrence in its deployment's panel. */
+  /** A node's first, shallowest occurrence under its deployment. */
   findNode(corpusRoot: string, nodeId: string): InspectorTreeItem | undefined {
+    const deployment = this.getChildren().find((item) => item.type === "deployment" && item.corpusRoot === corpusRoot);
+    if (!deployment) return undefined;
     return breadthFirst(
-      this.rootFor(corpusRoot),
+      this.getChildren(deployment),
       (item) => {
         if (item.type === "node") return []; // a node's own children never hold its first occurrence
         if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
@@ -471,14 +445,17 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   private childrenOf(element?: InspectorTreeItem): InspectorTreeItem[] {
     if (!element) {
-      const views = [...this.deployments.values()];
-      if (views.length === 0) return [];
-      if (views.length === 1) return this.sectionsFor(views[0]);
-      return views.map((view) => ({
+      const instances: InspectorTreeItem[] = [...this.deployments.values()].map((view) => ({
         type: "deployment",
         corpusRoot: view.corpusRoot,
         folderName: view.folderName,
       }));
+      const unset: InspectorTreeItem[] = [...this.unsetFolders].map(([folderUri, folderName]) => ({
+        type: "unset-folder",
+        folderUri,
+        folderName,
+      }));
+      return [...instances, ...unset];
     }
     if (element.type === "deployment") {
       const view = this.deployments.get(element.corpusRoot);
