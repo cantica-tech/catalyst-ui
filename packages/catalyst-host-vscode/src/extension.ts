@@ -39,7 +39,6 @@ import {
   CONFIGURE_CRITERION_COMMAND,
   DIAGNOSTIC_COLLECTION_NAME,
   IGNORED_FOLDERS_SETTING,
-  INSPECTOR_VIEW_IDS,
   LOAD_UI_MODULE_COMMAND,
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
@@ -48,10 +47,12 @@ import {
   SELECT_KERNEL_VERSION_COMMAND,
   OPEN_STUDIO_COMMAND,
   SEND_TO_AGENT_CHAT_COMMAND,
+  SET_UP_FOLDER_COMMAND,
   SHOW_DETAIL_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
   SWITCH_UI_MODULE_COMMAND,
   TRACK_SETTING,
+  VIEW_ID,
 } from "./constants.js";
 import type { DeploymentTarget, RegisteredDeployment } from "./vscode/deployments.js";
 import { journalByCorpus, setupDeployment } from "./vscode/deployments.js";
@@ -62,8 +63,15 @@ import {
   buildReferenceTable,
   referencesForNode,
 } from "catalyst-app-model";
-import { ChainInspectorProvider, InspectorPanelProvider } from "./vscode/inspector.js";
-import { offerToInstall, offerToSyncKernel, resolveChatAgentDef } from "./vscode/onboarding.js";
+import { ChainInspectorProvider } from "./vscode/inspector.js";
+import type { PendingSync } from "./vscode/onboarding.js";
+import {
+  installOfferHidden,
+  offerToInstall,
+  offerToSyncKernels,
+  pendingSyncFor,
+  resolveChatAgentDef,
+} from "./vscode/onboarding.js";
 import { LEGACY_IAM_PASSWORD_SECRET, readIamSettings, systemWhoami } from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
@@ -78,44 +86,18 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const provider = new ChainInspectorProvider(context.extensionUri);
 
-  // One chain inspector panel per deployment (REQ-000017-UVqkd7cL): view
-  // slots declared in package.json, slot 0 always shown, the others shown
-  // (context key catalyst.inspectorSlot<N>) as deployments are found. Each
-  // is a TreeView, so a node can be revealed in it.
-  const panels = INSPECTOR_VIEW_IDS.map((id) => {
-    const panelProvider = new InspectorPanelProvider(provider);
-    const view = vscode.window.createTreeView(id, {
-      treeDataProvider: panelProvider,
-    });
-    context.subscriptions.push(view);
-    return { provider: panelProvider, view };
-  });
-  let warnedTooMany = false;
-  function assignPanels(targets: Map<string, DeploymentTarget>): void {
-    const roots = [...targets.keys()];
-    panels.forEach((panel, index) => {
-      const root = roots[index];
-      panel.provider.corpusRoot = root;
-      const name = root ? targets.get(root)?.name : undefined;
-      panel.view.title = name ? `${name} (chain inspector)` : "Chain Inspector";
-      void vscode.commands.executeCommand("setContext", `catalyst.inspectorSlot${index}`, index === 0 || !!root);
-    });
-    if (roots.length > panels.length && !warnedTooMany) {
-      warnedTooMany = true;
-      void vscode.window.showWarningMessage(
-        `catalyst shows ${panels.length} chain inspectors; ${roots.length - panels.length} more deployment(s) in this workspace are not shown.`,
-      );
-    }
-    provider.refreshTree();
-  }
-  /** Select a node in its deployment's panel — only while that panel is visible, never moving focus. */
+  // One Instance(s) view, every deployment a top-level entry of it
+  // (REQ-000068-UVqkd7cL). A TreeView, so a node can be revealed in it
+  // (REQ-000017-UVqkd7cL).
+  const instancesView = vscode.window.createTreeView(VIEW_ID, { treeDataProvider: provider });
+  context.subscriptions.push(instancesView);
+  /** Select a node under its deployment — only while the view is visible, never moving focus. */
   function revealNode(corpusRoot: string, nodeId: string): void {
     if (!vscode.workspace.getConfiguration("catalyst").get<boolean>(TRACK_SETTING, true)) return;
-    const panel = panels.find((p) => p.provider.corpusRoot === corpusRoot);
-    if (!panel?.view.visible) return;
+    if (!instancesView.visible) return;
     const element = provider.findNode(corpusRoot, nodeId);
     if (element)
-      void panel.view.reveal(element, {
+      void instancesView.reveal(element, {
         select: true,
         focus: false,
         expand: false,
@@ -175,6 +157,25 @@ export function activate(context: vscode.ExtensionContext): void {
       });
   }
 
+  // The sync offers of every instance resolved together share one
+  // notification, each offered once per session — re-resolving the
+  // folders never asks again (REQ-000069-UVqkd7cL).
+  const offeredSync = new Set<string>();
+  let pendingSyncs: PendingSync[] = [];
+  function queueSyncOffer(target: DeploymentTarget, corpusRoot: string): void {
+    const offer = pendingSyncFor(context, target, corpusRoot);
+    if (!offer || offeredSync.has(offer.dismissKey)) return;
+    offeredSync.add(offer.dismissKey);
+    if (pendingSyncs.length === 0) {
+      setTimeout(() => {
+        const offers = pendingSyncs;
+        pendingSyncs = [];
+        void offerToSyncKernels(context, offers, agentBridgeOutputChannel);
+      }, 0);
+    }
+    pendingSyncs.push(offer);
+  }
+
   function resolveFolder(folder: vscode.WorkspaceFolder): void {
     // Virtual and other non-file folders have no file system to read.
     if (folder.uri.scheme !== "file") return;
@@ -185,14 +186,15 @@ export function activate(context: vscode.ExtensionContext): void {
     if (found.length === 0) {
       const leftOut = optedOut(folder.uri.fsPath) || isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
       // Untrusted, catalyst only reads: no install offer (Workspace Trust).
-      // No automatic module download here (B-06): fetching remote UI
-      // modules is only ever started by the user ("Switch Process UI
-      // Module").
-      if (!leftOut && vscode.workspace.isTrusted) {
-        void offerToInstall(context, folder);
-      }
+      // The offer is an entry of the Instance(s) view, never a
+      // notification (REQ-000069-UVqkd7cL). No automatic module download
+      // here (B-06): fetching remote UI modules is only ever started by
+      // the user ("Switch Process UI Module").
+      const offered = !leftOut && vscode.workspace.isTrusted && !installOfferHidden(context, folder);
+      provider.setUnsetFolder(folder.uri.toString(), offered ? folder.name : undefined);
       return;
     }
+    provider.setUnsetFolder(folder.uri.toString(), undefined);
     for (const deployment of found) {
       const wc = workingCopyState(deployment.projectRoot);
       if (wc.state !== "reachable") {
@@ -221,11 +223,10 @@ export function activate(context: vscode.ExtensionContext): void {
         ),
       );
       if (vscode.workspace.isTrusted) {
-        void offerToSyncKernel(context, target, corpusRoot, agentBridgeOutputChannel);
+        queueSyncOffer(target, corpusRoot);
       }
     }
     updateStatusBar();
-    assignPanels(deploymentTargets);
   }
 
   function teardownDeployment(corpusRoot: string): void {
@@ -246,8 +247,8 @@ export function activate(context: vscode.ExtensionContext): void {
       teardownDeployment(corpusRoot);
     }
     folderDeployments.delete(folder.uri.toString());
+    provider.setUnsetFolder(folder.uri.toString(), undefined);
     updateStatusBar();
-    assignPanels(deploymentTargets);
   }
 
   function reresolveAll(): void {
@@ -310,7 +311,8 @@ export function activate(context: vscode.ExtensionContext): void {
     restoreKernelVersion([...deploymentTargets.keys()].map((root) => readDeployedKernelVersion(root))),
   );
   if (localRes && localRes.success) {
-    void vscode.window.showInformationMessage(
+    // Reported, not notified (REQ-000069-UVqkd7cL).
+    agentBridgeOutputChannel.appendLine(
       `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
   } else if (localRes && !localRes.success) {
@@ -467,6 +469,16 @@ export function activate(context: vscode.ExtensionContext): void {
       // a bulk git operation) or the user just wants certainty right now.
       for (const registered of registeredDeployments.values()) {
         registered.handle.refresh();
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SET_UP_FOLDER_COMMAND, async (folderUri: string) => {
+      const folder = vscode.workspace.workspaceFolders?.find((f) => f.uri.toString() === folderUri);
+      if (folder && (await offerToInstall(context, folder))) {
+        teardownFolder(folder);
+        resolveFolder(folder);
       }
     }),
   );
