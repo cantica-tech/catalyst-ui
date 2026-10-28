@@ -1,0 +1,3 @@
+# A sample criterion the core tests read: test data, not catalyst-ui's own documents, so neither catalyst nor a
+# knowledge base built off this repository reads it.
+packages/catalyst-core/src/test/fixtures
