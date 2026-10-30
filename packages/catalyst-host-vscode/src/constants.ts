@@ -35,6 +35,10 @@ export const SET_UP_FOLDER_COMMAND = "catalyst.setUpFolder";
 
 /** The local system account's check (REQ-000064-UVqkd7cL). */
 export const CHECK_IAM_ACCOUNT_COMMAND = "catalyst.checkIamAccount";
+/** Log a person in to catalyst-users with their username and password (vscode-IAM-000002-UVqkd7cL). */
+export const IAM_LOGIN_COMMAND = "catalyst.iam.login";
+/** The context value of a user in the side bar, for its context menu. */
+export const USER_ITEM_CONTEXT = "catalystUser";
 
 export const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 

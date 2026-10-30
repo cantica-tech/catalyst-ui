@@ -90,6 +90,10 @@
       "type": "string",
       "description": "adopt: the commit made outside catalyst that the entry records."
     },
+    "commit_author": {
+      "type": "string",
+      "description": "adopt: the commit's git author, as the journal names people; information only, the actor is the signer (BUG-000044)."
+    },
     "origin": {
       "type": "string",
       "description": "adopt: how the change was made (`manual`)."
