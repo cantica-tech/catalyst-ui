@@ -1,6 +1,6 @@
 import * as assert from "assert";
 
-import { panelKeysFor, parseWebviewMessage, webviewCsp } from "../webview-protocol.js";
+import { panelKeysFor, parseDirectoryMessage, parseWebviewMessage, webviewCsp } from "../webview-protocol.js";
 
 describe("webview protocol (B-02, B-10, B-11)", () => {
   it("accepts only a well-formed openReference message", () => {
@@ -18,6 +18,25 @@ describe("webview protocol (B-02, B-10, B-11)", () => {
       { type: "runCommand", id: "REQ-000001" },
     ]) {
       assert.strictEqual(parseWebviewMessage(bad), null, JSON.stringify(bad));
+    }
+  });
+
+  it("accepts only a well-formed openDirectory message (vscode-IAM-000003)", () => {
+    assert.deepStrictEqual(parseDirectoryMessage({ type: "openDirectory", kind: "group", name: "/cantica-tech/a b" }), {
+      type: "openDirectory",
+      kind: "group",
+      name: "/cantica-tech/a b",
+    });
+    for (const bad of [
+      null,
+      { type: "openDirectory", kind: "user" },
+      { type: "openDirectory", kind: "admin", name: "alice" },
+      { type: "openDirectory", kind: "user", name: "" },
+      { type: "openDirectory", kind: "user", name: "x".repeat(257) },
+      { type: "openDirectory", kind: "user", name: "alice\n; rm" },
+      { type: "openReference", kind: "user", name: "alice" },
+    ]) {
+      assert.strictEqual(parseDirectoryMessage(bad), null, JSON.stringify(bad));
     }
   });
 

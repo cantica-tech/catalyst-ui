@@ -1,5 +1,6 @@
 import type {
   AgentBinding,
+  DirectoryKind,
   KernelVersionInfo,
   RemoteModuleInfo,
   UiModuleManifest,
@@ -50,21 +51,19 @@ import {
   SEND_TO_AGENT_CHAT_COMMAND,
   SET_UP_FOLDER_COMMAND,
   SHOW_DETAIL_COMMAND,
-  SHOW_IAM_DETAIL_COMMAND,
   SWITCH_UI_MODULE_COMMAND,
   TRACK_SETTING,
   VIEW_ID,
+  OPEN_DIRECTORY_COMMAND,
+  REFRESH_USERS_COMMAND,
+  USERS_VIEW_ID,
 } from "./constants.js";
 import type { DeploymentTarget, RegisteredDeployment } from "./vscode/deployments.js";
 import { journalByCorpus, setupDeployment } from "./vscode/deployments.js";
-import {
-  buildIamRoleDetail,
-  buildIamUserDetail,
-  buildNodeDetail,
-  buildReferenceTable,
-  referencesForNode,
-} from "catalyst-app-model";
+import { buildNodeDetail, buildReferenceTable, referencesForNode } from "catalyst-app-model";
+import { groupDocument, roleDocument, userDocument } from "./directory.js";
 import { ChainInspectorProvider } from "./vscode/inspector.js";
+import { UsersProvider } from "./vscode/users-view.js";
 import type { PendingSync } from "./vscode/onboarding.js";
 import {
   installOfferHidden,
@@ -73,11 +72,18 @@ import {
   pendingSyncFor,
   resolveChatAgentDef,
 } from "./vscode/onboarding.js";
-import { LEGACY_IAM_PASSWORD_SECRET, loginNameFor, passwordLogin, readIamSettings, systemWhoami } from "./iam.js";
+import {
+  type Answer,
+  LEGACY_IAM_PASSWORD_SECRET,
+  loginNameFor,
+  passwordLogin,
+  readIamSettings,
+  systemWhoami,
+} from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
-import { panelKeysFor, parseWebviewMessage } from "./webview-protocol.js";
+import { panelKeysFor, parseDirectoryMessage, parseWebviewMessage } from "./webview-protocol.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const host = new VscodeHost(context);
@@ -92,6 +98,28 @@ export function activate(context: vscode.ExtensionContext): void {
   // (REQ-000017-UVqkd7cL).
   const instancesView = vscode.window.createTreeView(VIEW_ID, { treeDataProvider: provider });
   context.subscriptions.push(instancesView);
+
+  // The Users panel (vscode-IAM-000003-UVqkd7cL): users, roles and groups from catalyst-users, never in an
+  // entity tree; read when shown or refreshed.
+  const iamSettings = () => {
+    const config = vscode.workspace.getConfiguration("catalyst");
+    return readIamSettings((key) => config.get(key));
+  };
+  const usersProvider = new UsersProvider(iamSettings);
+  const usersView = vscode.window.createTreeView(USERS_VIEW_ID, { treeDataProvider: usersProvider });
+  context.subscriptions.push(
+    usersView,
+    vscode.commands.registerCommand(REFRESH_USERS_COMMAND, () => {
+      usersProvider.refresh();
+    }),
+  );
+  /** Select a user, role or group in the Users panel, while it is visible, never moving focus. */
+  async function revealDirectory(kind: DirectoryKind, name: string): Promise<void> {
+    if (!vscode.workspace.getConfiguration("catalyst").get<boolean>(TRACK_SETTING, true)) return;
+    if (!usersView.visible) return;
+    const element = await usersProvider.find(kind, name);
+    if (element) await usersView.reveal(element, { select: true, focus: false, expand: false });
+  }
   /** Select a node under its deployment — only while the view is visible, never moving focus. */
   function revealNode(corpusRoot: string, nodeId: string): void {
     if (!vscode.workspace.getConfiguration("catalyst").get<boolean>(TRACK_SETTING, true)) return;
@@ -437,8 +465,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!gitInfo) return;
 
       if (!pointer?.repoed) {
-        const users = provider.getUsers(corpusRoot);
-        const suggested = users[0] ? suggestCriterionBranch(users[0].name) : undefined;
+        const suggested = pointer?.created_by ? suggestCriterionBranch(pointer.created_by) : undefined;
         if (suggested) {
           void vscode.window.showInformationMessage(
             `The agent will ask which branch to push to — the suggested default is "${suggested}"; choosing "criterion" itself is also valid (single-maintainer mode).`,
@@ -518,14 +545,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // handed to catalyst-users on standard input; no provider page, nothing kept.
   let loggingIn = false;
   context.subscriptions.push(
-    vscode.commands.registerCommand(IAM_LOGIN_COMMAND, async (element?: { user?: { name?: unknown } }) => {
+    vscode.commands.registerCommand(IAM_LOGIN_COMMAND, async (element?: { user?: { username?: unknown } }) => {
       if (loggingIn) {
         void vscode.window.showInformationMessage("Catalyst: a catalyst-users login is already running.");
         return;
       }
-      const config = vscode.workspace.getConfiguration("catalyst");
-      const settings = readIamSettings((key) => config.get(key));
-      const named = typeof element?.user?.name === "string" ? element.user.name : "";
+      const settings = iamSettings();
+      const named = typeof element?.user?.username === "string" ? element.user.username : "";
       const username = await vscode.window.showInputBox({
         title: "Log in to catalyst-users",
         prompt: "Your username",
@@ -548,10 +574,12 @@ export function activate(context: vscode.ExtensionContext): void {
           () => passwordLogin(settings, username.trim(), password),
         );
         if (answer.problem !== undefined) void vscode.window.showWarningMessage(`Catalyst: ${answer.problem}.`);
-        else
+        else {
           void vscode.window.showInformationMessage(
             `Catalyst: logged in to catalyst-users as ${answer.value.username} (${answer.value.name}).`,
           );
+          usersProvider.refresh();
+        }
       } finally {
         loggingIn = false;
       }
@@ -828,6 +856,11 @@ export function activate(context: vscode.ExtensionContext): void {
       // A click on an entity reference opens that entity, in this
       // project (REQ-000014-UVqkd7cL); anything else is ignored.
       created.webview.onDidReceiveMessage((message: unknown) => {
+        const link = parseDirectoryMessage(message);
+        if (link) {
+          void vscode.commands.executeCommand(OPEN_DIRECTORY_COMMAND, link.kind, link.name);
+          return;
+        }
         const msg = parseWebviewMessage(message);
         if (msg) {
           const target = msg.id;
@@ -886,33 +919,39 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
   );
 
+  // A user's, role's or group's document (vscode-IAM-000003-UVqkd7cL), read through catalyst-users when opened.
+  const DIRECTORY_PANELS = "catalyst-users";
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      SHOW_IAM_DETAIL_COMMAND,
-      (corpusRoot: string, kind: "user" | "role", name: string) => {
-        if (kind === "user") {
-          showDetailPanel(`iam-user:${corpusRoot}:${name}`, corpusRoot, `User: ${name}`, () => {
-            const user = provider.getUsers(corpusRoot).find((u) => u.name === name);
-            if (!user) return null;
-            return {
-              type: "iam-user",
-              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-              ...buildIamUserDetail(user, provider.getRoles(corpusRoot)),
-            };
-          });
-        } else {
-          showDetailPanel(`iam-role:${corpusRoot}:${name}`, corpusRoot, `Role: ${name}`, () => {
-            const role = provider.getRoles(corpusRoot).find((r) => r.name === name);
-            if (!role) return null;
-            return {
-              type: "iam-role",
-              kernelVersionInfo: getKernelVersionInfo(corpusRoot),
-              ...buildIamRoleDetail(role, provider.getUsers(corpusRoot)),
-            };
-          });
-        }
-      },
-    ),
+    vscode.commands.registerCommand(OPEN_DIRECTORY_COMMAND, async (kind: DirectoryKind, name: string) => {
+      const directory = await usersProvider.current();
+      if (!directory) {
+        void vscode.window.showWarningMessage("Catalyst: catalyst-users did not answer — see the Users panel.");
+        return;
+      }
+      const settings = iamSettings();
+      const answer =
+        kind === "user"
+          ? await withFound(
+              directory.users.find((u) => u.username === name),
+              (u) => userDocument(settings, u),
+            )
+          : kind === "role"
+            ? await withFound(
+                directory.roles.find((r) => r.name === name),
+                (r) => roleDocument(settings, r),
+              )
+            : await withFound(
+                directory.groups.find((g) => g.path === name),
+                (g) => groupDocument(settings, g),
+              );
+      if (answer.problem !== undefined) {
+        void vscode.window.showWarningMessage(`Catalyst: ${answer.problem}.`);
+        return;
+      }
+      const title = `${kind === "user" ? "User" : kind === "role" ? "Role" : "Group"}: ${name}`;
+      showDetailPanel(`directory:${kind}:${name}`, DIRECTORY_PANELS, title, () => answer.value);
+      await revealDirectory(kind, name);
+    }),
   );
 
   /**
@@ -981,6 +1020,14 @@ export function activate(context: vscode.ExtensionContext): void {
       });
     }),
   );
+}
+
+/** `read(found)`, or a problem naming what was not found: a user, role or group no longer in the directory. */
+async function withFound<T>(
+  found: T | undefined,
+  read: (found: T) => Promise<Answer<WebviewPayload>>,
+): Promise<Answer<WebviewPayload>> {
+  return found === undefined ? { problem: "it is no longer in the directory — refresh the Users panel" } : read(found);
 }
 
 export function deactivate(): void {

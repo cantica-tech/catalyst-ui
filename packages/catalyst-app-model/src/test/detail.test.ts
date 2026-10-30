@@ -1,16 +1,9 @@
 import { describe, it } from "vitest";
 import * as assert from "assert";
 
-import type { ChainModel, ChainNode, IamRole, IamUser } from "catalyst-core";
+import type { ChainModel, ChainNode } from "catalyst-core";
 
-import {
-  buildIamRoleDetail,
-  buildIamUserDetail,
-  buildNodeDetail,
-  buildReferenceTable,
-  describeFromContent,
-  shortSummary,
-} from "../detail.js";
+import { buildNodeDetail, buildReferenceTable, describeFromContent, shortSummary } from "../detail.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
@@ -20,20 +13,6 @@ function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
     references: [],
     ...overrides,
   } as ChainNode;
-}
-
-function user(overrides: Partial<IamUser> & { name: string }): IamUser {
-  return {
-    roles: [],
-    registered: "2026-01-01",
-    active: true,
-    notes: "",
-    ...overrides,
-  };
-}
-
-function role(overrides: Partial<IamRole> & { name: string }): IamRole {
-  return { actions: [], ...overrides };
 }
 
 describe("buildNodeDetail", () => {
@@ -182,49 +161,6 @@ describe("buildNodeDetail", () => {
       testDetail.upstream.map((n) => n.id),
       ["REQ-000001", "STEP-000001"],
     );
-  });
-});
-
-describe("buildIamUserDetail", () => {
-  it("resolves the role objects a user's roles array names, sorted by name", () => {
-    const alice = user({ name: "alice", roles: ["Tech Lead", "Developer"] });
-    const roles = [role({ name: "Developer" }), role({ name: "Tech Lead" }), role({ name: "QA" })];
-
-    const detail = buildIamUserDetail(alice, roles);
-    assert.strictEqual(detail.user, alice);
-    assert.deepStrictEqual(
-      detail.roles.map((r) => r.name),
-      ["Developer", "Tech Lead"],
-    );
-  });
-
-  it("returns an empty roles list when none of the user's role names match", () => {
-    const alice = user({ name: "alice", roles: ["Ghost Role"] });
-    const detail = buildIamUserDetail(alice, [role({ name: "Developer" })]);
-    assert.deepStrictEqual(detail.roles, []);
-  });
-});
-
-describe("buildIamRoleDetail", () => {
-  it("resolves every user whose roles array names this role, sorted by name", () => {
-    const developer = role({ name: "Developer" });
-    const users = [
-      user({ name: "bob", roles: ["Developer"] }),
-      user({ name: "alice", roles: ["Developer"] }),
-      user({ name: "carol", roles: ["Tech Lead"] }),
-    ];
-
-    const detail = buildIamRoleDetail(developer, users);
-    assert.strictEqual(detail.role, developer);
-    assert.deepStrictEqual(
-      detail.users.map((u) => u.name),
-      ["alice", "bob"],
-    );
-  });
-
-  it("returns an empty users list when no user has this role", () => {
-    const detail = buildIamRoleDetail(role({ name: "Orphan Role" }), [user({ name: "alice", roles: ["Developer"] })]);
-    assert.deepStrictEqual(detail.users, []);
   });
 });
 

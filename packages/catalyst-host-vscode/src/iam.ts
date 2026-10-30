@@ -91,7 +91,7 @@ export const runCommand: RunCommand = (file, args) =>
   });
 
 /** Runs `<command> --json <args>` and parses what it prints. */
-async function catalystUsers(settings: IamSettings, args: string[], run: RunCommand): Promise<Answer<unknown>> {
+export async function catalystUsers(settings: IamSettings, args: string[], run: RunCommand): Promise<Answer<unknown>> {
   let words: string[];
   try {
     words = splitCommand(settings.command);

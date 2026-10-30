@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
   "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
-  "version": "0.67.0",
+  "version": "0.68.0",
   "private": true,
   "license": "Apache-2.0",
   "publisher": "CanticaTech",
@@ -51,6 +51,11 @@
           "id": "catalystChainInspector",
           "name": "Instance(s)",
           "icon": "resources/catalyst.svg"
+        },
+        {
+          "id": "catalystUsers",
+          "name": "Users",
+          "icon": "resources/catalyst.svg"
         }
       ]
     },
@@ -58,10 +63,6 @@
       {
         "command": "catalyst.showNodeDetail",
         "title": "Catalyst: Show Node Detail"
-      },
-      {
-        "command": "catalyst.showIamDetail",
-        "title": "Catalyst: Show User/Role Detail"
       },
       {
         "command": "catalyst.openJournal",
@@ -119,6 +120,15 @@
       {
         "command": "catalyst.iam.login",
         "title": "Catalyst: Log In to catalyst-users"
+      },
+      {
+        "command": "catalyst.users.refresh",
+        "title": "Catalyst: Refresh Users",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "catalyst.users.open",
+        "title": "Catalyst: Open a User, Role or Group"
       }
     ],
     "menus": {
@@ -147,12 +157,23 @@
           "command": "catalyst.openSettings",
           "when": "view == catalystChainInspector",
           "group": "navigation@4"
+        },
+        {
+          "command": "catalyst.users.refresh",
+          "when": "view == catalystUsers",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [
         {
           "command": "catalyst.iam.login",
-          "when": "view == catalystChainInspector && viewItem == catalystUser"
+          "when": "view == catalystUsers && viewItem == catalystUser"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "catalyst.users.open",
+          "when": "false"
         }
       ]
     },

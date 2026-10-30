@@ -125,6 +125,21 @@ describe("buildTreeSections (catalyst roadmap R6.7: the module's types, none nam
     );
   });
 
+  it("places every entity once, in its own type's section, whatever cites it (vscode-INSPECTOR-000002)", () => {
+    const req = artifact("REQ-000001");
+    const step = { ...artifact("STEP-000001"), links: { Parent: ["REQ-000001"] } };
+    const test = { ...artifact("TEST-000001"), links: { Requirements: ["REQ-000001"], Steps: ["STEP-000001"] } };
+    const model = modelOf(
+      [req, step, test],
+      [type("REQ", "Requirements"), type("STEP", "Steps"), type("TEST", "Tests")],
+    );
+    model.reverseEdges.set("REQ-000001", new Set(["STEP-000001", "TEST-000001"]));
+    model.reverseEdges.set("STEP-000001", new Set(["TEST-000001"]));
+    const { artifacts } = buildTreeSections(model);
+    const placed = artifacts.sections.flatMap((s) => s.nodes.map((n) => `${s.typePrefix}:${n.id}`));
+    assert.deepStrictEqual(placed.sort(), ["REQ:REQ-000001", "STEP:STEP-000001", "TEST:TEST-000001"]);
+  });
+
   it("groups rules into rule-type sections with Rules of Rules (rr) first", () => {
     const { rules } = buildTreeSections(
       modelOf([rule("ui-BOOT-001", "ui"), rule("env-RUNTIME-001", "env"), rule("rr-META-003", "rr")]),
