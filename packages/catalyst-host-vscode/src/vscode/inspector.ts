@@ -8,6 +8,7 @@ import {
   SHOW_DETAIL_COMMAND,
   SET_UP_FOLDER_COMMAND,
   SHOW_IAM_DETAIL_COMMAND,
+  USER_ITEM_CONTEXT,
 } from "../constants.js";
 import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
 import { buildRowSections, type RowGroup, type RowSection } from "catalyst-app-model";
@@ -278,6 +279,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         arguments: [element.corpusRoot, "user", element.user.name],
       };
       item.iconPath = this.iconUris("users");
+      item.contextValue = USER_ITEM_CONTEXT;
       return item;
     }
     if (element.type === "role-section") {

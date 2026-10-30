@@ -115,6 +115,10 @@
       {
         "command": "catalyst.checkIamAccount",
         "title": "Catalyst: Check IAM Account"
+      },
+      {
+        "command": "catalyst.iam.login",
+        "title": "Catalyst: Log In to catalyst-users"
       }
     ],
     "menus": {
@@ -143,6 +147,12 @@
           "command": "catalyst.openSettings",
           "when": "view == catalystChainInspector",
           "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "catalyst.iam.login",
+          "when": "view == catalystChainInspector && viewItem == catalystUser"
         }
       ]
     },

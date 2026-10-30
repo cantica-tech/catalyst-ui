@@ -3,7 +3,16 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { readIamSettings, splitCommand, systemToken, systemWhoami, type RunCommand } from "../iam.js";
+import {
+  loginNameFor,
+  passwordLogin,
+  readIamSettings,
+  splitCommand,
+  systemToken,
+  systemWhoami,
+  type RunCommand,
+  type RunWithInput,
+} from "../iam.js";
 
 const settings = (command?: unknown) => readIamSettings((key) => (key === "iam.command" ? command : undefined));
 
@@ -94,5 +103,50 @@ describe("the local system account through catalyst-users (REQ-000064)", () => {
     assert.strictEqual(answer.value?.username, "service-account-catalyst-system");
     const missing = await systemWhoami(settings("/no/such/catalyst-users"));
     assert.match(missing.problem ?? "", /\/no\/such\/catalyst-users was not found/);
+  });
+});
+
+describe("a person's password login through catalyst-users (REQ-000070)", () => {
+  const SIGNER = { iss: WHOAMI.iss, sub: "u-1", username: "oliviersteck", name: "Olivier Steck", at: WHOAMI.at };
+
+  it("passes the password on standard input, never as an argument", async () => {
+    const seen: { file: string; args: string[]; input: string }[] = [];
+    const run: RunWithInput = (file, args, input) => {
+      seen.push({ file, args, input });
+      return Promise.resolve(JSON.stringify(SIGNER));
+    };
+    const answer = await passwordLogin(settings("uv run catalyst-users"), "oliviersteck", "pw-1", run);
+    assert.deepStrictEqual(answer.value, { username: "oliviersteck", name: "Olivier Steck" });
+    assert.deepStrictEqual(seen[0].args, [
+      "run",
+      "catalyst-users",
+      "--json",
+      "login",
+      "--password",
+      "--username",
+      "oliviersteck",
+    ]);
+    assert.strictEqual(seen[0].file, "uv");
+    assert.strictEqual(seen[0].input, "pw-1");
+    assert.ok(!seen[0].args.includes("pw-1"));
+  });
+
+  it("reports a refused login without the password", async () => {
+    const run: RunWithInput = () =>
+      Promise.reject(new Error("catalyst-users: error: invalid_grant: Invalid user credentials (pw-1)"));
+    const answer = await passwordLogin(settings(), "oliviersteck", "pw-1", run);
+    assert.ok(answer.problem?.includes("could not log oliviersteck in"));
+    assert.ok(!answer.problem?.includes("pw-1"));
+  });
+
+  it("says when catalyst-users is too old or the command is wrong", async () => {
+    const notJson: RunWithInput = () => Promise.resolve("usage: catalyst-users login");
+    assert.match((await passwordLogin(settings(), "a", "b", notJson)).problem ?? "", /0\.9\.0 or later/);
+    assert.match((await passwordLogin(settings(`run "x`), "a", "b", notJson)).problem ?? "", /unclosed/);
+  });
+
+  it("offers a login name for a user shown by name", () => {
+    assert.strictEqual(loginNameFor(" Olivier Steck "), "oliviersteck");
+    assert.strictEqual(loginNameFor("ada"), "ada");
   });
 });

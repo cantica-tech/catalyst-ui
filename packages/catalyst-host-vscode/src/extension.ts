@@ -36,6 +36,7 @@ import { openStudio } from "./vscode/studio-panel.js";
 import { VscodeHost } from "./vscode/vscode-host.js";
 import {
   CHECK_IAM_ACCOUNT_COMMAND,
+  IAM_LOGIN_COMMAND,
   CONFIGURE_CRITERION_COMMAND,
   DIAGNOSTIC_COLLECTION_NAME,
   IGNORED_FOLDERS_SETTING,
@@ -72,7 +73,7 @@ import {
   pendingSyncFor,
   resolveChatAgentDef,
 } from "./vscode/onboarding.js";
-import { LEGACY_IAM_PASSWORD_SECRET, readIamSettings, systemWhoami } from "./iam.js";
+import { LEGACY_IAM_PASSWORD_SECRET, loginNameFor, passwordLogin, readIamSettings, systemWhoami } from "./iam.js";
 import { PANEL_GROUPING_SETTING, readGrouping, targetColumn, type OpenDetailPanel } from "./panel-groups.js";
 import { devcontainerMount, environmentLabel, unreachableAdvice } from "./remote.js";
 import { renderWebviewHtml } from "./vscode/webview-html.js";
@@ -510,6 +511,50 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.window.showInformationMessage(
         `IAM system account: ${who.username} at ${who.issuer} (via ${settings.command}); roles ${list(who.roles)}; grants ${list(who.grants)}.`,
       );
+    }),
+  );
+
+  // A person's login through catalyst-users (vscode-IAM-000002-UVqkd7cL): a username and a password asked here,
+  // handed to catalyst-users on standard input; no provider page, nothing kept.
+  let loggingIn = false;
+  context.subscriptions.push(
+    vscode.commands.registerCommand(IAM_LOGIN_COMMAND, async (element?: { user?: { name?: unknown } }) => {
+      if (loggingIn) {
+        void vscode.window.showInformationMessage("Catalyst: a catalyst-users login is already running.");
+        return;
+      }
+      const config = vscode.workspace.getConfiguration("catalyst");
+      const settings = readIamSettings((key) => config.get(key));
+      const named = typeof element?.user?.name === "string" ? element.user.name : "";
+      const username = await vscode.window.showInputBox({
+        title: "Log in to catalyst-users",
+        prompt: "Your username",
+        value: loginNameFor(named),
+        ignoreFocusOut: true,
+        validateInput: (value) => (value.trim() ? undefined : "A username is needed"),
+      });
+      if (!username?.trim()) return;
+      const password = await vscode.window.showInputBox({
+        title: `Log in to catalyst-users as ${username.trim()}`,
+        prompt: "Your password: sent to catalyst-users, which sends it only to the identity provider",
+        password: true,
+        ignoreFocusOut: true,
+      });
+      if (!password) return;
+      loggingIn = true;
+      try {
+        const answer = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Catalyst: logging ${username.trim()} in…` },
+          () => passwordLogin(settings, username.trim(), password),
+        );
+        if (answer.problem !== undefined) void vscode.window.showWarningMessage(`Catalyst: ${answer.problem}.`);
+        else
+          void vscode.window.showInformationMessage(
+            `Catalyst: logged in to catalyst-users as ${answer.value.username} (${answer.value.name}).`,
+          );
+      } finally {
+        loggingIn = false;
+      }
     }),
   );
 
