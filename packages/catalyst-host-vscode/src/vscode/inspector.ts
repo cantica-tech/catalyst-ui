@@ -1,4 +1,4 @@
-import type { ChainModel, ChainNode, EntityDefinition, IamRole, IamUser, ModuleType, RowNode } from "catalyst-core";
+import type { ChainModel, ChainNode, EntityDefinition, ModuleType, RowNode } from "catalyst-core";
 import * as vscode from "vscode";
 
 import { codiconFor } from "../codicons.js";
@@ -7,10 +7,7 @@ import {
   OPEN_JOURNAL_COMMAND,
   SHOW_DETAIL_COMMAND,
   SET_UP_FOLDER_COMMAND,
-  SHOW_IAM_DETAIL_COMMAND,
-  USER_ITEM_CONTEXT,
 } from "../constants.js";
-import { buildRoleSection, buildUserSection, type RoleSection, type UserSection } from "catalyst-app-model";
 import { buildRowSections, type RowGroup, type RowSection } from "catalyst-app-model";
 import { breadthFirst, childId, itemKey } from "catalyst-app-model";
 import {
@@ -27,8 +24,6 @@ export interface DeploymentView {
   folderName: string;
   projectRoot: string;
   model: ChainModel;
-  users: IamUser[];
-  roles: IamRole[];
   /** The deployed definitions, as catalyst serves them. */
   definitions: EntityDefinition[];
 }
@@ -44,10 +39,6 @@ export type InspectorTreeItem =
   | { type: "node"; corpusRoot: string; node: ChainNode }
   | { type: "row-section"; corpusRoot: string; section: RowSection }
   | { type: "row-group"; corpusRoot: string; group: RowGroup }
-  | { type: "user-section"; corpusRoot: string; section: UserSection }
-  | { type: "user"; corpusRoot: string; user: IamUser }
-  | { type: "role-section"; corpusRoot: string; section: RoleSection }
-  | { type: "role"; corpusRoot: string; role: IamRole }
   | { type: "separator" }
   | { type: "journal-entry"; corpusRoot: string }
   | { type: "backlog-entry"; corpusRoot: string };
@@ -56,8 +47,6 @@ export type InspectorTreeItem =
 export const ENTITY_TYPE_LABELS: Partial<Record<string, string>> = {
   rule: "Rule",
   domain: "Domain",
-  user: "User",
-  role: "Role",
   journal: "Journal",
   backlog: "Backlog",
 };
@@ -128,8 +117,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     folderName: string,
     projectRoot: string,
     model: ChainModel,
-    users: IamUser[],
-    roles: IamRole[],
     definitions: EntityDefinition[] = [],
   ): void {
     this.deployments.set(corpusRoot, {
@@ -137,8 +124,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       folderName,
       projectRoot,
       model,
-      users,
-      roles,
       definitions,
     });
     this.changeEmitter.fire();
@@ -171,16 +156,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   getFolderName(corpusRoot: string): string | undefined {
     return this.deployments.get(corpusRoot)?.folderName;
-  }
-
-  /** Every registered user for this deployment — for the Users section and IAM cross-referencing. */
-  getUsers(corpusRoot: string): IamUser[] {
-    return this.deployments.get(corpusRoot)?.users ?? [];
-  }
-
-  /** Every registered role for this deployment — for the Roles section and IAM cross-referencing. */
-  getRoles(corpusRoot: string): IamRole[] {
-    return this.deployments.get(corpusRoot)?.roles ?? [];
   }
 
   /** The deployment's definitions, as catalyst served them; none before it answers. */
@@ -264,40 +239,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       if (model && prefix) item.iconPath = this.typeIcon(model, prefix);
       return item;
     }
-    if (element.type === "user-section") {
-      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("users");
-      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["user"]);
-      return item;
-    }
-    if (element.type === "user") {
-      const inactiveMark = element.user.active ? "" : " (inactive)";
-      const item = new vscode.TreeItem(`${element.user.name}${inactiveMark}`, vscode.TreeItemCollapsibleState.None);
-      item.command = {
-        command: SHOW_IAM_DETAIL_COMMAND,
-        title: "Show detail",
-        arguments: [element.corpusRoot, "user", element.user.name],
-      };
-      item.iconPath = this.iconUris("users");
-      item.contextValue = USER_ITEM_CONTEXT;
-      return item;
-    }
-    if (element.type === "role-section") {
-      const item = new vscode.TreeItem(element.section.label, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("roles");
-      item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["role"]);
-      return item;
-    }
-    if (element.type === "role") {
-      const item = new vscode.TreeItem(element.role.name, vscode.TreeItemCollapsibleState.None);
-      item.command = {
-        command: SHOW_IAM_DETAIL_COMMAND,
-        title: "Show detail",
-        arguments: [element.corpusRoot, "role", element.role.name],
-      };
-      item.iconPath = this.iconUris("roles");
-      return item;
-    }
     if (element.type === "separator") {
       return new vscode.TreeItem("─".repeat(24), vscode.TreeItemCollapsibleState.None);
     }
@@ -329,12 +270,9 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       element.node.kind === "artifact" || element.node.kind === "row"
         ? nodeModel?.types?.get(element.node.typePrefix)
         : undefined;
-    const item = new vscode.TreeItem(
-      formatNodeLabel(element.node, nodeType),
-      this.hasChildNodes(element.corpusRoot, element.node)
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None,
-    );
+    // An entity has one node, never with children: its relationships are
+    // links in the document it opens (vscode-INSPECTOR-000002-UVqkd7cL).
+    const item = new vscode.TreeItem(formatNodeLabel(element.node, nodeType), vscode.TreeItemCollapsibleState.None);
     item.command = {
       command: SHOW_DETAIL_COMMAND,
       title: "Show detail",
@@ -348,32 +286,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return item;
   }
 
-  /**
-   * The artifacts that cite `node` through one of their reference fields
-   * (a step's parent, a test's requirements…), nested under it in the tree
-   * on top of their own type's section — whatever the module's types are.
-   * Mentions in prose do not nest.
-   */
-  private citers(corpusRoot: string, node: ChainNode): ChainNode[] {
-    if (node.kind !== "artifact") return [];
-    const model = this.getModel(corpusRoot);
-    const reverse = model?.reverseEdges.get(node.id);
-    if (!model || !reverse) return [];
-    const cites = (ref: string) => ref === node.id || node.id.startsWith(`${ref}-`);
-    return [...reverse]
-      .map((id) => model.nodes.get(id))
-      .filter((n): n is ChainNode => n?.kind === "artifact" && Object.values(n.links).some((ids) => ids.some(cites)))
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  private hasChildNodes(corpusRoot: string, node: ChainNode): boolean {
-    return this.citers(corpusRoot, node).length > 0;
-  }
-
-  private childNodesFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
-    return this.citers(corpusRoot, node).map((childNode) => ({ type: "node" as const, corpusRoot, node: childNode }));
-  }
-
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
     const { artifacts, rules, domains } = buildTreeSections(view.model);
     const sections: InspectorTreeItem[] = [
@@ -385,16 +297,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     for (const section of buildRowSections(rows, view.model.types)) {
       sections.push({ type: "row-section", corpusRoot: view.corpusRoot, section });
     }
-    sections.push({
-      type: "user-section",
-      corpusRoot: view.corpusRoot,
-      section: buildUserSection(view.users),
-    });
-    sections.push({
-      type: "role-section",
-      corpusRoot: view.corpusRoot,
-      section: buildRoleSection(view.roles),
-    });
     sections.push({ type: "journal-entry", corpusRoot: view.corpusRoot });
     sections.push({ type: "backlog-entry", corpusRoot: view.corpusRoot });
     return sections;
@@ -430,14 +332,14 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return this.parents.get(element);
   }
 
-  /** A node's first, shallowest occurrence under its deployment. */
+  /** An entity's one node under its deployment. */
   findNode(corpusRoot: string, nodeId: string): InspectorTreeItem | undefined {
     const deployment = this.getChildren().find((item) => item.type === "deployment" && item.corpusRoot === corpusRoot);
     if (!deployment) return undefined;
     return breadthFirst(
       this.getChildren(deployment),
       (item) => {
-        if (item.type === "node") return []; // a node's own children never hold its first occurrence
+        if (item.type === "node") return []; // an entity node has no children
         if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
         return this.getChildren(item);
       },
@@ -507,23 +409,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         corpusRoot: element.corpusRoot,
         node,
       }));
-    }
-    if (element.type === "user-section") {
-      return element.section.users.map((user) => ({
-        type: "user",
-        corpusRoot: element.corpusRoot,
-        user,
-      }));
-    }
-    if (element.type === "role-section") {
-      return element.section.roles.map((role) => ({
-        type: "role",
-        corpusRoot: element.corpusRoot,
-        role,
-      }));
-    }
-    if (element.type === "node") {
-      return this.childNodesFor(element.corpusRoot, element.node);
     }
     return [];
   }

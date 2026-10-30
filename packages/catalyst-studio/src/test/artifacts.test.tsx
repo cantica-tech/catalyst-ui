@@ -93,9 +93,29 @@ describe("the artifacts list (studio-SHELL-000002)", () => {
     });
     expect(opened).toEqual(["ITEM-000001"]);
   });
+
+  it("lists every entity once, under its own type, never beneath what it cites (studio-SHELL-000030)", () => {
+    const citing = makeGraph({
+      types: graph.types,
+      artifacts: [
+        art({ id: "ITEM-000001", type: "ITEM", title: "First", file: "items/x.md", links: { Subs: ["SUB-000001"] } }),
+        art({ id: "SUB-000001", type: "SUB", title: "Part", file: "subs/y.md", links: { Parent: ["ITEM-000001"] } }),
+      ],
+    });
+    render(<ArtifactList graph={citing} onOpen={() => undefined} />);
+    const entries = [...host.querySelectorAll("section")].map((s) => [
+      s.querySelector("h3")?.textContent,
+      [...s.querySelectorAll("li code")].map((c) => c.textContent),
+    ]);
+    expect(entries).toEqual([
+      ["Items (1)", ["ITEM-000001"]],
+      ["Subs (1)", ["SUB-000001"]],
+    ]);
+    expect(host.querySelectorAll("li li")).toHaveLength(0);
+  });
 });
 
-describe("the entity page (studio-SHELL-000002)", () => {
+describe("the entity page (studio-SHELL-000002, studio-SHELL-000030)", () => {
   it("shows the type's fields, citations, sections, moves, citers and journal", async () => {
     const opened: string[] = [];
     render(<EntityPage entity={entity} type={item} onOpen={(id) => opened.push(id)} onBack={() => undefined} />);

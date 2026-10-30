@@ -159,6 +159,35 @@ export interface IamRole {
   actions: string[];
 }
 
+/** A person of the identity provider, as catalyst-users lists them (`users list`). */
+export interface DirectoryUser {
+  username: string;
+  name: string;
+  email: string | null;
+  enabled: boolean;
+}
+
+/** A realm role of the identity provider (`roles list`). */
+export interface DirectoryRole {
+  name: string;
+  description: string;
+}
+
+/** A group of the identity provider, named by its full path, with the realm roles granted to it (`groups list`). */
+export interface DirectoryGroup {
+  path: string;
+  roles: string[];
+}
+
+/** How something is held (catalyst-users' `id-DIR-000008`): directly, and through which groups. */
+export interface Holding {
+  direct: boolean;
+  groups: string[];
+}
+
+/** Which kind of directory entry a document or a link names. */
+export type DirectoryKind = "user" | "role" | "group";
+
 export type JournalAction = "create" | "update" | "close" | "retire" | "status-change" | "sync";
 
 export interface JournalFileChange {
@@ -249,8 +278,14 @@ export type WebviewPayload = {
   references?: Record<string, ReferenceInfo>;
 } & (
   | ({ type: "node" } & NodeDetailPayload)
-  | { type: "iam-user"; user: IamUser; roles: IamRole[] }
-  | { type: "iam-role"; role: IamRole; users: IamUser[] }
+  | {
+      type: "directory-user";
+      user: DirectoryUser;
+      roles: ({ name: string } & Holding)[];
+      groups: string[];
+    }
+  | { type: "directory-role"; role: DirectoryRole; groups: string[]; users: ({ username: string } & Holding)[] }
+  | { type: "directory-group"; group: DirectoryGroup; members: string[] }
   | { type: "journal"; entries: JournalEntry[] }
   | { type: "backlog"; markdown: string }
 );

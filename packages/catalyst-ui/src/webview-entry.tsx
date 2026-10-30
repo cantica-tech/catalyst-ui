@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { Backlog } from "./Backlog.js";
 import { KernelVersionHeader } from "./KernelVersionHeader.js";
-import { IamRoleDetail, IamUserDetail } from "./IamDetail.js";
+import { DirectoryGroupDetail, DirectoryRoleDetail, DirectoryUserDetail, directoryTarget } from "./DirectoryDetail.js";
 import { Journal } from "./Journal.js";
 import { NodeDetail } from "./NodeDetail.js";
 import { referenceTarget } from "./references.js";
@@ -20,10 +20,17 @@ declare function acquireVsCodeApi(): { postMessage(message: unknown): void };
 const host = typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 
 /**
- * A click on an entity reference (`REQ-000014-UVqkd7cL`) asks the host to
- * open that entity; the views stay host-agnostic and only render links.
+ * A click on an entity reference (`REQ-000014-UVqkd7cL`), or on a user, role
+ * or group (`vscode-IAM-000003-UVqkd7cL`), asks the host to open it; the views
+ * stay host-agnostic and only render links.
  */
 function onClick(event: MouseEvent): void {
+  const directory = directoryTarget(event.target);
+  if (directory) {
+    event.preventDefault();
+    host?.postMessage({ type: "openDirectory", ...directory });
+    return;
+  }
   const id = referenceTarget(event.target);
   if (!id) return;
   event.preventDefault();
@@ -47,10 +54,12 @@ if (container) {
               references={payload.references}
             />
           );
-        case "iam-user":
-          return <IamUserDetail user={payload.user} roles={payload.roles} />;
-        case "iam-role":
-          return <IamRoleDetail role={payload.role} users={payload.users} />;
+        case "directory-user":
+          return <DirectoryUserDetail user={payload.user} roles={payload.roles} groups={payload.groups} />;
+        case "directory-role":
+          return <DirectoryRoleDetail role={payload.role} groups={payload.groups} users={payload.users} />;
+        case "directory-group":
+          return <DirectoryGroupDetail group={payload.group} members={payload.members} />;
         case "journal":
           return <Journal entries={payload.entries} />;
         case "backlog":

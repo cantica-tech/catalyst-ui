@@ -9,8 +9,6 @@ export const TRACK_SETTING = "trackEntityInTree";
 /** `catalyst.ignoredFolders`: folders this workspace leaves out of catalyst (REQ-000015-UVqkd7cL). */
 export const IGNORED_FOLDERS_SETTING = "ignoredFolders";
 
-export const SHOW_IAM_DETAIL_COMMAND = "catalyst.showIamDetail";
-
 export const OPEN_JOURNAL_COMMAND = "catalyst.openJournal";
 
 export const OPEN_BACKLOG_COMMAND = "catalyst.openBacklog";
@@ -39,6 +37,12 @@ export const CHECK_IAM_ACCOUNT_COMMAND = "catalyst.checkIamAccount";
 export const IAM_LOGIN_COMMAND = "catalyst.iam.login";
 /** The context value of a user in the side bar, for its context menu. */
 export const USER_ITEM_CONTEXT = "catalystUser";
+/** The Users panel: the identity provider's users, roles and groups (vscode-IAM-000003-UVqkd7cL). */
+export const USERS_VIEW_ID = "catalystUsers";
+/** `catalyst.users.refresh`: read the Users panel again through catalyst-users. */
+export const REFRESH_USERS_COMMAND = "catalyst.users.refresh";
+/** `catalyst.users.open`: open a user's, role's or group's document (kind, name). */
+export const OPEN_DIRECTORY_COMMAND = "catalyst.users.open";
 
 export const DIAGNOSTIC_COLLECTION_NAME = "catalyst";
 
