@@ -8,7 +8,7 @@
  * command, so it is unit-tested without a VS Code host.
  */
 
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { homedir } from "node:os";
 
 export const IAM_COMMAND_SETTING = "iam.command";
@@ -157,4 +157,73 @@ export async function systemToken(settings: IamSettings, run: RunCommand = runCo
       expiresAt: typeof data.expires_at === "number" ? data.expires_at : undefined,
     },
   };
+}
+
+/** Runs a program without a shell, writing `input` to its standard input; resolves to what it printed on stdout. */
+export type RunWithInput = (file: string, args: string[], input: string) => Promise<string>;
+
+export const runWithInput: RunWithInput = (file, args, input) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(file, args, { windowsHide: true, stdio: ["pipe", "pipe", "pipe"], timeout: 60_000 });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => (stdout += chunk.toString()));
+    child.stderr.on("data", (chunk: Buffer) => (stderr += chunk.toString()));
+    child.on("error", (error: NodeJS.ErrnoException) => {
+      reject(new Error(error.code === "ENOENT" ? `${file} was not found` : error.message));
+    });
+    child.on("close", (code) => {
+      if (code === 0) resolve(stdout);
+      else reject(new Error(stderr.trim() || `exit ${code ?? "?"}`));
+    });
+    child.stdin.end(`${input}\n`);
+  });
+
+/** A login name to offer for a user shown by name: lower case without blanks ("Olivier Steck" → "oliviersteck"). */
+export function loginNameFor(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+/** Who logged in, as `<command> --json login --password` says. */
+export interface LoggedIn {
+  username: string;
+  name: string;
+}
+
+/**
+ * A person's password login (`vscode-IAM-000002-UVqkd7cL`): `<command> --json login --password --username <name>`,
+ * the password written to its standard input, never an argument; catalyst-users sends it only to the provider
+ * (its `id-AUTH-000007`). The answer never contains the password.
+ */
+export async function passwordLogin(
+  settings: IamSettings,
+  username: string,
+  password: string,
+  run: RunWithInput = runWithInput,
+): Promise<Answer<LoggedIn>> {
+  let words: string[];
+  try {
+    words = splitCommand(settings.command);
+  } catch (error) {
+    return { problem: `catalyst.iam.command: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const [file, ...prefix] = words;
+  if (!file) return { problem: "catalyst.iam.command is empty" };
+  let out: string;
+  try {
+    out = await run(file, [...prefix, "--json", "login", "--password", "--username", username], password);
+  } catch (error) {
+    const reason = (error instanceof Error ? error.message : String(error)).split(password).join("[redacted]");
+    return { problem: `catalyst-users could not log ${username} in: ${reason}` };
+  }
+  let data: Record<string, unknown>;
+  try {
+    data = (JSON.parse(out) ?? {}) as Record<string, unknown>;
+  } catch {
+    return {
+      problem: `catalyst-users (${settings.command}) did not answer JSON: is it catalyst-users 0.9.0 or later?`,
+    };
+  }
+  if (typeof data.username !== "string") return { problem: `catalyst-users (${settings.command}) named no one` };
+  return { value: { username: data.username, name: typeof data.name === "string" ? data.name : data.username } };
 }
