@@ -329,12 +329,9 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       element.node.kind === "artifact" || element.node.kind === "row"
         ? nodeModel?.types?.get(element.node.typePrefix)
         : undefined;
-    const item = new vscode.TreeItem(
-      formatNodeLabel(element.node, nodeType),
-      this.hasChildNodes(element.corpusRoot, element.node)
-        ? vscode.TreeItemCollapsibleState.Collapsed
-        : vscode.TreeItemCollapsibleState.None,
-    );
+    // An entity has one node, never with children: its relationships are
+    // links in the document it opens (vscode-INSPECTOR-000002-UVqkd7cL).
+    const item = new vscode.TreeItem(formatNodeLabel(element.node, nodeType), vscode.TreeItemCollapsibleState.None);
     item.command = {
       command: SHOW_DETAIL_COMMAND,
       title: "Show detail",
@@ -346,32 +343,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       item.iconPath = this.iconUris(element.node.kind);
     }
     return item;
-  }
-
-  /**
-   * The artifacts that cite `node` through one of their reference fields
-   * (a step's parent, a test's requirements…), nested under it in the tree
-   * on top of their own type's section — whatever the module's types are.
-   * Mentions in prose do not nest.
-   */
-  private citers(corpusRoot: string, node: ChainNode): ChainNode[] {
-    if (node.kind !== "artifact") return [];
-    const model = this.getModel(corpusRoot);
-    const reverse = model?.reverseEdges.get(node.id);
-    if (!model || !reverse) return [];
-    const cites = (ref: string) => ref === node.id || node.id.startsWith(`${ref}-`);
-    return [...reverse]
-      .map((id) => model.nodes.get(id))
-      .filter((n): n is ChainNode => n?.kind === "artifact" && Object.values(n.links).some((ids) => ids.some(cites)))
-      .sort((a, b) => a.id.localeCompare(b.id));
-  }
-
-  private hasChildNodes(corpusRoot: string, node: ChainNode): boolean {
-    return this.citers(corpusRoot, node).length > 0;
-  }
-
-  private childNodesFor(corpusRoot: string, node: ChainNode): InspectorTreeItem[] {
-    return this.citers(corpusRoot, node).map((childNode) => ({ type: "node" as const, corpusRoot, node: childNode }));
   }
 
   private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
@@ -430,14 +401,14 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return this.parents.get(element);
   }
 
-  /** A node's first, shallowest occurrence under its deployment. */
+  /** An entity's one node under its deployment. */
   findNode(corpusRoot: string, nodeId: string): InspectorTreeItem | undefined {
     const deployment = this.getChildren().find((item) => item.type === "deployment" && item.corpusRoot === corpusRoot);
     if (!deployment) return undefined;
     return breadthFirst(
       this.getChildren(deployment),
       (item) => {
-        if (item.type === "node") return []; // a node's own children never hold its first occurrence
+        if (item.type === "node") return []; // an entity node has no children
         if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
         return this.getChildren(item);
       },
@@ -521,9 +492,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         corpusRoot: element.corpusRoot,
         role,
       }));
-    }
-    if (element.type === "node") {
-      return this.childNodesFor(element.corpusRoot, element.node);
     }
     return [];
   }
