@@ -13,6 +13,7 @@ const BY_NAME: Record<string, string> = {
   domain: "symbol-namespace",
   users: "person",
   roles: "shield",
+  groups: "organization",
   journal: "history",
   backlog: "list-ordered",
   // a module's types, by the names `typeIconCandidates` gives

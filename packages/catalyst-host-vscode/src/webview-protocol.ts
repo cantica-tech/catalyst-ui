@@ -28,6 +28,29 @@ export function parseWebviewMessage(message: unknown): OpenReferenceMessage | nu
   return { type: "openReference", id: msg.id };
 }
 
+/** A directory document's link (vscode-IAM-000003-UVqkd7cL): open that user's, role's or group's document. */
+export interface OpenDirectoryMessage {
+  type: "openDirectory";
+  kind: "user" | "role" | "group";
+  name: string;
+}
+
+const MAX_NAME_LENGTH = 256;
+// A username, role name or group path: printable, no control characters.
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f]/;
+
+/** Validates a directory link's message, untrusted like every webview message; anything else is dropped. */
+export function parseDirectoryMessage(message: unknown): OpenDirectoryMessage | null {
+  if (typeof message !== "object" || message === null) return null;
+  const msg = message as { type?: unknown; kind?: unknown; name?: unknown };
+  if (msg.type !== "openDirectory") return null;
+  if (msg.kind !== "user" && msg.kind !== "role" && msg.kind !== "group") return null;
+  if (typeof msg.name !== "string" || msg.name.length === 0 || msg.name.length > MAX_NAME_LENGTH) return null;
+  if (CONTROL.test(msg.name)) return null;
+  return { type: "openDirectory", kind: msg.kind, name: msg.name };
+}
+
 /**
  * The open panels (key -> owning corpus root) belonging to `corpusRoot`,
  * in insertion order — the ones to refresh when its watcher fires

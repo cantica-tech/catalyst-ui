@@ -41,9 +41,9 @@ export function setupDeployment(
   const handle = watchProject(
     target.path,
     corpusRoot,
-    ({ model, report, journal, users, roles, definitions }) => {
+    ({ model, report, journal, definitions }) => {
       journalByCorpus.set(corpusRoot, journal);
-      provider.setState(corpusRoot, target.name, target.path, model, users, roles, definitions);
+      provider.setState(corpusRoot, target.name, target.path, model, definitions);
       refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
       codeLensChangeEmitter.fire();
       // Open detail panels of this deployment show the new state (B-10).
