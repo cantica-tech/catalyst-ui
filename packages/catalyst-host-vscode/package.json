@@ -49,7 +49,7 @@
       "catalyst": [
         {
           "id": "catalystChainInspector",
-          "name": "Instance(s)",
+          "name": "Instances",
           "icon": "resources/catalyst.svg"
         },
         {

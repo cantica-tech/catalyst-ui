@@ -1,4 +1,4 @@
-/** The Instance(s) view: every deployment's chain inspector, one top-level entry each (REQ-000068-UVqkd7cL). */
+/** The Instances view: every deployment's chain inspector, one top-level entry each (REQ-000068-UVqkd7cL). */
 export const VIEW_ID = "catalystChainInspector";
 
 export const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
@@ -28,7 +28,7 @@ export const SWITCH_UI_MODULE_COMMAND = "catalyst.switchUiModule";
 
 export const OPEN_SETTINGS_COMMAND = "catalyst.openSettings";
 
-/** A folder with no catalyst, set up from its Instance(s) entry (REQ-000069-UVqkd7cL). */
+/** A folder with no catalyst, set up from its Instances entry (REQ-000069-UVqkd7cL). */
 export const SET_UP_FOLDER_COMMAND = "catalyst.setUpFolder";
 
 /** The local system account's check (REQ-000064-UVqkd7cL). */

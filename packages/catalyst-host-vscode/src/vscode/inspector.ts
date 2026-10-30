@@ -88,7 +88,7 @@ export function typeIconCandidates(type: ModuleType | undefined, prefix: string)
 }
 
 /**
- * The Instance(s) view (REQ-000068-UVqkd7cL): one top-level entry per
+ * The Instances view (REQ-000068-UVqkd7cL): one top-level entry per
  * resolved deployment, labelled with its name, expanding into its own
  * sections — node ids are only unique within one corpus, so every item
  * below the root carries which deployment it came from.
