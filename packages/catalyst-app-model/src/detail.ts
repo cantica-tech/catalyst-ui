@@ -89,7 +89,7 @@ function info(node: ChainNode): ReferenceInfo {
   // The readable title (an index row's, a rule's) over the slug-like Name
   // field; never backticks.
   const title = node.title && node.title !== node.id ? node.title : "";
-  const name = (title || node.name || node.id).replace(/`/g, "").trim();
+  const name = (title || (node.name ?? "") || node.id).replace(/`/g, "").trim();
   return { id: node.id, kind: node.kind, name, summary: shortSummary(node) };
 }
 
