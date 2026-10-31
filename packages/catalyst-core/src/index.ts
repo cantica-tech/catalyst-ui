@@ -56,16 +56,6 @@ export {
 export type { WorkingCopyState } from "./discover.js";
 export { BACKTICK_ENTITY_ID_RE, BACKTICK_RULE_ID_RE } from "./ids.js";
 export { rolesFrom, usersFrom } from "./iam.js";
-export {
-  CRITERION_GITIGNORE_ENTRY,
-  defaultAgentSource,
-  ensureCriterionGitignored,
-  joinCriterionRepo,
-  repoNameFromUrl,
-  writeCatalystPointer,
-  writeProjectToml,
-  type JoinCriterionOptions,
-} from "./join-criterion.js";
 export { composeCommandRequest, composeSlashCommand } from "./slash-command.js";
 export {
   compareVersions,

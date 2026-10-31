@@ -3,7 +3,6 @@ import {
   AGENT_PRESETS,
   defaultChatAgent,
   IGNORE_FILE,
-  joinCriterionRepo,
   kernelSyncTarget,
   meetsRequiredKernelVersion,
   parseChatAgents,
@@ -50,15 +49,14 @@ export function installOfferHidden(context: vscode.ExtensionContext, folder: vsc
 }
 
 /**
- * A workspace folder with no `*.catalyst` pointer file is an entry of the
- * Instances view rather than a notification (REQ-000069-UVqkd7cL);
- * selecting it runs this. The two set-up paths reflect the only two ways a
- * project's catalyst-existence question ever resolves: it's already backed
- * by a repo somewhere (`connectExistingCriterionRepo`, fully code-driven),
- * or it genuinely needs a first-time install
- * (`offerAgentDrivenInstantiation`, which still needs a reasoning agent for
- * BOOTSTRAP.md's judgment calls). Resolves `true` when the folder's entry
- * should go.
+ * A workspace folder with no `catalyst.toml` is an entry of the Instances
+ * view rather than a notification (REQ-000069-UVqkd7cL); selecting it runs
+ * this. A project already shared has its `catalyst.toml` committed, so a
+ * clone of it is never here: its criterion, when missing on this machine,
+ * is readied by `catalyst open` (`remote.ts`, REQ-000074-UVqkd7cL). What is
+ * left is a first-time install (`offerAgentDrivenInstantiation`, which
+ * needs a reasoning agent for BOOTSTRAP.md's judgment calls). Resolves
+ * `true` when the folder's entry should go.
  */
 export async function offerToInstall(
   context: vscode.ExtensionContext,
@@ -116,12 +114,6 @@ export async function offerToInstall(
         action: "version" as const,
       },
       {
-        label: "Connect to an existing criterion repo",
-        detail:
-          "Clone an already-repoed deployment's branch into ~/.catalyst and write catalyst.toml — no agent involved.",
-        action: "connect" as const,
-      },
-      {
         label: "Create a brand new deployment",
         detail: "First-time instantiation — needs a reasoning agent to follow BOOTSTRAP.md.",
         action: "create" as const,
@@ -133,52 +125,10 @@ export async function offerToInstall(
 
   if (pick.action === "version") {
     await vscode.commands.executeCommand(SELECT_KERNEL_VERSION_COMMAND);
-  } else if (pick.action === "connect") {
-    await connectExistingCriterionRepo(folder);
   } else {
     await offerAgentDrivenInstantiation(folder);
   }
   return false;
-}
-
-/**
- * `catalyst criterion join`'s mechanical half, done in code rather than
- * handed to an agent: cloning the branch into the home store
- * (`~/.catalyst/projects/<name>/criterion`) and writing `catalyst.toml`
- * need no judgment calls (kernel 0.48.0, ADR-010).
- */
-export async function connectExistingCriterionRepo(folder: vscode.WorkspaceFolder): Promise<void> {
-  const repoUrl = await vscode.window.showInputBox({
-    title: "Criterion repo",
-    prompt: "Git URL of the existing criterion repo",
-    placeHolder: "git@github.com:org/criterion.git",
-    ignoreFocusOut: true,
-  });
-  if (!repoUrl) return;
-
-  const branch = await vscode.window.showInputBox({
-    title: "Branch to check out",
-    prompt: 'Your own "<name>.criterion" branch, or "criterion" itself for single-maintainer mode',
-    value: "criterion",
-    ignoreFocusOut: true,
-  });
-  if (!branch) return;
-
-  const agentBinding = detectDefaultAgentBinding();
-
-  try {
-    await joinCriterionRepo({
-      projectRoot: folder.uri.fsPath,
-      repoUrl,
-      branch,
-      agentId: agentBinding?.id,
-    });
-    void vscode.window.showInformationMessage(`Connected "${folder.name}" to ${repoUrl} (${branch}).`);
-  } catch (err) {
-    void vscode.window.showErrorMessage(
-      `Couldn't connect to the criterion repo: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
 }
 
 /**
@@ -298,7 +248,7 @@ export async function offerToSyncKernels(
     const agentDef = resolveChatAgentDef(offer.path);
     if (!agentDef) {
       void vscode.window.showErrorMessage(
-        `Couldn't determine which agent to chat with for "${offer.name}" — no *.catalyst pointer with an "agent" or "chatAgents" field found.`,
+        `Couldn't determine which agent to chat with for "${offer.name}" — catalyst.toml names no "agent" and no "chatAgents".`,
       );
       continue;
     }

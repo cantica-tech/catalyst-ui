@@ -25,10 +25,9 @@ function expandPath(pathStr: string, projectRoot: string): string {
  * copy: `~/.claude/projects/<slug>/.criterion`, where `<slug>` is the
  * project's absolute path with every non-alphanumeric character replaced
  * by `-` (Claude Code's own project-slug convention, so this is the parent
- * of the project's auto-memory directory). Shared by `resolveCorpusRoot`'s
- * Claude Code storage fallback and by a brand-new deployment's default
- * working-copy location (`join-criterion.ts`) — both need the exact same
- * convention or the two would disagree about where the working copy lives.
+ * of the project's auto-memory directory). Only `resolveCorpusRoot`'s
+ * legacy fallback reads it, for a deployment from before kernel 0.48.0
+ * (the criterion now lives in catalyst's home; `catalyst open` readies it).
  * Computed per machine, never stored in a tracked file.
  */
 export function claudeCodeStoragePath(projectRoot: string): string {

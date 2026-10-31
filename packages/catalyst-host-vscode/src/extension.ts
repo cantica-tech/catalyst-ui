@@ -16,6 +16,7 @@ import {
   meetsRequiredKernelVersion,
   optedOut,
   owningDeployment,
+  runAction,
   packageUiModule,
   parseChatAgents,
   readCatalystPointer,
@@ -164,6 +165,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const labels: Record<string, string> = {
       "copy-mount": "Copy devcontainer mount",
       share: "Share with /share create",
+      open: "Run catalyst open",
     };
     void vscode.window
       .showWarningMessage(advice.message, ...advice.actions.map((a) => labels[a]))
@@ -173,11 +175,30 @@ export function activate(context: vscode.ExtensionContext): void {
           void vscode.window.showInformationMessage(
             "Copied a devcontainer.json mounts entry: add it, then rebuild the container.",
           );
+        } else if (choice === labels.open) {
+          // The kernel readies the criterion (law L5): this never clones one itself (REQ-000074-UVqkd7cL).
+          const result = await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Catalyst: catalyst open in "${name}"…` },
+            () => runAction(projectRoot, ["open"]),
+          );
+          agentBridgeOutputChannel.appendLine([result.output, result.error].filter(Boolean).join("\n"));
+          reportedUnreachable.delete(projectRoot);
+          if (!result.ok) {
+            void vscode.window.showWarningMessage(
+              `catalyst open did not ready "${name}": ${result.error || result.output || "see the Catalyst output"}`,
+            );
+            return;
+          }
+          const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectRoot));
+          if (folder) {
+            teardownFolder(folder);
+            resolveFolder(folder);
+          }
         } else if (choice === labels.share) {
           const agentDef = resolveChatAgentDef(projectRoot);
           if (!agentDef) {
             void vscode.window.showErrorMessage(
-              'Couldn\'t determine which agent to run — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+              'Couldn\'t determine which agent to run — catalyst.toml names no "agent" and no "chatAgents".',
             );
             return;
           }
@@ -403,7 +424,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       if (!agentDef) {
         void vscode.window.showErrorMessage(
-          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+          'Couldn\'t determine which agent to chat with — catalyst.toml names no "agent" and no "chatAgents".',
         );
         return;
       }
@@ -476,7 +497,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const agentDef = resolveChatAgentDef(projectRoot);
       if (!agentDef) {
         void vscode.window.showErrorMessage(
-          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+          'Couldn\'t determine which agent to chat with — catalyst.toml names no "agent" and no "chatAgents".',
         );
         return;
       }
@@ -886,7 +907,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const meets = meetsRequiredKernelVersion(version);
     let explanation: string | undefined;
     if (!version) {
-      explanation = `Kernel version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_KERNEL_VERSION}.`;
+      explanation = `The criterion's version.txt is missing or unreadable (catalyst where shows the criterion; catalyst open readies it). Expected requirement: ${REQUIRED_KERNEL_VERSION}.`;
     } else if (!meets) {
       explanation = `Kernel version ${version} does not match expected required version (${REQUIRED_KERNEL_VERSION}). Some entities may fail to parse or validate correctly.`;
     } else {
