@@ -6,7 +6,7 @@
 
 version: "3"
 
-dotenv: [".env"]
+# dotenv: [".env"]
 
 includes:
   # cantica-tech code standards: `task lint`, `task format`, `task typecheck`, `task standards:sync`,
@@ -23,6 +23,18 @@ vars:
   # in PATH is the permanent fix — this just unblocks tasks in the meantime).
   CODE_BIN:
     sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+  # The Marketplace token: from the macOS keychain item that VSCE_KEYCHAIN_SERVICE / VSCE_KEYCHAIN_ACCOUNT name
+  # (set in the publisher's shell), else VSCE_PAT as the environment has it; empty elsewhere (CI, Linux).
+  VSCE_PAT:
+    sh: |
+      if [ -n "${VSCE_KEYCHAIN_SERVICE:-}" ] && [ -n "${VSCE_KEYCHAIN_ACCOUNT:-}" ] && command -v security >/dev/null 2>&1; then
+        security find-generic-password -s "$VSCE_KEYCHAIN_SERVICE" -a "$VSCE_KEYCHAIN_ACCOUNT" -w | jq -r '.value'
+      else
+        printf '%s' "${VSCE_PAT:-}"
+      fi
+
+env:
+  VSCE_PAT: "{{.VSCE_PAT}}"
 
 tasks:
   install:
