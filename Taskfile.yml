@@ -126,6 +126,27 @@ tasks:
     cmds:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push {{if .KERNEL_VERSION}}--kernel-version '{{.KERNEL_VERSION}}'{{end}} {{.CLI_ARGS}}
 
+  release:checklist:
+    desc: "Print the release checklist for a catalyst UI release (version bump, paired kernel, distribution)"
+    silent: true
+    cmds:
+      - |
+        cat <<'CHECKLIST'
+        catalyst UI release checklist (in order):
+          1. The paired kernel: the kernel this release is tested against is released and in the distribution
+             repository. Set packages/catalyst-host-electron/catalyst-version.txt to it, run
+             `npm run spec:sync -w catalyst-core -- <catalyst checkout> <tag>`, and raise VERIFIED_KERNEL_VERSION in
+             packages/catalyst-core/src/kernel-version.ts to it (a test fails while it is older than
+             catalyst-version.txt; the VS Code host offers a kernel sync only up to it).
+          2. The version: version.txt, every packages/*/package.json, package-lock.json and catalyst-core's VERSION
+             (a test checks they agree).
+          3. From a clean build (each packages/*/dist and *.tsbuildinfo removed): `task ci`,
+             `npm run build -w catalyst-studio`,
+             `npm run spec:check -w catalyst-core`, `task lint`. Push to development; CI green.
+          4. development -> main -> release pull requests, then
+             `gh release create <version> --title v<version> --target release`.
+        CHECKLIST
+
   publish:vscode-extension:release:
     desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension, then leaves a copy of the release's .vsix in cantica-tech (release:vsix:publish; PUBLISH_DIR defaults to ../cantica-tech, KERNEL_VERSION to package.json's catalyst.kernelVersion)"
     dir: packages/catalyst-host-vscode

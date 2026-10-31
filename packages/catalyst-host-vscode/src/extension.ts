@@ -674,19 +674,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const zipPath = uris[0].fsPath;
 
-      let currentKernelVersion = inMemoryKernelVersion;
-      if (!currentKernelVersion) {
-        for (const root of provider.getCorpusRoots()) {
-          const v = readDeployedKernelVersion(root);
-          if (v) {
-            currentKernelVersion = v;
-            break;
-          }
-        }
-      }
-      if (!currentKernelVersion) {
-        currentKernelVersion = REQUIRED_KERNEL_VERSION;
-      }
+      const currentKernelVersion = moduleKernelVersion();
 
       const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentKernelVersion);
 
@@ -736,20 +724,21 @@ export function activate(context: vscode.ExtensionContext): void {
     for (const key of detailPanels.keys()) refreshPanel(key);
   }
 
+  /**
+   * The kernel a UI module is checked against when loaded or switched: the
+   * one loaded in memory, else the first deployment's own version, else the
+   * kernel this build is verified against — a plain version, never the
+   * floor's range (BUG-000048-UVqkd7cL).
+   */
+  function moduleKernelVersion(): string {
+    return (
+      inMemoryKernelVersion ??
+      restoreKernelVersion(provider.getCorpusRoots().map((root) => readDeployedKernelVersion(root)))
+    );
+  }
+
   async function promptAndSwitchUiModule(): Promise<void> {
-    let currentKernelVersion = inMemoryKernelVersion;
-    if (!currentKernelVersion) {
-      for (const root of provider.getCorpusRoots()) {
-        const v = readDeployedKernelVersion(root);
-        if (v) {
-          currentKernelVersion = v;
-          break;
-        }
-      }
-    }
-    if (!currentKernelVersion) {
-      currentKernelVersion = REQUIRED_KERNEL_VERSION;
-    }
+    const currentKernelVersion = moduleKernelVersion();
 
     const moduleSourceUrl =
       vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl") ||

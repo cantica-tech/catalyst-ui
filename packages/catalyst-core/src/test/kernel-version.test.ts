@@ -42,8 +42,23 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
 
   it("restores a saved module against a version, never a range", () => {
     expect(restoreKernelVersion([null, "0.46.1"])).toBe("0.46.1");
-    expect(restoreKernelVersion([])).toBe(KERNEL_VERSION_FLOOR);
     expect(restoreKernelVersion([])).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it("checks a module against the verified kernel when no deployment is open, not the floor (BUG-000048)", () => {
+    expect(restoreKernelVersion([])).toBe(VERIFIED_KERNEL_VERSION);
+    expect(restoreKernelVersion([null, null])).toBe(VERIFIED_KERNEL_VERSION);
+    // a current module (software-engineering 3.4.1 needs >=0.83.0) loads with no deployment open
+    expect(satisfiesVersionSpecifier(restoreKernelVersion([]), ">=0.83.0")).toBe(true);
+  });
+
+  it("is raised with each paired kernel: never older than the desktop app's kernel (BUG-000047)", () => {
+    const paired = readFileSync(
+      join(repoRoot, "packages", "catalyst-host-electron", "catalyst-version.txt"),
+      "utf8",
+    ).trim();
+    expect(compareVersions(VERIFIED_KERNEL_VERSION, paired)).toBeGreaterThanOrEqual(0);
+    expect(kernelSyncTarget("0.119.2")).toBe(VERIFIED_KERNEL_VERSION);
   });
 });
 
