@@ -123,9 +123,9 @@ tasks:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}"
 
   release:vsix:publish:
-    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR. The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion"
-    requires:
-      vars: [PUBLISH_DIR]
+    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR (default ../cantica-tech, the distribution repository). The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion. Step 5 of task release:checklist: run it for every release"
+    vars:
+      PUBLISH_DIR: '{{.PUBLISH_DIR | default "../cantica-tech"}}'
     cmds:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push {{if .KERNEL_VERSION}}--kernel-version '{{.KERNEL_VERSION}}'{{end}} {{.CLI_ARGS}}
 
@@ -148,6 +148,10 @@ tasks:
              `npm run spec:check -w catalyst-core`, `task lint`. Push to development; CI green.
           4. development -> main -> release pull requests, then
              `gh release create <version> --title v<version> --target release`.
+          5. The distribution repository: `task release:vsix:publish` builds the .vsix from the release tag in a
+             temporary worktree and commits and pushes it, with its manifest.json, to
+             ../cantica-tech (PUBLISH_DIR=...) catalyst/vsix/v<version>/. Every release, not later.
+          (The VS Code Marketplace is separate and only when the owner asks: task publish:vscode-extension:release.)
         CHECKLIST
 
   publish:vscode-extension:release:
