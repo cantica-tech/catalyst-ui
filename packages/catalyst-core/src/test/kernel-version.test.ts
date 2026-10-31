@@ -15,7 +15,11 @@ import {
 import { compareVersions, satisfiesVersionSpecifier } from "../versioning.js";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../../..");
-const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8"));
+interface PackageJson {
+  version: string;
+  catalyst?: { kernelVersion?: string };
+}
+const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8")) as PackageJson;
 
 describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
   it("states the required range from the floor", () => {
@@ -24,7 +28,7 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
 
   it("matches the VS Code host's declared catalyst.kernelVersion", () => {
     const host = readJson(join(repoRoot, "packages", "catalyst-host-vscode", "package.json"));
-    expect(host.catalyst.kernelVersion).toBe(REQUIRED_KERNEL_VERSION);
+    expect(host.catalyst?.kernelVersion).toBe(REQUIRED_KERNEL_VERSION);
   });
 
   it("verifies at least the floor it requires", () => {

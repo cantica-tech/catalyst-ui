@@ -209,7 +209,7 @@ export function scanModulesFromLocalDirectory(baseDir: string, moduleSubpath: st
   for (const cand of candidateDirs) {
     if (!existsSync(cand)) continue;
 
-    let modDirs: string[] = [];
+    let modDirs: string[];
     try {
       modDirs = readdirSync(cand, { withFileTypes: true })
         .filter((d) => d.isDirectory() && !d.name.startsWith("."))
@@ -219,7 +219,7 @@ export function scanModulesFromLocalDirectory(baseDir: string, moduleSubpath: st
     }
 
     for (const modDir of modDirs) {
-      let vDirs: string[] = [];
+      let vDirs: string[];
       try {
         vDirs = readdirSync(modDir, { withFileTypes: true })
           .filter((d) => d.isDirectory() && d.name.startsWith("v"))
@@ -252,7 +252,7 @@ export function scanModulesFromLocalDirectory(baseDir: string, moduleSubpath: st
               seenKeys.add(key);
               modules.push({
                 id: json.id,
-                name: json.name || json.id,
+                name: (json.name ?? "") || json.id,
                 version: json.version,
                 description: json.description,
                 kernelVersion,
@@ -381,7 +381,7 @@ export async function fetchRemoteUiModules(
                   if (json.id && json.version && kernelVersion) {
                     modules.push({
                       id: json.id,
-                      name: json.name || json.id,
+                      name: (json.name ?? "") || json.id,
                       version: json.version,
                       description: json.description,
                       kernelVersion,

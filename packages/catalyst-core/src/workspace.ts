@@ -137,8 +137,8 @@ export function findDeployments(
   const maxDepth = options.maxDepth ?? 4;
   const found: FoundDeployment[] = [];
   const queue: [string, number][] = [[root, 0]];
-  while (queue.length > 0) {
-    const [dir, depth] = queue.shift()!;
+  // An array's iterator is live: it reaches the directories pushed while it runs.
+  for (const [dir, depth] of queue) {
     if (optedOut(dir) || isIgnoredFolder(dir, ignored, root)) continue;
     if (hasPointer(dir)) {
       const rel = toPosix(relative(root, dir));
@@ -148,7 +148,7 @@ export function findDeployments(
       });
     }
     if (depth >= maxDepth) continue;
-    let entries: string[] = [];
+    let entries: string[];
     try {
       entries = readdirSync(dir).sort();
     } catch {
