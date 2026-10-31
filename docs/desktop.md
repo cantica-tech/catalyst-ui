@@ -16,7 +16,8 @@ The app runs `catalyst serve --local` as its sidecar. It uses the machine's `cat
 `catalyst.pyz` of the kernel named in `packages/catalyst-host-electron/catalyst-version.txt`, which the `Desktop`
 workflow downloads from the public distribution repository (`cantica-tech/cantica-tech`). That copy needs Python 3.11
 or later on the `PATH` (macOS's own `python3` is 3.9); without one, the app says what to install. Raise
-`catalyst-version.txt` once a kernel release is published there (0.106.0 since UI 0.63.0).
+`catalyst-version.txt` once a kernel release is published there (0.119.2 now, after UI 0.69.0 shipped 0.119.1); a test keeps it
+equal to the kernel of catalyst-core's vendored `spec/`.
 
 ## Building locally
 
@@ -73,4 +74,5 @@ Nothing to set up. The `.deb` names its maintainer as "CanticaTech" without an a
 
 - **Auto-update**: no update feed is configured (`publish: null`). It waits on the choice between Azure Blob
   Storage and GitHub Releases.
-- **The app icon** is the catalyst logo rendered at 1024 px, until the brand work (R6.21) gives one.
+- **The app icon** is the owner's flask at 1024 px (`build/icon.png`, see `brand/README.md`), until the brand's own
+  mark replaces it.
