@@ -360,12 +360,12 @@ export function activate(context: vscode.ExtensionContext): void {
     uiModuleManager,
     restoreKernelVersion([...deploymentTargets.keys()].map((root) => readDeployedKernelVersion(root))),
   );
-  if (localRes && localRes.success) {
+  if (localRes?.success) {
     // Reported, not notified (REQ-000069-UVqkd7cL).
     agentBridgeOutputChannel.appendLine(
       `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
-  } else if (localRes && !localRes.success) {
+  } else if (localRes) {
     agentBridgeOutputChannel.appendLine(`Saved UI module not restored: ${localRes.error}`);
   }
 
@@ -411,7 +411,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const projectRoot = picked.folder.path;
       const chatAgents = parseChatAgents(projectRoot);
-      let agentDef: AgentBinding | null = chatAgents[0] ?? null;
+      let agentDef: AgentBinding | null = chatAgents.at(0) ?? null;
       if (chatAgents.length > 1) {
         const pick = await vscode.window.showQuickPick(
           chatAgents.map((a) => ({ label: a.name, description: a.binding, a })),
@@ -420,7 +420,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!pick) return;
         agentDef = pick.a;
       }
-      if (!agentDef) agentDef = defaultChatAgent(projectRoot);
+      agentDef ??= defaultChatAgent(projectRoot);
 
       if (!agentDef) {
         void vscode.window.showErrorMessage(
@@ -741,7 +741,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const currentKernelVersion = moduleKernelVersion();
 
     const moduleSourceUrl =
-      vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl") ||
+      vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl", "") ||
       "git@github.com:cantica-tech/cantica-tech.git/catalyst/";
 
     const remoteModules = await vscode.window.withProgress(
@@ -765,7 +765,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }[] = remoteModules.map((m) => ({
       label: `$(symbol-module) ${m.name} (v${m.version})`,
       description: `[${m.id}] Kernel ${m.kernelVersion}`,
-      detail: m.description || `Module ID: ${m.id}`,
+      detail: (m.description ?? "") || `Module ID: ${m.id}`,
       module: m,
     }));
 
@@ -834,7 +834,7 @@ export function activate(context: vscode.ExtensionContext): void {
       // project's first panel opens beside; later ones join its group as
       // tabs (REQ-000013-UVqkd7cL, panel-groups.ts).
       const grouping = readGrouping(vscode.workspace.getConfiguration("catalyst").get(PANEL_GROUPING_SETTING));
-      const open: OpenDetailPanel[] = [];
+      const open: OpenDetailPanel<vscode.ViewColumn>[] = [];
       for (const [openKey, openPanel] of detailPanels.entries()) {
         const meta = panelMeta.get(openKey);
         if (meta) open.push({ ...meta, column: openPanel.viewColumn });
