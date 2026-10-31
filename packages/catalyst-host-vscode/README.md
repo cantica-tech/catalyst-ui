@@ -10,7 +10,7 @@ goes through the governing agent, never straight from the UI.
 
 ## What it does
 
-- **Instance(s)** — a sidebar tree of the full traceability chain
+- **Instances** — a sidebar tree of the full traceability chain
   (rules → dev artifacts, grouped as requirements/bugs/house-keeping/
   steps/tests → features/roadmap → proposals and live runs) for every
   catalyst deployment open in your workspace. Multi-root aware: each

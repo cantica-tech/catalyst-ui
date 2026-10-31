@@ -93,7 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const provider = new ChainInspectorProvider(context.extensionUri);
 
-  // One Instance(s) view, every deployment a top-level entry of it
+  // One Instances view, every deployment a top-level entry of it
   // (REQ-000068-UVqkd7cL). A TreeView, so a node can be revealed in it
   // (REQ-000017-UVqkd7cL).
   const instancesView = vscode.window.createTreeView(VIEW_ID, { treeDataProvider: provider });
@@ -215,7 +215,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (found.length === 0) {
       const leftOut = optedOut(folder.uri.fsPath) || isIgnoredFolder(folder.uri.fsPath, ignored, folder.uri.fsPath);
       // Untrusted, catalyst only reads: no install offer (Workspace Trust).
-      // The offer is an entry of the Instance(s) view, never a
+      // The offer is an entry of the Instances view, never a
       // notification (REQ-000069-UVqkd7cL). No automatic module download
       // here (B-06): fetching remote UI modules is only ever started by
       // the user ("Switch Process UI Module").

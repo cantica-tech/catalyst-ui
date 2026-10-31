@@ -51,7 +51,7 @@ export function installOfferHidden(context: vscode.ExtensionContext, folder: vsc
 
 /**
  * A workspace folder with no `*.catalyst` pointer file is an entry of the
- * Instance(s) view rather than a notification (REQ-000069-UVqkd7cL);
+ * Instances view rather than a notification (REQ-000069-UVqkd7cL);
  * selecting it runs this. The two set-up paths reflect the only two ways a
  * project's catalyst-existence question ever resolves: it's already backed
  * by a repo somewhere (`connectExistingCriterionRepo`, fully code-driven),
@@ -77,7 +77,7 @@ export async function offerToInstall(
         detail: "Adds the folder to catalyst.ignoredFolders, for you, in this workspace.",
         action: "workspace" as const,
       },
-      { label: "Hide here", detail: "Removes this entry from the Instance(s) view.", action: "hide" as const },
+      { label: "Hide here", detail: "Removes this entry from the Instances view.", action: "hide" as const },
     ],
     { placeHolder: `No catalyst deployment found in "${folder.name}".` },
   );
