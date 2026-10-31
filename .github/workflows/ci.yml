@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - development
+      - main
+      - release
 
 permissions:
   contents: read
@@ -19,6 +21,7 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
+          package-manager-cache: false # CI also runs on main and release: never read a cache another run wrote
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check

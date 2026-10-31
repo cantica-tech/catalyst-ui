@@ -5,7 +5,7 @@ name: Standards
 on:
   pull_request:
   push:
-    branches: [development]
+    branches: [development, main, release]
 
 permissions:
   contents: read

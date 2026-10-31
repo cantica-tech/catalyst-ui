@@ -1,12 +1,12 @@
-# catalyst-ui's own operations. Mirrors .github/workflows/ci.yml exactly, so
-# `task ci` is what CI runs, runnable locally.
+# catalyst-ui's own operations. `task ci` runs what CI runs (.github/workflows/ci.yml, plus the
+# standards checks of standards.yml through `task lint`), runnable locally.
 #
 # catalyst never adds to or edits this Taskfile: its commands run from the
 # criterion's own Taskfile.common.yml, with `catalyst task <command> -- <args>`.
 
 version: "3"
 
-dotenv: [".env"]
+# dotenv: [".env"]
 
 includes:
   # cantica-tech code standards: `task lint`, `task format`, `task typecheck`, `task standards:sync`,
@@ -23,6 +23,18 @@ vars:
   # in PATH is the permanent fix — this just unblocks tasks in the meantime).
   CODE_BIN:
     sh: command -v code 2>/dev/null || echo "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+  # The Marketplace token: from the macOS keychain item that VSCE_KEYCHAIN_SERVICE / VSCE_KEYCHAIN_ACCOUNT name
+  # (set in the publisher's shell), else VSCE_PAT as the environment has it; empty elsewhere (CI, Linux).
+  VSCE_PAT:
+    sh: |
+      if [ -n "${VSCE_KEYCHAIN_SERVICE:-}" ] && [ -n "${VSCE_KEYCHAIN_ACCOUNT:-}" ] && command -v security >/dev/null 2>&1; then
+        security find-generic-password -s "$VSCE_KEYCHAIN_SERVICE" -a "$VSCE_KEYCHAIN_ACCOUNT" -w | jq -r '.value'
+      else
+        printf '%s' "${VSCE_PAT:-}"
+      fi
+
+env:
+  VSCE_PAT: "{{.VSCE_PAT}}"
 
 tasks:
   install:
@@ -32,6 +44,14 @@ tasks:
 
   lint:
     desc: "Lint all workspaces (ESLint), then the cantica-tech standard's other linters (Markdown, YAML, workflows)"
+    # Without the standards checkout the include above is skipped (optional), and the standards checks with it:
+    # stop here and say so, rather than pass on ESLint alone while CI's Standards job checks more.
+    preconditions:
+      - sh: test -f "${STANDARDS_DIR:-../standards}/Taskfile.standards.yml"
+        msg: >-
+          The cantica-tech standards are not checked out at {{.STANDARDS_DIR | default "../standards"}}, so `task lint` cannot run
+          the standards checks CI's Standards job runs (Markdown, YAML, workflows). Clone
+          git@github.com:cantica-tech/standards.git next to this repository, or set STANDARDS_DIR to its checkout.
     cmds:
       - npm run lint
       - task: standards:lint
