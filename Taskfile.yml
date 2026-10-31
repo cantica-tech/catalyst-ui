@@ -98,12 +98,15 @@ tasks:
       - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
 
   install:vscode-extension:unsigned:
-    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for local test builds (one-time sets extensions.verifySignature: false in your real VS Code user settings, since VS Code has no per-install CLI flag for this)"
+    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for this local test build: sets extensions.verifySignature: false in your VS Code user settings for the install only (VS Code has no per-install CLI flag for it), then puts back what was there"
     dir: packages/catalyst-host-vscode
     cmds:
       - task: build:vscode-extension
-      - node scripts/enable-unsigned-install.js
-      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
+      - |
+        set -e
+        PREVIOUS="$(node scripts/enable-unsigned-install.js set)"
+        trap 'node scripts/enable-unsigned-install.js restore "$PREVIOUS"' EXIT
+        "{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix
 
   publish:vscode-extension:
     desc: "Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage for package.json's registered publisher — see marketplace.visualstudio.com/manage)"
