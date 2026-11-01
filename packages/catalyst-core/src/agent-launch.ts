@@ -40,8 +40,7 @@ export function resolveAgentLaunch(workspaceRoot: string): AgentLaunch {
   if (agent === null) {
     return {
       ok: false,
-      reason:
-        'Couldn\'t determine which agent runs this deployment — no *.catalyst pointer with an "agent" field found.',
+      reason: 'Couldn\'t determine which agent runs this deployment — catalyst.toml names no "agent".',
     };
   }
   const command = KNOWN_AGENT_COMMANDS.get(agent);

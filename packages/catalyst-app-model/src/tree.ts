@@ -38,7 +38,7 @@ export function formatNodeLabel(node: ChainNode, type?: ModuleType): string {
     /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?|[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
   const match = idRegex.exec(node.id);
 
-  let idWithoutUserid = node.id;
+  let idWithoutUserid: string;
   let slugFromId: string | undefined;
 
   if (match) {

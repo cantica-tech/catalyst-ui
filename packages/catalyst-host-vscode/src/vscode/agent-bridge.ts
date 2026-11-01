@@ -8,6 +8,18 @@ import {
 } from "catalyst-core";
 import * as vscode from "vscode";
 
+interface ChatParticipantContribution {
+  name: string;
+  commands?: { name: string }[];
+}
+
+/** An extension's `contributes.chatParticipants`, as its package.json (untyped by VS Code) declares them. */
+function chatParticipantsOf(ext: vscode.Extension<unknown>): ChatParticipantContribution[] | undefined {
+  const manifest = ext.packageJSON as
+    { contributes?: { chatParticipants?: ChatParticipantContribution[] } } | undefined;
+  return manifest?.contributes?.chatParticipants;
+}
+
 /**
  * Both a chat participant's name and its declared slash commands are
  * static data in its own manifest (`contributes.chatParticipants[]` and
@@ -18,16 +30,16 @@ import * as vscode from "vscode";
  * Catalyst reload.
  */
 export function scanAvailableAgents(): DetectedAgent[] {
-  return vscode.extensions.all
-    .filter((ext) => ext.packageJSON?.contributes?.chatParticipants)
-    .flatMap((ext): DetectedAgent[] =>
-      ext.packageJSON.contributes.chatParticipants.map((p: { name: string; commands?: { name: string }[] }) => ({
-        extensionId: ext.id,
-        participant: `@${p.name}`,
-        commands: (p.commands ?? []).map((c) => c.name),
-        active: ext.isActive,
-      })),
-    );
+  return vscode.extensions.all.flatMap((ext): DetectedAgent[] => {
+    const participants = chatParticipantsOf(ext);
+    if (!participants) return [];
+    return participants.map((p) => ({
+      extensionId: ext.id,
+      participant: `@${p.name}`,
+      commands: (p.commands ?? []).map((c) => c.name),
+      active: ext.isActive,
+    }));
+  });
 }
 
 export function scanAvailableCommands(): Thenable<string[]> {
@@ -58,10 +70,11 @@ export async function invokeCommand(commandId: string, args: string): Promise<vo
  * available" rather than throwing a raw `TypeError`.
  */
 export async function invokeLmModel(vendor: string | undefined, prompt: string): Promise<string> {
-  if (typeof vscode.lm === "undefined") {
+  const lm = vscode.lm as typeof vscode.lm | undefined;
+  if (lm === undefined) {
     throw new Error("No language model available");
   }
-  const [model] = await vscode.lm.selectChatModels(vendor ? { vendor } : {});
+  const model = (await lm.selectChatModels(vendor ? { vendor } : {})).at(0);
   if (!model) throw new Error("No language model available");
   const response = await model.sendRequest(
     [vscode.LanguageModelChatMessage.User(prompt)],

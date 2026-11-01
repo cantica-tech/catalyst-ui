@@ -15,7 +15,11 @@ import {
 import { compareVersions, satisfiesVersionSpecifier } from "../versioning.js";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "../../../..");
-const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8"));
+interface PackageJson {
+  version: string;
+  catalyst?: { kernelVersion?: string };
+}
+const readJson = (p: string) => JSON.parse(readFileSync(p, "utf8")) as PackageJson;
 
 describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
   it("states the required range from the floor", () => {
@@ -24,7 +28,7 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
 
   it("matches the VS Code host's declared catalyst.kernelVersion", () => {
     const host = readJson(join(repoRoot, "packages", "catalyst-host-vscode", "package.json"));
-    expect(host.catalyst.kernelVersion).toBe(REQUIRED_KERNEL_VERSION);
+    expect(host.catalyst?.kernelVersion).toBe(REQUIRED_KERNEL_VERSION);
   });
 
   it("verifies at least the floor it requires", () => {
@@ -42,8 +46,23 @@ describe("kernel version: one source of truth (B-07/B-08/B-09)", () => {
 
   it("restores a saved module against a version, never a range", () => {
     expect(restoreKernelVersion([null, "0.46.1"])).toBe("0.46.1");
-    expect(restoreKernelVersion([])).toBe(KERNEL_VERSION_FLOOR);
     expect(restoreKernelVersion([])).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it("checks a module against the verified kernel when no deployment is open, not the floor (BUG-000048)", () => {
+    expect(restoreKernelVersion([])).toBe(VERIFIED_KERNEL_VERSION);
+    expect(restoreKernelVersion([null, null])).toBe(VERIFIED_KERNEL_VERSION);
+    // a current module (software-engineering 3.4.1 needs >=0.83.0) loads with no deployment open
+    expect(satisfiesVersionSpecifier(restoreKernelVersion([]), ">=0.83.0")).toBe(true);
+  });
+
+  it("is raised with each paired kernel: never older than the desktop app's kernel (BUG-000047)", () => {
+    const paired = readFileSync(
+      join(repoRoot, "packages", "catalyst-host-electron", "catalyst-version.txt"),
+      "utf8",
+    ).trim();
+    expect(compareVersions(VERIFIED_KERNEL_VERSION, paired)).toBeGreaterThanOrEqual(0);
+    expect(kernelSyncTarget("0.119.2")).toBe(VERIFIED_KERNEL_VERSION);
   });
 });
 

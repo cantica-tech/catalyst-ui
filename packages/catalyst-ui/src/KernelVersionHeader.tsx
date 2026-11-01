@@ -15,7 +15,7 @@ export function KernelVersionHeader({ versionInfo }: FrameworkVersionHeaderProps
   // REQUIRED_KERNEL_VERSION); never a second, drifting copy here.
   const requiredDisplay = versionInfo?.requiredVersion ?? "unknown";
   const explanation =
-    versionInfo?.explanation ||
+    (versionInfo?.explanation ?? "") ||
     (!meets
       ? `Kernel version ${versionDisplay} does not match expected version requirement (${requiredDisplay}).`
       : `Kernel version ${versionDisplay} meets expected requirement (${requiredDisplay}).`);

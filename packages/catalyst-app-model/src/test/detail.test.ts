@@ -165,18 +165,17 @@ describe("buildNodeDetail", () => {
 });
 
 describe("reference table (REQ-000014)", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const node = (id: string, extra: Record<string, unknown> = {}): any => ({
-    id,
-    kind: "artifact",
-    title: `${id} title`,
-    location: { file: "f.md", line: 1 },
-    references: [],
-    description: "",
-    ...extra,
-  });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const modelOf = (...nodes: any[]): ChainModel => ({
+  const node = (id: string, extra: Partial<ChainNode> = {}): ChainNode =>
+    ({
+      id,
+      kind: "artifact",
+      title: `${id} title`,
+      location: { file: "f.md", line: 1 },
+      references: [],
+      description: "",
+      ...extra,
+    }) as ChainNode;
+  const modelOf = (...nodes: ChainNode[]): ChainModel => ({
     nodes: new Map(nodes.map((n) => [n.id, n])),
     edges: new Map(),
     reverseEdges: new Map(),
@@ -246,14 +245,13 @@ describe("hover descriptions from content (BUG-000001 follow-up)", () => {
   });
 
   it("feeds the hover summary when the parser found no description", () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const node: any = {
+    const node = {
       id: "REQ-000013-X",
       kind: "artifact",
       title: "Panels",
       description: "",
       content,
-    };
+    } as ChainNode;
     assert.strictEqual(shortSummary(node), "Panels share a group.");
   });
 });

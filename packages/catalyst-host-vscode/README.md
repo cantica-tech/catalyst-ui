@@ -41,9 +41,10 @@ goes through the governing agent, never straight from the UI.
   listing who holds what. Right-click a user to log in to catalyst-users
   with a username and password (catalyst-users 0.9.0 or later).
 - **No deployment yet?** Open a workspace folder that catalyst does not
-  govern yet and the extension offers to set it up: connect it to an
-  existing criterion repository, or start a new deployment with a ready
-  instantiation prompt for your agent.
+  govern yet and the extension offers to set it up: a new deployment, with
+  a ready instantiation prompt for your agent. A project whose criterion is
+  not on this machine yet (a fresh clone) is readied with `catalyst open`,
+  which the extension offers to run.
 
 Every write still goes through catalyst, after your confirmation; the
 extension never edits a governed file itself.

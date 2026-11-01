@@ -44,8 +44,8 @@ export type UiModuleLoadResult = { success: true; module: ActiveUiModule } | { s
 /** Simple CRC32 computation for zip archives */
 function calculateCrc32(buf: Buffer): number {
   let crc = -1;
-  for (let i = 0; i < buf.length; i++) {
-    let byte = buf[i];
+  for (const value of buf) {
+    let byte = value;
     for (let j = 0; j < 8; j++) {
       const bit = (crc ^ byte) & 1;
       crc = (crc >>> 1) ^ (bit ? 0xedb88320 : 0);
@@ -187,30 +187,28 @@ export function parseUiModuleFromZip(zipSource: Buffer | string): {
   const buffer = typeof zipSource === "string" ? readFileSync(zipSource) : zipSource;
   const files = readZipArchive(buffer);
 
-  // Look for manifest.json or ui-module.json or module.json
-  let manifestEntry: string | undefined;
-  for (const name of ["manifest.json", "ui-module.json", "module.json"]) {
-    if (files.has(name)) {
-      manifestEntry = name;
-      break;
-    }
+  // Look for manifest.json or ui-module.json or module.json, at the top, else in a nested directory
+  const manifestNames = ["manifest.json", "ui-module.json", "module.json"];
+  let manifestFile: Buffer | undefined;
+  for (const name of manifestNames) {
+    manifestFile = files.get(name);
+    if (manifestFile) break;
   }
 
-  if (!manifestEntry) {
-    // Check nested directory
-    for (const key of files.keys()) {
-      if (key.endsWith("/manifest.json") || key.endsWith("/ui-module.json") || key.endsWith("/module.json")) {
-        manifestEntry = key;
+  if (!manifestFile) {
+    for (const [key, content] of files) {
+      if (manifestNames.some((name) => key.endsWith(`/${name}`))) {
+        manifestFile = content;
         break;
       }
     }
   }
 
-  if (!manifestEntry) {
+  if (!manifestFile) {
     throw new Error("UI Module zip archive does not contain a manifest.json or ui-module.json");
   }
 
-  const rawJson = files.get(manifestEntry)!.toString("utf8");
+  const rawJson = manifestFile.toString("utf8");
   const json = JSON.parse(rawJson) as RawUiModuleManifest;
 
   if (!json.id || typeof json.id !== "string") {

@@ -1,12 +1,14 @@
 /**
- * Remote environments (`REQ-000016-UVqkd7cL`). The extension runs where the
- * workspace's files are (`extensionKind: workspace`): over SSH, in WSL, a
- * dev container or a codespace. A local-only deployment's `.criterion` is a
- * symlink into the agent-owned space of the machine that installed it,
- * which such an environment usually lacks — this says what to do about it,
- * for the environment at hand. Pure, so it is unit-tested without VS Code.
+ * Remote environments (`REQ-000016-UVqkd7cL`) and a criterion not on this
+ * machine (`REQ-000074-UVqkd7cL`). The extension runs where the workspace's
+ * files are (`extensionKind: workspace`): over SSH, in WSL, a dev container
+ * or a codespace. A project's criterion lives outside it, in catalyst's home
+ * (`$HOME/.catalyst/projects/<name>/criterion`), so a fresh clone or another
+ * machine may not have it yet: `catalyst open` readies it (law L5). A legacy
+ * `.criterion` symlink may point into the agent-owned space of the machine
+ * that installed it. This says what to do about either, for the environment
+ * at hand. Pure, so it is unit-tested without VS Code.
  */
-
 /** `vscode.env.remoteName` in words; undefined when running locally. */
 export function environmentLabel(remoteName: string | undefined): string | undefined {
   switch (remoteName) {
@@ -32,7 +34,7 @@ export function devcontainerMount(target: string): string {
   return `"mounts": ["source=${target},target=${target},type=bind"]`;
 }
 
-export type UnreachableAction = "copy-mount" | "share";
+export type UnreachableAction = "copy-mount" | "share" | "open";
 
 export interface UnreachableAdvice {
   message: string;
@@ -40,9 +42,11 @@ export interface UnreachableAdvice {
 }
 
 /**
- * What to tell the user about a deployment whose working copy is not
- * reachable here: `target` is the dangling symlink's target, or undefined
- * when there is no `.criterion` at all.
+ * What to tell the user about a deployment whose criterion is not
+ * reachable here: `target` is a legacy `.criterion` symlink's dangling
+ * target, or undefined when the criterion is not on this machine at all —
+ * then `catalyst open` readies it (it clones the shared criterion that
+ * `catalyst.toml` names), and the extension never clones one itself.
  */
 export function unreachableAdvice(
   name: string,
@@ -51,10 +55,14 @@ export function unreachableAdvice(
 ): UnreachableAdvice {
   const where = environmentLabel(remoteName);
   const container = remoteName === "dev-container" || remoteName === "attached-container";
-  const lead = target
-    ? `"${name}" is a catalyst deployment, but its working copy (${target}) is not reachable${where ? ` from ${where}` : " here"}`
-    : `"${name}" is a catalyst deployment, but it has no working copy${where ? ` in ${where}` : " here"} (no .criterion)`;
-  if (container && target) {
+  if (!target) {
+    return {
+      message: `"${name}" is a catalyst deployment, but its criterion is not on this machine${where ? ` (${where})` : ""}. Run catalyst open to ready it: it fetches the shared criterion catalyst.toml names (or says what is missing).`,
+      actions: ["open"],
+    };
+  }
+  const lead = `"${name}" is a catalyst deployment, but its working copy (${target}) is not reachable${where ? ` from ${where}` : " here"}`;
+  if (container) {
     return {
       message: `${lead}: it is in the agent-owned space of the machine that installed it. Mount it into the container at the same path (devcontainer.json), or share the criterion with /share create.`,
       actions: ["copy-mount", "share"],

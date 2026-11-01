@@ -16,6 +16,7 @@ import {
   meetsRequiredKernelVersion,
   optedOut,
   owningDeployment,
+  runAction,
   packageUiModule,
   parseChatAgents,
   readCatalystPointer,
@@ -164,6 +165,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const labels: Record<string, string> = {
       "copy-mount": "Copy devcontainer mount",
       share: "Share with /share create",
+      open: "Run catalyst open",
     };
     void vscode.window
       .showWarningMessage(advice.message, ...advice.actions.map((a) => labels[a]))
@@ -173,11 +175,30 @@ export function activate(context: vscode.ExtensionContext): void {
           void vscode.window.showInformationMessage(
             "Copied a devcontainer.json mounts entry: add it, then rebuild the container.",
           );
+        } else if (choice === labels.open) {
+          // The kernel readies the criterion (law L5): this never clones one itself (REQ-000074-UVqkd7cL).
+          const result = await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Catalyst: catalyst open in "${name}"…` },
+            () => runAction(projectRoot, ["open"]),
+          );
+          agentBridgeOutputChannel.appendLine([result.output, result.error].filter(Boolean).join("\n"));
+          reportedUnreachable.delete(projectRoot);
+          if (!result.ok) {
+            void vscode.window.showWarningMessage(
+              `catalyst open did not ready "${name}": ${result.error || result.output || "see the Catalyst output"}`,
+            );
+            return;
+          }
+          const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(projectRoot));
+          if (folder) {
+            teardownFolder(folder);
+            resolveFolder(folder);
+          }
         } else if (choice === labels.share) {
           const agentDef = resolveChatAgentDef(projectRoot);
           if (!agentDef) {
             void vscode.window.showErrorMessage(
-              'Couldn\'t determine which agent to run — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+              'Couldn\'t determine which agent to run — catalyst.toml names no "agent" and no "chatAgents".',
             );
             return;
           }
@@ -339,12 +360,12 @@ export function activate(context: vscode.ExtensionContext): void {
     uiModuleManager,
     restoreKernelVersion([...deploymentTargets.keys()].map((root) => readDeployedKernelVersion(root))),
   );
-  if (localRes && localRes.success) {
+  if (localRes?.success) {
     // Reported, not notified (REQ-000069-UVqkd7cL).
     agentBridgeOutputChannel.appendLine(
       `Automatically activated saved local UI module "${localRes.module.manifest.name}" (v${localRes.module.manifest.version}).`,
     );
-  } else if (localRes && !localRes.success) {
+  } else if (localRes) {
     agentBridgeOutputChannel.appendLine(`Saved UI module not restored: ${localRes.error}`);
   }
 
@@ -390,7 +411,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const projectRoot = picked.folder.path;
       const chatAgents = parseChatAgents(projectRoot);
-      let agentDef: AgentBinding | null = chatAgents[0] ?? null;
+      let agentDef: AgentBinding | null = chatAgents.at(0) ?? null;
       if (chatAgents.length > 1) {
         const pick = await vscode.window.showQuickPick(
           chatAgents.map((a) => ({ label: a.name, description: a.binding, a })),
@@ -399,11 +420,11 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!pick) return;
         agentDef = pick.a;
       }
-      if (!agentDef) agentDef = defaultChatAgent(projectRoot);
+      agentDef ??= defaultChatAgent(projectRoot);
 
       if (!agentDef) {
         void vscode.window.showErrorMessage(
-          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+          'Couldn\'t determine which agent to chat with — catalyst.toml names no "agent" and no "chatAgents".',
         );
         return;
       }
@@ -476,7 +497,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const agentDef = resolveChatAgentDef(projectRoot);
       if (!agentDef) {
         void vscode.window.showErrorMessage(
-          'Couldn\'t determine which agent to chat with — no *.catalyst pointer with an "agent" or "chatAgents" field found.',
+          'Couldn\'t determine which agent to chat with — catalyst.toml names no "agent" and no "chatAgents".',
         );
         return;
       }
@@ -653,19 +674,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const zipPath = uris[0].fsPath;
 
-      let currentKernelVersion = inMemoryKernelVersion;
-      if (!currentKernelVersion) {
-        for (const root of provider.getCorpusRoots()) {
-          const v = readDeployedKernelVersion(root);
-          if (v) {
-            currentKernelVersion = v;
-            break;
-          }
-        }
-      }
-      if (!currentKernelVersion) {
-        currentKernelVersion = REQUIRED_KERNEL_VERSION;
-      }
+      const currentKernelVersion = moduleKernelVersion();
 
       const res = uiModuleManager.loadAndActivateZipModule(zipPath, currentKernelVersion);
 
@@ -715,23 +724,24 @@ export function activate(context: vscode.ExtensionContext): void {
     for (const key of detailPanels.keys()) refreshPanel(key);
   }
 
+  /**
+   * The kernel a UI module is checked against when loaded or switched: the
+   * one loaded in memory, else the first deployment's own version, else the
+   * kernel this build is verified against — a plain version, never the
+   * floor's range (BUG-000048-UVqkd7cL).
+   */
+  function moduleKernelVersion(): string {
+    return (
+      inMemoryKernelVersion ??
+      restoreKernelVersion(provider.getCorpusRoots().map((root) => readDeployedKernelVersion(root)))
+    );
+  }
+
   async function promptAndSwitchUiModule(): Promise<void> {
-    let currentKernelVersion = inMemoryKernelVersion;
-    if (!currentKernelVersion) {
-      for (const root of provider.getCorpusRoots()) {
-        const v = readDeployedKernelVersion(root);
-        if (v) {
-          currentKernelVersion = v;
-          break;
-        }
-      }
-    }
-    if (!currentKernelVersion) {
-      currentKernelVersion = REQUIRED_KERNEL_VERSION;
-    }
+    const currentKernelVersion = moduleKernelVersion();
 
     const moduleSourceUrl =
-      vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl") ||
+      vscode.workspace.getConfiguration("catalyst").get<string>("moduleSourceUrl", "") ||
       "git@github.com:cantica-tech/cantica-tech.git/catalyst/";
 
     const remoteModules = await vscode.window.withProgress(
@@ -755,7 +765,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }[] = remoteModules.map((m) => ({
       label: `$(symbol-module) ${m.name} (v${m.version})`,
       description: `[${m.id}] Kernel ${m.kernelVersion}`,
-      detail: m.description || `Module ID: ${m.id}`,
+      detail: (m.description ?? "") || `Module ID: ${m.id}`,
       module: m,
     }));
 
@@ -824,7 +834,7 @@ export function activate(context: vscode.ExtensionContext): void {
       // project's first panel opens beside; later ones join its group as
       // tabs (REQ-000013-UVqkd7cL, panel-groups.ts).
       const grouping = readGrouping(vscode.workspace.getConfiguration("catalyst").get(PANEL_GROUPING_SETTING));
-      const open: OpenDetailPanel[] = [];
+      const open: OpenDetailPanel<vscode.ViewColumn>[] = [];
       for (const [openKey, openPanel] of detailPanels.entries()) {
         const meta = panelMeta.get(openKey);
         if (meta) open.push({ ...meta, column: openPanel.viewColumn });
@@ -886,7 +896,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const meets = meetsRequiredKernelVersion(version);
     let explanation: string | undefined;
     if (!version) {
-      explanation = `Kernel version.txt is missing or unreadable in .criterion/. Expected requirement: ${REQUIRED_KERNEL_VERSION}.`;
+      explanation = `The criterion's version.txt is missing or unreadable (catalyst where shows the criterion; catalyst open readies it). Expected requirement: ${REQUIRED_KERNEL_VERSION}.`;
     } else if (!meets) {
       explanation = `Kernel version ${version} does not match expected required version (${REQUIRED_KERNEL_VERSION}). Some entities may fail to parse or validate correctly.`;
     } else {

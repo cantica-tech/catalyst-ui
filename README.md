@@ -26,11 +26,12 @@ Each release's `.vsix` is also kept on cantica-tech under
 `packages/catalyst-host-vscode/package.json`, `catalyst.kernelVersion`).
 `task publish:vscode-extension:release` (Marketplace) leaves that copy
 automatically, in `../cantica-tech` unless `PUBLISH_DIR=...` is given,
-with `KERNEL_VERSION=...` overriding the range. On its own, after cutting
-a release, from any branch: `task release:vsix:publish
-PUBLISH_DIR=<cantica-tech checkout>` builds the `.vsix` from the release
-tag in a temporary worktree, then commits and pushes cantica-tech
-(`release:vsix` copies the working tree's build without committing). A
+with `KERNEL_VERSION=...` overriding the range. Every release runs it on
+its own, right after the release is cut (step 5 of `task
+release:checklist`), from any branch: `task release:vsix:publish` builds
+the `.vsix` from the release tag in a temporary worktree, then commits
+and pushes cantica-tech (`../cantica-tech`, or `PUBLISH_DIR=<checkout>`;
+`release:vsix` copies the working tree's build without committing). A
 release cut before `catalyst.kernelVersion` existed takes it on the
 command line: `task release:vsix:publish PUBLISH_DIR=... --
 --kernel-version '>=0.36.0'`.
