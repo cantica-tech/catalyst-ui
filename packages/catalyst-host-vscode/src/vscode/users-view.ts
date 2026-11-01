@@ -2,7 +2,7 @@ import type { DirectoryGroup, DirectoryKind, DirectoryRole, DirectoryUser } from
 import * as vscode from "vscode";
 
 import { codiconFor } from "../codicons.js";
-import { IAM_LOGIN_COMMAND, OPEN_DIRECTORY_COMMAND, USER_ITEM_CONTEXT } from "../constants.js";
+import { IAM_LOGIN_COMMAND, OPEN_DIRECTORY_COMMAND } from "../constants.js";
 import { type Directory, readDirectory } from "../directory.js";
 import type { IamSettings } from "../iam.js";
 
@@ -103,7 +103,6 @@ export class UsersProvider implements vscode.TreeDataProvider<UsersTreeItem> {
     item.description = description || undefined;
     item.iconPath = new vscode.ThemeIcon(codiconFor([icon]));
     item.command = { command: OPEN_DIRECTORY_COMMAND, title: "Show detail", arguments: [kind, name] };
-    if (element.type === "user") item.contextValue = USER_ITEM_CONTEXT;
     return item;
   }
 

@@ -38,8 +38,10 @@ goes through the governing agent, never straight from the UI.
   without a manual copy-paste into an unrelated session.
 - **Users** — a panel of the identity provider's users, roles and groups,
   read through catalyst-users (0.10.0 or later), each with a document
-  listing who holds what. Right-click a user to log in to catalyst-users
-  with a username and password (catalyst-users 0.9.0 or later).
+  listing who holds what. The button on top of the panel, left of its
+  refresh, logs you in to catalyst-users with a username and password
+  (catalyst-users 0.9.0 or later) while no one is logged in, and logs you
+  out, after asking, while someone is.
 - **No deployment yet?** Open a workspace folder that catalyst does not
   govern yet and the extension offers to set it up: a new deployment, with
   a ready instantiation prompt for your agent. A project whose criterion is
