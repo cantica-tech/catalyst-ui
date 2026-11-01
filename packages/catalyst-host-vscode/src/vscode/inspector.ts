@@ -2,6 +2,9 @@ import type { ChainModel, ChainNode, EntityDefinition, ModuleType, RowNode } fro
 import * as vscode from "vscode";
 
 import { codiconFor } from "../codicons.js";
+import { permissionSuffix, type StatusPermission } from "../bug-status.js";
+import { entityContextValue, typeSlug } from "../entity-items.js";
+import type { SearchEntry } from "../instance-search.js";
 import {
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
@@ -72,13 +75,7 @@ export function sectionTooltip(
   return blocks.length > 0 ? new vscode.MarkdownString(blocks.join("\n\n")) : undefined;
 }
 
-/** A type's slug, as its definition file and an icon may be named: `House-keeping` → `house-keeping`. */
-export function typeSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+export { typeSlug };
 
 /** The icon names worth trying for a module type, from its own names; the caller keeps the first that exists. */
 export function typeIconCandidates(type: ModuleType | undefined, prefix: string): string[] {
@@ -131,6 +128,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   removeDeployment(corpusRoot: string): void {
     this.deployments.delete(corpusRoot);
+    this.statusPermissions.delete(corpusRoot);
     this.changeEmitter.fire();
   }
 
@@ -139,6 +137,19 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     if (name === undefined ? !this.unsetFolders.delete(folderUri) : this.unsetFolders.get(folderUri) === name) return;
     if (name !== undefined) this.unsetFolders.set(folderUri, name);
     this.changeEmitter.fire();
+  }
+
+  /** Whether the signer may change a status in each deployment, as catalyst says (REQ-000077-UVqkd7cL). */
+  private readonly statusPermissions = new Map<string, StatusPermission>();
+
+  setStatusPermission(corpusRoot: string, permission: StatusPermission): void {
+    const before = this.statusPermissions.get(corpusRoot);
+    this.statusPermissions.set(corpusRoot, permission);
+    if (JSON.stringify(before) !== JSON.stringify(permission)) this.changeEmitter.fire();
+  }
+
+  getStatusPermission(corpusRoot: string): StatusPermission | undefined {
+    return this.statusPermissions.get(corpusRoot);
   }
 
   refreshTree(): void {
@@ -273,6 +284,12 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     // An entity has one node, never with children: its relationships are
     // links in the document it opens (vscode-INSPECTOR-000002-UVqkd7cL).
     const item = new vscode.TreeItem(formatNodeLabel(element.node, nodeType), vscode.TreeItemCollapsibleState.None);
+    // Its type and whether it is closed, for its context menu: a bug's Close Bug / Reopen Bug (REQ-000077-UVqkd7cL).
+    item.contextValue = entityContextValue(
+      element.node,
+      nodeType,
+      permissionSuffix(this.statusPermissions.get(element.corpusRoot)),
+    );
     item.command = {
       command: SHOW_DETAIL_COMMAND,
       title: "Show detail",
@@ -345,6 +362,35 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       },
       (item) => item.type === "node" && item.corpusRoot === corpusRoot && item.node.id === nodeId,
     );
+  }
+
+  /**
+   * Every entity node the tree holds, every deployment, in the tree's order, with its deployment's name and type
+   * (the search, REQ-000076-UVqkd7cL). Walking through getChildren gives each node the identity a reveal needs.
+   */
+  entityNodes(): SearchEntry[] {
+    const found: SearchEntry[] = [];
+    const walk = (items: InspectorTreeItem[]): void => {
+      for (const item of items) {
+        if (item.type === "node") {
+          const view = this.deployments.get(item.corpusRoot);
+          const type =
+            item.node.kind === "artifact" || item.node.kind === "row"
+              ? view?.model.types?.get(item.node.typePrefix)
+              : undefined;
+          found.push({
+            corpusRoot: item.corpusRoot,
+            deployment: view?.folderName ?? item.corpusRoot,
+            node: item.node,
+            ...(type ? { type } : {}),
+          });
+        } else {
+          walk(this.getChildren(item));
+        }
+      }
+    };
+    walk(this.getChildren().filter((item) => item.type === "deployment"));
+    return found;
   }
 
   private childrenOf(element?: InspectorTreeItem): InspectorTreeItem[] {

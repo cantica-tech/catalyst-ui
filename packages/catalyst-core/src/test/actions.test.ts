@@ -132,6 +132,32 @@ describe("actionArgs (studio-SHELL-000016)", () => {
     expect(() => tryArgs({ verb: "rm" })).toThrow(ActionError);
   });
 
+  it("journals a status set's slash command when one is given (REQ-000077-UVqkd7cL)", () => {
+    expect(
+      actionArgs({
+        verb: "status-set",
+        id: "BUG-000001-Ab3xR9pQ",
+        state: "Closed",
+        intent: "Fixed upstream",
+        tier: "fix",
+        command: "/status",
+      }),
+    ).toEqual([
+      "status",
+      "set",
+      "BUG-000001-Ab3xR9pQ",
+      "Closed",
+      "--intent=Fixed upstream",
+      "--tier=fix",
+      "--command=/status",
+      "--json",
+    ]);
+    for (const command of ["status", "/status --force", "/Status", "--force"])
+      expect(() => actionArgs({ verb: "status-set", id: "BUG-000001", state: "Closed", intent: "x", command })).toThrow(
+        "command",
+      );
+  });
+
   it("keeps a reason that looks like an option a value", () => {
     expect(actionArgs({ verb: "status-set", id: "REQ-000001", state: "Done", intent: "--force" })).toContain(
       "--intent=--force",

@@ -65,6 +65,34 @@
         "title": "Catalyst: Show Node Detail"
       },
       {
+        "command": "catalyst.searchInstances",
+        "title": "Search Items",
+        "category": "Catalyst",
+        "icon": "$(search)"
+      },
+      {
+        "command": "catalyst.closeBug",
+        "title": "Close Bug",
+        "category": "Catalyst"
+      },
+      {
+        "command": "catalyst.reopenBug",
+        "title": "Reopen Bug",
+        "category": "Catalyst"
+      },
+      {
+        "command": "catalyst.closeBug.denied",
+        "title": "Close Bug (needs the /status grant)",
+        "category": "Catalyst",
+        "enablement": "false"
+      },
+      {
+        "command": "catalyst.reopenBug.denied",
+        "title": "Reopen Bug (needs the /status grant)",
+        "category": "Catalyst",
+        "enablement": "false"
+      },
+      {
         "command": "catalyst.openJournal",
         "title": "Catalyst: Open Journal"
       },
@@ -149,29 +177,34 @@
     "menus": {
       "view/title": [
         {
-          "command": "catalyst.switchUiModule",
+          "command": "catalyst.searchInstances",
           "when": "view == catalystChainInspector",
           "group": "navigation@0"
         },
         {
-          "command": "catalyst.refreshChainInspector",
+          "command": "catalyst.switchUiModule",
           "when": "view == catalystChainInspector",
           "group": "navigation@1"
         },
         {
-          "command": "catalyst.sendToAgentChat",
+          "command": "catalyst.refreshChainInspector",
           "when": "view == catalystChainInspector",
           "group": "navigation@2"
         },
         {
-          "command": "catalyst.configureCriterion",
+          "command": "catalyst.sendToAgentChat",
           "when": "view == catalystChainInspector",
           "group": "navigation@3"
         },
         {
-          "command": "catalyst.openSettings",
+          "command": "catalyst.configureCriterion",
           "when": "view == catalystChainInspector",
           "group": "navigation@4"
+        },
+        {
+          "command": "catalyst.openSettings",
+          "when": "view == catalystChainInspector",
+          "group": "navigation@5"
         },
         {
           "command": "catalyst.iam.login",
@@ -193,9 +226,55 @@
         {
           "command": "catalyst.users.open",
           "when": "false"
+        },
+        {
+          "command": "catalyst.closeBug",
+          "when": "false"
+        },
+        {
+          "command": "catalyst.reopenBug",
+          "when": "false"
+        },
+        {
+          "command": "catalyst.closeBug.denied",
+          "when": "false"
+        },
+        {
+          "command": "catalyst.reopenBug.denied",
+          "when": "false"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "catalyst.closeBug",
+          "when": "view == catalystChainInspector && viewItem == catalystEntity.bug.open.allowed && isWorkspaceTrusted",
+          "group": "catalyst@1"
+        },
+        {
+          "command": "catalyst.closeBug.denied",
+          "when": "view == catalystChainInspector && viewItem == catalystEntity.bug.open.denied && isWorkspaceTrusted",
+          "group": "catalyst@1"
+        },
+        {
+          "command": "catalyst.reopenBug",
+          "when": "view == catalystChainInspector && viewItem == catalystEntity.bug.closed.allowed && isWorkspaceTrusted",
+          "group": "catalyst@1"
+        },
+        {
+          "command": "catalyst.reopenBug.denied",
+          "when": "view == catalystChainInspector && viewItem == catalystEntity.bug.closed.denied && isWorkspaceTrusted",
+          "group": "catalyst@1"
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "catalyst.searchInstances",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "focusedView == catalystChainInspector"
+      }
+    ],
     "configuration": [
       {
         "title": "Catalyst",

@@ -355,4 +355,6 @@ export interface CatalystPointer {
   created_by?: string;
   created?: string;
   updated?: string;
+  /** `warn` turns catalyst's refusal of a change the signer's grants do not allow into a warning (decision D5). */
+  role_check?: string;
 }

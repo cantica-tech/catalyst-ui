@@ -3,6 +3,16 @@ export const VIEW_ID = "catalystChainInspector";
 
 export const SHOW_DETAIL_COMMAND = "catalyst.showNodeDetail";
 
+/** Catalyst: Search Items — a QuickPick over the Instances view's items (REQ-000076-UVqkd7cL). */
+export const SEARCH_INSTANCES_COMMAND = "catalyst.searchInstances";
+
+/** A bug's Close Bug and Reopen Bug, from its context menu in the Instances view (REQ-000077-UVqkd7cL). */
+export const CLOSE_BUG_COMMAND = "catalyst.closeBug";
+export const REOPEN_BUG_COMMAND = "catalyst.reopenBug";
+/** The same, shown greyed out (never enabled) while catalyst would refuse the signer `/status`. */
+export const CLOSE_BUG_DENIED_COMMAND = "catalyst.closeBug.denied";
+export const REOPEN_BUG_DENIED_COMMAND = "catalyst.reopenBug.denied";
+
 /** `catalyst.trackEntityInTree`: reveal the entity a detail panel shows (REQ-000017-UVqkd7cL). */
 export const TRACK_SETTING = "trackEntityInTree";
 
