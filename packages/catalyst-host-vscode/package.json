@@ -119,7 +119,19 @@
       },
       {
         "command": "catalyst.iam.login",
-        "title": "Catalyst: Log In to catalyst-users"
+        "title": "Catalyst: Log In to catalyst-users",
+        "icon": {
+          "light": "resources/icons/log-in-light.svg",
+          "dark": "resources/icons/log-in-dark.svg"
+        }
+      },
+      {
+        "command": "catalyst.iam.logout",
+        "title": "Catalyst: Log Out of catalyst-users",
+        "icon": {
+          "light": "resources/icons/log-out-light.svg",
+          "dark": "resources/icons/log-out-dark.svg"
+        }
       },
       {
         "command": "catalyst.users.refresh",
@@ -159,15 +171,19 @@
           "group": "navigation@4"
         },
         {
+          "command": "catalyst.iam.login",
+          "when": "view == catalystUsers && !catalyst.users.loggedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "catalyst.iam.logout",
+          "when": "view == catalystUsers && catalyst.users.loggedIn",
+          "group": "navigation@0"
+        },
+        {
           "command": "catalyst.users.refresh",
           "when": "view == catalystUsers",
-          "group": "navigation@0"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "catalyst.iam.login",
-          "when": "view == catalystUsers && viewItem == catalystUser"
+          "group": "navigation@1"
         }
       ],
       "commandPalette": [

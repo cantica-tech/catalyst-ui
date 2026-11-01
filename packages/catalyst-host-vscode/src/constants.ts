@@ -35,8 +35,10 @@ export const SET_UP_FOLDER_COMMAND = "catalyst.setUpFolder";
 export const CHECK_IAM_ACCOUNT_COMMAND = "catalyst.checkIamAccount";
 /** Log a person in to catalyst-users with their username and password (vscode-IAM-000002-UVqkd7cL). */
 export const IAM_LOGIN_COMMAND = "catalyst.iam.login";
-/** The context value of a user in the side bar, for its context menu. */
-export const USER_ITEM_CONTEXT = "catalystUser";
+/** Log the person out of catalyst-users (vscode-IAM-000002-UVqkd7cL, REQ-000075-UVqkd7cL). */
+export const IAM_LOGOUT_COMMAND = "catalyst.iam.logout";
+/** The context key that is true while someone is logged in to catalyst-users: the Users panel shows log-out, else log-in. */
+export const USERS_LOGGED_IN_CONTEXT = "catalyst.users.loggedIn";
 /** The Users panel: the identity provider's users, roles and groups (vscode-IAM-000003-UVqkd7cL). */
 export const USERS_VIEW_ID = "catalystUsers";
 /** `catalyst.users.refresh`: read the Users panel again through catalyst-users. */

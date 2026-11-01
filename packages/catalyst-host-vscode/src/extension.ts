@@ -39,6 +39,7 @@ import { VscodeHost } from "./vscode/vscode-host.js";
 import {
   CHECK_IAM_ACCOUNT_COMMAND,
   IAM_LOGIN_COMMAND,
+  IAM_LOGOUT_COMMAND,
   CONFIGURE_CRITERION_COMMAND,
   DIAGNOSTIC_COLLECTION_NAME,
   IGNORED_FOLDERS_SETTING,
@@ -57,6 +58,7 @@ import {
   VIEW_ID,
   OPEN_DIRECTORY_COMMAND,
   REFRESH_USERS_COMMAND,
+  USERS_LOGGED_IN_CONTEXT,
   USERS_VIEW_ID,
 } from "./constants.js";
 import type { DeploymentTarget, RegisteredDeployment } from "./vscode/deployments.js";
@@ -76,8 +78,10 @@ import {
 import {
   type Answer,
   LEGACY_IAM_PASSWORD_SECRET,
-  loginNameFor,
+  type LoginState,
+  logout,
   passwordLogin,
+  personWhoami,
   readIamSettings,
   systemWhoami,
 } from "./iam.js";
@@ -108,10 +112,29 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   const usersProvider = new UsersProvider(iamSettings);
   const usersView = vscode.window.createTreeView(USERS_VIEW_ID, { treeDataProvider: usersProvider });
+  // Who is logged in to catalyst-users (REQ-000075-UVqkd7cL): the context key USERS_LOGGED_IN_CONTEXT shows the
+  // panel's log-out button while someone is, its log-in button otherwise (catalyst-users failing included).
+  let loggedIn: LoginState;
+  let lastUsername = "";
+  let loginStateReads = 0;
+  const showLoginState = (who: LoginState): void => {
+    loggedIn = who;
+    if (who) lastUsername = who.username;
+    void vscode.commands.executeCommand("setContext", USERS_LOGGED_IN_CONTEXT, who !== undefined);
+  };
+  /** Ask catalyst-users who is logged in and show it; the latest read wins. Never rejects. */
+  const readLoginState = async (): Promise<LoginState> => {
+    const read = ++loginStateReads;
+    const answer = await personWhoami(iamSettings());
+    if (read === loginStateReads) showLoginState(answer.value);
+    return answer.value;
+  };
+  void readLoginState();
   context.subscriptions.push(
     usersView,
     vscode.commands.registerCommand(REFRESH_USERS_COMMAND, () => {
       usersProvider.refresh();
+      void readLoginState();
     }),
   );
   /** Select a user, role or group in the Users panel, while it is visible, never moving focus. */
@@ -566,17 +589,16 @@ export function activate(context: vscode.ExtensionContext): void {
   // handed to catalyst-users on standard input; no provider page, nothing kept.
   let loggingIn = false;
   context.subscriptions.push(
-    vscode.commands.registerCommand(IAM_LOGIN_COMMAND, async (element?: { user?: { username?: unknown } }) => {
+    vscode.commands.registerCommand(IAM_LOGIN_COMMAND, async () => {
       if (loggingIn) {
         void vscode.window.showInformationMessage("Catalyst: a catalyst-users login is already running.");
         return;
       }
       const settings = iamSettings();
-      const named = typeof element?.user?.username === "string" ? element.user.username : "";
       const username = await vscode.window.showInputBox({
         title: "Log in to catalyst-users",
         prompt: "Your username",
-        value: loginNameFor(named),
+        value: lastUsername,
         ignoreFocusOut: true,
         validateInput: (value) => (value.trim() ? undefined : "A username is needed"),
       });
@@ -599,8 +621,47 @@ export function activate(context: vscode.ExtensionContext): void {
           void vscode.window.showInformationMessage(
             `Catalyst: logged in to catalyst-users as ${answer.value.username} (${answer.value.name}).`,
           );
+          loginStateReads++;
+          showLoginState(answer.value);
           usersProvider.refresh();
         }
+      } finally {
+        loggingIn = false;
+      }
+    }),
+    // The logout (REQ-000075-UVqkd7cL): asked first, then catalyst-users revokes the session and deletes it.
+    vscode.commands.registerCommand(IAM_LOGOUT_COMMAND, async () => {
+      if (loggingIn) {
+        void vscode.window.showInformationMessage("Catalyst: a catalyst-users login or logout is already running.");
+        return;
+      }
+      const who = loggedIn ?? (await readLoginState());
+      if (!who) {
+        void vscode.window.showInformationMessage("Catalyst: no one is logged in to catalyst-users.");
+        return;
+      }
+      const choice = await vscode.window.showWarningMessage(
+        `Log out of catalyst-users as ${who.username}?`,
+        { modal: true },
+        "Log Out",
+      );
+      if (choice !== "Log Out") return;
+      loggingIn = true;
+      try {
+        const settings = iamSettings();
+        const answer = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: `Catalyst: logging ${who.username} out…` },
+          () => logout(settings),
+        );
+        if (answer.problem !== undefined) {
+          void vscode.window.showWarningMessage(`Catalyst: ${answer.problem}.`);
+          void readLoginState();
+        } else {
+          void vscode.window.showInformationMessage(`Catalyst: logged ${who.username} out of catalyst-users.`);
+          loginStateReads++;
+          showLoginState(undefined);
+        }
+        usersProvider.refresh();
       } finally {
         loggingIn = false;
       }
