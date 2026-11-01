@@ -94,7 +94,8 @@ export function defaultChatAgent(workspaceRoot: string): AgentBinding | null {
 /** Preset lookup, then an explicit `participant` override, then a bare `@<name>` guess — spec's own §1/§2 resolution order. */
 export function resolveParticipant(agentDef: AgentBinding): string {
   if (agentDef.participant) return agentDef.participant;
-  const preset = AGENT_PRESETS[agentDef.name];
+  const presets: Partial<Record<string, AgentPreset>> = AGENT_PRESETS;
+  const preset = presets[agentDef.name];
   if (preset) return preset.participant;
   return `@${agentDef.name}`;
 }

@@ -14,11 +14,11 @@ export type PanelGrouping = "perProject" | "single";
 
 export const PANEL_GROUPING_SETTING = "detailPanelGroups";
 
-export interface OpenDetailPanel {
+export interface OpenDetailPanel<Column = number> {
   /** The deployment (corpus root) the panel shows something from. */
   project: string;
   /** The editor group (view column) it is in now; undefined while hidden. */
-  column: number | undefined;
+  column: Column | undefined;
   /** When it was last focused (a monotonic counter or timestamp). */
   lastActive: number;
 }
@@ -29,12 +29,12 @@ export interface OpenDetailPanel {
  * panel of the same project (`perProject`) or of any project (`single`).
  * Following the last-focused panel respects a user who moved panels.
  */
-export function targetColumn(
-  open: readonly OpenDetailPanel[],
+export function targetColumn<Column>(
+  open: readonly OpenDetailPanel<Column>[],
   project: string,
   grouping: PanelGrouping,
-): number | "beside" {
-  let best: OpenDetailPanel | undefined;
+): Column | "beside" {
+  let best: OpenDetailPanel<Column> | undefined;
   for (const panel of open) {
     if (panel.column === undefined) continue;
     if (grouping === "perProject" && panel.project !== project) continue;

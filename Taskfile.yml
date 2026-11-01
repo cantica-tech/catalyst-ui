@@ -98,12 +98,15 @@ tasks:
       - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
 
   install:vscode-extension:unsigned:
-    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for local test builds (one-time sets extensions.verifySignature: false in your real VS Code user settings, since VS Code has no per-install CLI flag for this)"
+    desc: "Build and install catalyst-host-vscode into your local VS Code, skipping signature verification for this local test build: sets extensions.verifySignature: false in your VS Code user settings for the install only (VS Code has no per-install CLI flag for it), then puts back what was there"
     dir: packages/catalyst-host-vscode
     cmds:
       - task: build:vscode-extension
-      - node scripts/enable-unsigned-install.js
-      - '"{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix'
+      - |
+        set -e
+        PREVIOUS="$(node scripts/enable-unsigned-install.js set)"
+        trap 'node scripts/enable-unsigned-install.js restore "$PREVIOUS"' EXIT
+        "{{.CODE_BIN}}" --install-extension catalyst-host-vscode.vsix
 
   publish:vscode-extension:
     desc: "Publish catalyst-host-vscode to the VS Code Marketplace, where it gets signed as part of publishing (needs VSCE_PAT set to a real Azure DevOps token scoped Marketplace: Manage for package.json's registered publisher — see marketplace.visualstudio.com/manage)"
@@ -120,11 +123,36 @@ tasks:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}"
 
   release:vsix:publish:
-    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR. The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion"
-    requires:
-      vars: [PUBLISH_DIR]
+    desc: "Build the .vsix from the release tag of package.json's version (v<version> or <version>; or -- --tag <tag>) in a temporary worktree, copy it with its manifest into PUBLISH_DIR/catalyst/vsix/v<version>/, then commit and push PUBLISH_DIR (default ../cantica-tech, the distribution repository). The manifest's kernelVersion is KERNEL_VERSION (or -- --kernel-version '...'), else package.json's catalyst.kernelVersion. Step 5 of task release:checklist: run it for every release"
+    vars:
+      PUBLISH_DIR: '{{.PUBLISH_DIR | default "../cantica-tech"}}'
     cmds:
       - node scripts/release-vsix.mjs --publish-dir "{{.PUBLISH_DIR}}" --push {{if .KERNEL_VERSION}}--kernel-version '{{.KERNEL_VERSION}}'{{end}} {{.CLI_ARGS}}
+
+  release:checklist:
+    desc: "Print the release checklist for a catalyst UI release (version bump, paired kernel, distribution)"
+    silent: true
+    cmds:
+      - |
+        cat <<'CHECKLIST'
+        catalyst UI release checklist (in order):
+          1. The paired kernel: the kernel this release is tested against is released and in the distribution
+             repository. Set packages/catalyst-host-electron/catalyst-version.txt to it, run
+             `npm run spec:sync -w catalyst-core -- <catalyst checkout> <tag>`, and raise VERIFIED_KERNEL_VERSION in
+             packages/catalyst-core/src/kernel-version.ts to it (a test fails while it is older than
+             catalyst-version.txt; the VS Code host offers a kernel sync only up to it).
+          2. The version: version.txt, every packages/*/package.json, package-lock.json and catalyst-core's VERSION
+             (a test checks they agree).
+          3. From a clean build (each packages/*/dist and *.tsbuildinfo removed): `task ci`,
+             `npm run build -w catalyst-studio`,
+             `npm run spec:check -w catalyst-core`, `task lint`. Push to development; CI green.
+          4. development -> main -> release pull requests, then
+             `gh release create <version> --title v<version> --target release`.
+          5. The distribution repository: `task release:vsix:publish` builds the .vsix from the release tag in a
+             temporary worktree and commits and pushes it, with its manifest.json, to
+             ../cantica-tech (PUBLISH_DIR=...) catalyst/vsix/v<version>/. Every release, not later.
+          (The VS Code Marketplace is separate and only when the owner asks: task publish:vscode-extension:release.)
+        CHECKLIST
 
   publish:vscode-extension:release:
     desc: "Publish catalyst-host-vscode to the Marketplace for a cut release only — refuses unless HEAD is exactly a release tag matching package.json's version, then runs publish:vscode-extension, then leaves a copy of the release's .vsix in cantica-tech (release:vsix:publish; PUBLISH_DIR defaults to ../cantica-tech, KERNEL_VERSION to package.json's catalyst.kernelVersion)"

@@ -50,8 +50,10 @@ export function breadthFirst<T>(
   limit = 10000,
 ): T | undefined {
   const queue = [...roots];
-  for (let seen = 0; queue.length > 0 && seen < limit; seen++) {
-    const item = queue.shift()!;
+  // An array's iterator is live: it reaches the children pushed while it runs.
+  let seen = 0;
+  for (const item of queue) {
+    if (seen++ >= limit) break;
     if (match(item)) return item;
     queue.push(...children(item));
   }

@@ -26,8 +26,15 @@ describe("remote environments (REQ-000016)", () => {
     const w = unreachableAdvice("app", "/h/.criterion", "wsl");
     assert.deepStrictEqual(w.actions, ["share"]);
     assert.ok(w.message.includes("from WSL"));
+  });
+
+  it("readies a criterion that is not on this machine with catalyst open (REQ-000074)", () => {
     const local = unreachableAdvice("app", undefined, undefined);
-    assert.deepStrictEqual(local.actions, ["share"]);
-    assert.ok(local.message.includes("no working copy here"));
+    assert.deepStrictEqual(local.actions, ["open"]);
+    assert.ok(local.message.includes("not on this machine") && local.message.includes("catalyst open"));
+    assert.ok(!local.message.includes(".criterion"));
+    const wsl = unreachableAdvice("app", undefined, "wsl");
+    assert.deepStrictEqual(wsl.actions, ["open"]);
+    assert.ok(wsl.message.includes("(WSL)"));
   });
 });

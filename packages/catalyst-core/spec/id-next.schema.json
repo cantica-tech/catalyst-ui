@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/id-next.schema.json",
+  "title": "catalyst id next",
+  "description": "What `catalyst id next --json` and `catalyst id next-rule --json` print: the IDs, and whether they were reserved (handed out once, under the ID lock) or only peeked at (`--peek`: the next ID, which anyone may still take).",
+  "type": "object",
+  "required": [
+    "ids",
+    "reserved"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The IDs, in order (several with `--count`)."
+    },
+    "reserved": {
+      "type": "boolean",
+      "description": "true: each ID is reserved for this caller; false (`--peek`): nothing was reserved."
+    }
+  }
+}

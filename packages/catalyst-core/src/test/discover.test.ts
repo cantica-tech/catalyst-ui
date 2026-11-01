@@ -1,5 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
+import type * as Os from "node:os";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,7 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // homedir() never sees: route homedir() through it so a test can point
 // HOME at a scratch directory.
 vi.mock("node:os", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:os")>();
+  const actual = await importOriginal<typeof Os>();
   return { ...actual, homedir: () => process.env.HOME ?? actual.homedir() };
 });
 
