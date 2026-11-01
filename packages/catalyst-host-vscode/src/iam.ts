@@ -179,11 +179,6 @@ export const runWithInput: RunWithInput = (file, args, input) =>
     child.stdin.end(`${input}\n`);
   });
 
-/** A login name to offer for a user shown by name: lower case without blanks ("Olivier Steck" → "oliviersteck"). */
-export function loginNameFor(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, "");
-}
-
 /** Who logged in, as `<command> --json login --password` says. */
 export interface LoggedIn {
   username: string;
@@ -226,4 +221,49 @@ export async function passwordLogin(
   }
   if (typeof data.username !== "string") return { problem: `catalyst-users (${settings.command}) named no one` };
   return { value: { username: data.username, name: typeof data.name === "string" ? data.name : data.username } };
+}
+
+/** Who is logged in to catalyst-users, or `undefined` when no one is. */
+export type LoginState = LoggedIn | undefined;
+
+/** catalyst-users' own words when it has no usable session (its `NotLoggedInError`): not a failure. */
+const NOT_LOGGED_IN = /\bnot logged in\b/i;
+
+/**
+ * Who is logged in to catalyst-users (`REQ-000075-UVqkd7cL`): `<command> --json whoami`, the person's own session,
+ * never the system account's. Answers the person, `undefined` when no one is logged in (catalyst-users says "not
+ * logged in"), or the problem when catalyst-users fails otherwise.
+ */
+export async function personWhoami(settings: IamSettings, run: RunCommand = runCommand): Promise<Answer<LoginState>> {
+  const answer = await catalystUsers(settings, ["whoami"], run);
+  if (answer.problem !== undefined) {
+    return NOT_LOGGED_IN.test(answer.problem) ? { value: undefined } : answer;
+  }
+  const data = (answer.value ?? {}) as Record<string, unknown>;
+  if (typeof data.username !== "string" || !data.username) {
+    return { problem: `catalyst-users (${settings.command}) named no one` };
+  }
+  return { value: { username: data.username, name: typeof data.name === "string" ? data.name : data.username } };
+}
+
+/**
+ * Logs the person out (`REQ-000075-UVqkd7cL`): `<command> --json logout`, which revokes the session at the
+ * provider and deletes the local credentials. It prints no JSON; its exit status is the answer.
+ */
+export async function logout(settings: IamSettings, run: RunCommand = runCommand): Promise<Answer<true>> {
+  let words: string[];
+  try {
+    words = splitCommand(settings.command);
+  } catch (error) {
+    return { problem: `catalyst.iam.command: ${error instanceof Error ? error.message : String(error)}` };
+  }
+  const [file, ...prefix] = words;
+  if (!file) return { problem: "catalyst.iam.command is empty" };
+  try {
+    await run(file, [...prefix, "--json", "logout"]);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return { problem: `catalyst-users could not log out: ${reason}` };
+  }
+  return { value: true };
 }

@@ -2,7 +2,7 @@
   "name": "catalyst-host-vscode",
   "displayName": "Catalyst Studio — rules, journal and traceability for AI-assisted development",
   "description": "Catalyst Studio for catalyst-governed projects: the chain of rules, requirements and work, what waits for a decision, the journal with every change's diff, boards, traceability, and commands run with your agent after you confirm.",
-  "version": "0.71.0",
+  "version": "0.72.0",
   "private": true,
   "license": "Apache-2.0",
   "publisher": "CanticaTech",
@@ -83,8 +83,11 @@
       },
       {
         "command": "catalyst.configureCriterion",
-        "title": "Catalyst: Configure Criterion Repo…",
-        "icon": "$(repo)"
+        "title": "Catalyst: Set Criterion Repo…",
+        "icon": {
+          "light": "resources/icons/upload-repo-light.svg",
+          "dark": "resources/icons/upload-repo-dark.svg"
+        }
       },
       {
         "command": "catalyst.refreshChainInspector",
@@ -119,7 +122,19 @@
       },
       {
         "command": "catalyst.iam.login",
-        "title": "Catalyst: Log In to catalyst-users"
+        "title": "Catalyst: Log In to catalyst-users",
+        "icon": {
+          "light": "resources/icons/log-in-light.svg",
+          "dark": "resources/icons/log-in-dark.svg"
+        }
+      },
+      {
+        "command": "catalyst.iam.logout",
+        "title": "Catalyst: Log Out of catalyst-users",
+        "icon": {
+          "light": "resources/icons/log-out-light.svg",
+          "dark": "resources/icons/log-out-dark.svg"
+        }
       },
       {
         "command": "catalyst.users.refresh",
@@ -159,15 +174,19 @@
           "group": "navigation@4"
         },
         {
+          "command": "catalyst.iam.login",
+          "when": "view == catalystUsers && !catalyst.users.loggedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "catalyst.iam.logout",
+          "when": "view == catalystUsers && catalyst.users.loggedIn",
+          "group": "navigation@0"
+        },
+        {
           "command": "catalyst.users.refresh",
           "when": "view == catalystUsers",
-          "group": "navigation@0"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "catalyst.iam.login",
-          "when": "view == catalystUsers && viewItem == catalystUser"
+          "group": "navigation@1"
         }
       ],
       "commandPalette": [

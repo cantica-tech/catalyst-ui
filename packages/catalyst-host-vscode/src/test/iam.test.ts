@@ -4,8 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
-  loginNameFor,
+  logout,
   passwordLogin,
+  personWhoami,
   readIamSettings,
   splitCommand,
   systemToken,
@@ -144,9 +145,53 @@ describe("a person's password login through catalyst-users (REQ-000070)", () => 
     assert.match((await passwordLogin(settings(), "a", "b", notJson)).problem ?? "", /0\.9\.0 or later/);
     assert.match((await passwordLogin(settings(`run "x`), "a", "b", notJson)).problem ?? "", /unclosed/);
   });
+});
 
-  it("offers a login name for a user shown by name", () => {
-    assert.strictEqual(loginNameFor(" Olivier Steck "), "oliviersteck");
-    assert.strictEqual(loginNameFor("ada"), "ada");
+describe("the person's login state and logout (REQ-000075-UVqkd7cL)", () => {
+  it("says who is logged in, from whoami without --system", async () => {
+    let seen: string[] = [];
+    const run: RunCommand = (file, args) => {
+      seen = [file, ...args];
+      return Promise.resolve(JSON.stringify({ ...WHOAMI, username: "ada", name: "Ada Lovelace" }));
+    };
+    const answer = await personWhoami(settings("uv run catalyst-users"), run);
+    assert.deepStrictEqual(answer.value, { username: "ada", name: "Ada Lovelace" });
+    assert.deepStrictEqual(seen, ["uv", "run", "catalyst-users", "--json", "whoami"]);
+  });
+
+  it("says no one is logged in when catalyst-users says so, which is not a failure", async () => {
+    const run: RunCommand = () =>
+      Promise.reject(new Error("catalyst-users: error: not logged in: run `catalyst-users login`"));
+    const answer = await personWhoami(settings(), run);
+    assert.strictEqual(answer.problem, undefined);
+    assert.strictEqual(answer.value, undefined);
+  });
+
+  it("reports catalyst-users failing otherwise, or naming no one", async () => {
+    const down: RunCommand = () => Promise.reject(new Error("catalyst-users: error: the provider is unreachable"));
+    assert.match((await personWhoami(settings(), down)).problem ?? "", /unreachable/);
+    const missing: RunCommand = () => Promise.reject(new Error("catalyst-users was not found"));
+    assert.match((await personWhoami(settings(), missing)).problem ?? "", /not found/);
+    const nobody: RunCommand = () => Promise.resolve("{}");
+    assert.match((await personWhoami(settings(), nobody)).problem ?? "", /named no one/);
+  });
+
+  it("logs out with --json logout, whatever it prints", async () => {
+    let seen: string[] = [];
+    const run: RunCommand = (file, args) => {
+      seen = [file, ...args];
+      return Promise.resolve("Logged out.\n");
+    };
+    const answer = await logout(settings("uv run catalyst-users"), run);
+    assert.strictEqual(answer.value, true);
+    assert.deepStrictEqual(seen, ["uv", "run", "catalyst-users", "--json", "logout"]);
+  });
+
+  it("reports a failing logout", async () => {
+    const run: RunCommand = () => Promise.reject(new Error("catalyst-users: error: no settings"));
+    const answer = await logout(settings(), run);
+    assert.match(answer.problem ?? "", /could not log out: catalyst-users: error: no settings/);
+    assert.strictEqual(answer.value, undefined);
+    assert.match((await logout(settings(`run "x`), run)).problem ?? "", /unclosed/);
   });
 });
