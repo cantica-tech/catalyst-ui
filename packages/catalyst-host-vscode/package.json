@@ -83,7 +83,7 @@
       },
       {
         "command": "catalyst.configureCriterion",
-        "title": "Catalyst: Configure Criterion Repo…",
+        "title": "Catalyst: Configure Criterion Repository…",
         "icon": "$(repo)"
       },
       {
