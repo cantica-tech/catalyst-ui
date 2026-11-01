@@ -77,6 +77,96 @@ describe("the Instances view's Set Criterion Repo button", () => {
     assertPackagedIcons("catalyst.configureCriterion", "upload-repo");
     const entry = manifest.contributes.menus["view/title"].find((m) => m.command === "catalyst.configureCriterion");
     assert.strictEqual(entry?.when, "view == catalystChainInspector");
-    assert.strictEqual(entry.group, "navigation@3");
+    assert.strictEqual(entry.group, "navigation@4");
+  });
+});
+
+interface Keybinding {
+  command: string;
+  key: string;
+  mac?: string;
+  when?: string;
+}
+const command = (id: string) =>
+  (manifest.contributes.commands as (Command & { category?: string; enablement?: string })[]).find(
+    (c) => c.command === id,
+  );
+
+describe("Catalyst: Search Items (REQ-000076-UVqkd7cL)", () => {
+  it("is a search button first in the Instances view's title bar", () => {
+    assert.deepStrictEqual(command("catalyst.searchInstances"), {
+      command: "catalyst.searchInstances",
+      title: "Search Items",
+      category: "Catalyst",
+      icon: "$(search)",
+    });
+    const instances = manifest.contributes.menus["view/title"].filter(
+      (m) => m.when === "view == catalystChainInspector",
+    );
+    const sorted = [...instances].sort((a, b) => order(a) - order(b));
+    assert.strictEqual(sorted[0].command, "catalyst.searchInstances");
+    assert.strictEqual(new Set(instances.map(order)).size, instances.length, "each button its own place");
+  });
+
+  it("is bound to Ctrl+Alt+F (Cmd+Alt+F) while the Instances view has focus", () => {
+    const bindings = (manifest.contributes as unknown as { keybindings: Keybinding[] }).keybindings;
+    assert.deepStrictEqual(
+      bindings.filter((k) => k.command === "catalyst.searchInstances"),
+      [
+        {
+          command: "catalyst.searchInstances",
+          key: "ctrl+alt+f",
+          mac: "cmd+alt+f",
+          when: "focusedView == catalystChainInspector",
+        },
+      ],
+    );
+  });
+});
+
+describe("Close Bug and Reopen Bug (REQ-000077-UVqkd7cL)", () => {
+  const context = manifest.contributes.menus["view/item/context"] ?? [];
+  const when = (id: string) => context.find((m) => m.command === id)?.when;
+  const V = "view == catalystChainInspector";
+
+  it("shows Close on an open bug and Reopen on a closed one, in a trusted workspace", () => {
+    assert.strictEqual(
+      when("catalyst.closeBug"),
+      `${V} && viewItem == catalystEntity.bug.open.allowed && isWorkspaceTrusted`,
+    );
+    assert.strictEqual(
+      when("catalyst.reopenBug"),
+      `${V} && viewItem == catalystEntity.bug.closed.allowed && isWorkspaceTrusted`,
+    );
+    assert.strictEqual(command("catalyst.closeBug")?.title, "Close Bug");
+    assert.strictEqual(command("catalyst.reopenBug")?.title, "Reopen Bug");
+  });
+
+  it("shows them greyed out, saying why, where catalyst would refuse the signer /status", () => {
+    assert.strictEqual(
+      when("catalyst.closeBug.denied"),
+      `${V} && viewItem == catalystEntity.bug.open.denied && isWorkspaceTrusted`,
+    );
+    assert.strictEqual(
+      when("catalyst.reopenBug.denied"),
+      `${V} && viewItem == catalystEntity.bug.closed.denied && isWorkspaceTrusted`,
+    );
+    for (const id of ["catalyst.closeBug.denied", "catalyst.reopenBug.denied"]) {
+      assert.strictEqual(command(id)?.enablement, "false");
+      assert.match(command(id)?.title ?? "", /\(needs the \/status grant\)$/);
+    }
+    for (const id of ["catalyst.closeBug", "catalyst.reopenBug"])
+      assert.strictEqual(command(id)?.enablement, undefined);
+  });
+
+  it("keeps all four out of the Command Palette: they act on a node", () => {
+    const palette = manifest.contributes.menus.commandPalette;
+    for (const id of [
+      "catalyst.closeBug",
+      "catalyst.reopenBug",
+      "catalyst.closeBug.denied",
+      "catalyst.reopenBug.denied",
+    ])
+      assert.strictEqual(palette.find((m) => m.command === id)?.when, "false");
   });
 });

@@ -18,6 +18,17 @@ goes through the governing agent, never straight from the UI.
   entry for its full detail — fields, links in both directions, journal —
   in a panel; the Journal and the Backlog open from the tree as well.
   catalyst's settings open from the view's title bar.
+- **Search Items** — the search button on top of the Instances view (or
+  Ctrl+Alt+F, Cmd+Alt+F on macOS, while the view has focus; F3 still opens
+  the view's own find) lists every item of every open project as you type,
+  each with its status beside its name; type an ID, a name, a status or a
+  type. The one you choose is selected in the tree and its document opens.
+- **Close and reopen a bug** — right-click a bug in the Instances view:
+  _Close Bug_ while it is open, _Reopen Bug_ once it is closed. You give a
+  reason, the editor shows catalyst's preview of the change and runs
+  `catalyst status set` only on your yes; if catalyst refuses (a bug's
+  steps still open, say), its reason is shown and nothing changes. Where
+  your roles do not grant `/status`, both are shown greyed out.
 - **Studio** — _Catalyst: Open Studio_ opens the project's dashboard,
   inbox, board, journal, trace, rules and approvals in an editor tab.
   What waits for a person (an unrecorded change, a reconciliation case,

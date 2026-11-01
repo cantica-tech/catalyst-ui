@@ -9,7 +9,16 @@ import { catalystCommand } from "./catalyst-source.js";
  * runs it with no shell; catalyst journals the change as for any command.
  */
 export type StudioAction =
-  | { verb: "status-set"; id: string; state: string; intent: string; tier?: string; forewarned?: boolean }
+  | {
+      verb: "status-set";
+      id: string;
+      state: string;
+      intent: string;
+      tier?: string;
+      /** The slash command the change runs for, journaled (`/status`). */
+      command?: string;
+      forewarned?: boolean;
+    }
   | { verb: "journal-adopt"; commit: string; intent: string; tier: string; target?: string }
   | { verb: "journal-append"; path: string; intent: string; tier: string; target?: string; artifact?: string }
   | { verb: "reconcile"; case: string; decision: string; intent: string; text?: string; forewarned?: boolean }
@@ -28,6 +37,8 @@ const ENTITY = /^[A-Za-z][A-Za-z0-9.]*(-[A-Za-z0-9.]+)+$/;
 const STATE = /^[A-Za-z][A-Za-z0-9 _-]{0,40}$/;
 const COMMIT = /^[0-9a-f]{7,40}$/;
 const TIER = /^[a-z][a-z-]{0,20}$/;
+/** A slash command's name, as catalyst journals it (`/status`). */
+const SLASH_COMMAND = /^\/[a-z][a-z0-9-]{0,40}$/;
 /** A gate's id in `IAM/gates.json` (catalyst >= 0.80.0). */
 const GATE = /^[a-z][a-z0-9-]{0,40}$/;
 const DECISIONS = ["accept", "accept-with-edits", "reject", "propose", "close"];
@@ -120,6 +131,11 @@ function verbArgs(action: unknown): string[] {
         field(a.state, "state", (v) => STATE.test(v), "not a state"),
         intent(),
         ...optional(a.tier, tier, "--tier"),
+        ...optional(
+          a.command,
+          (v) => field(v, "command", (c) => SLASH_COMMAND.test(c), "not a slash command"),
+          "--command",
+        ),
         "--json",
       ];
     case "journal-adopt":
