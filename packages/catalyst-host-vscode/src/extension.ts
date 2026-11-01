@@ -8,6 +8,7 @@ import type {
 } from "catalyst-core";
 import {
   defaultChatAgent,
+  describeAction,
   downloadModuleZip,
   fetchRemoteUiModules,
   findDeployments,
@@ -38,6 +39,11 @@ import { openStudio } from "./vscode/studio-panel.js";
 import { VscodeHost } from "./vscode/vscode-host.js";
 import {
   CHECK_IAM_ACCOUNT_COMMAND,
+  CLOSE_BUG_COMMAND,
+  CLOSE_BUG_DENIED_COMMAND,
+  REOPEN_BUG_COMMAND,
+  REOPEN_BUG_DENIED_COMMAND,
+  SEARCH_INSTANCES_COMMAND,
   IAM_LOGIN_COMMAND,
   IAM_LOGOUT_COMMAND,
   CONFIGURE_CRITERION_COMMAND,
@@ -65,7 +71,9 @@ import type { DeploymentTarget, RegisteredDeployment } from "./vscode/deployment
 import { journalByCorpus, setupDeployment } from "./vscode/deployments.js";
 import { buildNodeDetail, buildReferenceTable, referencesForNode } from "catalyst-app-model";
 import { groupDocument, roleDocument, userDocument } from "./directory.js";
-import { ChainInspectorProvider } from "./vscode/inspector.js";
+import { ChainInspectorProvider, type InspectorTreeItem } from "./vscode/inspector.js";
+import { buildSearchItems, NO_DEPLOYMENT, SEARCH_OPTIONS, searchSelection } from "./instance-search.js";
+import { type BugMove, bugStatusCommands, bugTransition, refusalReason, statusPermission } from "./bug-status.js";
 import { UsersProvider } from "./vscode/users-view.js";
 import type { PendingSync } from "./vscode/onboarding.js";
 import {
@@ -121,7 +129,30 @@ export function activate(context: vscode.ExtensionContext): void {
     loggedIn = who;
     if (who) lastUsername = who.username;
     void vscode.commands.executeCommand("setContext", USERS_LOGGED_IN_CONTEXT, who !== undefined);
+    // Who signs may have changed: what they may do in each deployment is read again (REQ-000077-UVqkd7cL).
+    refreshStatusPermissions();
   };
+  /**
+   * What the effective signer may do in each deployment — or in one — as catalyst says (`catalyst identity whoami
+   * --json` from its project root, decision D5): a bug's Close and Reopen are greyed out where catalyst would
+   * refuse `/status`. The latest read of a deployment wins.
+   */
+  const permissionReads = new Map<string, number>();
+  function refreshStatusPermissions(only?: string): void {
+    for (const corpusRoot of only ? [only] : [...deploymentTargets.keys()]) {
+      const projectRoot = deploymentTargets.get(corpusRoot)?.path;
+      if (!projectRoot) continue;
+      const read = (permissionReads.get(corpusRoot) ?? 0) + 1;
+      permissionReads.set(corpusRoot, read);
+      void runAction(projectRoot, ["identity", "whoami", "--json"]).then((whoami) => {
+        if (permissionReads.get(corpusRoot) !== read) return;
+        provider.setStatusPermission(
+          corpusRoot,
+          statusPermission(whoami, readCatalystPointer(projectRoot)?.role_check),
+        );
+      });
+    }
+  }
   /** Ask catalyst-users who is logged in and show it; the latest read wins. Never rejects. */
   const readLoginState = async (): Promise<LoginState> => {
     const read = ++loginStateReads;
@@ -156,6 +187,24 @@ export function activate(context: vscode.ExtensionContext): void {
         expand: false,
       });
   }
+
+  // Catalyst: Search Items (REQ-000076-UVqkd7cL): every item the tree holds, its status beside its name; the one
+  // chosen is selected and focused in the tree, then opened as a click on its node opens it.
+  context.subscriptions.push(
+    vscode.commands.registerCommand(SEARCH_INSTANCES_COMMAND, async () => {
+      const items = buildSearchItems(provider.entityNodes());
+      if (provider.getCorpusRoots().length === 0) {
+        void vscode.window.showInformationMessage(NO_DEPLOYMENT);
+        return;
+      }
+      const picked = await vscode.window.showQuickPick(items, { ...SEARCH_OPTIONS });
+      if (!picked) return;
+      const plan = searchSelection(picked);
+      const element = provider.findNode(plan.reveal.corpusRoot, plan.reveal.id);
+      if (element) await instancesView.reveal(element, plan.revealOptions);
+      await vscode.commands.executeCommand(plan.open.command, ...plan.open.args);
+    }),
+  );
 
   const diagnostics = vscode.languages.createDiagnosticCollection(DIAGNOSTIC_COLLECTION_NAME);
   context.subscriptions.push(diagnostics);
@@ -295,6 +344,7 @@ export function activate(context: vscode.ExtensionContext): void {
           },
         ),
       );
+      refreshStatusPermissions(corpusRoot);
       if (vscode.workspace.isTrusted) {
         queueSyncOffer(target, corpusRoot);
       }
@@ -542,7 +592,94 @@ export function activate(context: vscode.ExtensionContext): void {
       for (const registered of registeredDeployments.values()) {
         registered.handle.refresh();
       }
+      refreshStatusPermissions();
     }),
+  );
+
+  // Close Bug and Reopen Bug (REQ-000077-UVqkd7cL): catalyst's status set, the one verb, through the host's
+  // allow-list (owner decision W1): a reason asked, catalyst's preview shown in a modal, run only on the person's
+  // yes from the project's root; a refusal is catalyst's reason, and nothing changes. Never --force.
+  async function moveBug(move: BugMove, element: unknown): Promise<void> {
+    if (!vscode.workspace.isTrusted) {
+      void vscode.window.showWarningMessage("Catalyst: trust this workspace to change a bug's status.");
+      return;
+    }
+    const item = element as InspectorTreeItem | undefined;
+    if (item?.type !== "node") {
+      void vscode.window.showWarningMessage("Catalyst: right-click a bug in the Instances view.");
+      return;
+    }
+    const corpusRoot = item.corpusRoot;
+    const model = provider.getModel(corpusRoot);
+    // The node as catalyst served it last, not as the menu saw it.
+    const node = model?.nodes.get(item.node.id) ?? item.node;
+    const type = node.kind === "artifact" || node.kind === "row" ? model?.types?.get(node.typePrefix) : undefined;
+    const transition = bugTransition(node, type, move);
+    const projectRoot = provider.getProjectRoot(corpusRoot);
+    if (transition.problem !== undefined || !type || !projectRoot) {
+      void vscode.window.showWarningMessage(`Catalyst: ${transition.problem ?? "the deployment is not open"}.`);
+      return;
+    }
+    const { id, state, verb } = transition.value;
+    const reason = await vscode.window.showInputBox({
+      title: `${verb}: ${id}`,
+      prompt: `Why? Journaled as the reason the bug goes to ${state}.`,
+      placeHolder: "Say what the change is for, in a sentence",
+      ignoreFocusOut: true,
+      validateInput: (value) => (value.trim() ? undefined : "A reason is needed"),
+    });
+    if (!reason?.trim()) return;
+    let commands: ReturnType<typeof bugStatusCommands>;
+    try {
+      commands = bugStatusCommands(transition.value, type, reason.trim());
+    } catch (err) {
+      void vscode.window.showWarningMessage(`Catalyst: not done: ${err instanceof Error ? err.message : String(err)}.`);
+      return;
+    }
+    const log = (args: string[], result: { output: string; error: string }) => {
+      agentBridgeOutputChannel.appendLine(`$ ${describeAction(args)}`);
+      agentBridgeOutputChannel.appendLine([result.output, result.error].filter(Boolean).join("\n"));
+    };
+    const preview = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Catalyst: previewing ${verb.toLowerCase()} ${id}…` },
+      () => runAction(projectRoot, commands.preview),
+    );
+    log(commands.preview, preview);
+    if (!preview.ok) {
+      void vscode.window.showWarningMessage(`Catalyst refuses to ${move} ${id}: ${refusalReason(preview)}`);
+      return;
+    }
+    const choice = await vscode.window.showWarningMessage(
+      `${verb} ${id}?`,
+      { modal: true, detail: `${describeAction(commands.run)}\n\n${preview.output}` },
+      verb,
+    );
+    if (choice !== verb) return;
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Catalyst: ${verb.toLowerCase()} ${id}…` },
+      () => runAction(projectRoot, commands.run),
+    );
+    log(commands.run, result);
+    if (!result.ok) {
+      void vscode.window.showWarningMessage(`Catalyst refuses to ${move} ${id}: ${refusalReason(result)}`);
+      return;
+    }
+    void vscode.window.showInformationMessage(`Catalyst: ${id} is ${state}.`);
+    registeredDeployments.get(corpusRoot)?.handle.refresh();
+  }
+  context.subscriptions.push(
+    vscode.commands.registerCommand(CLOSE_BUG_COMMAND, (element: unknown) => moveBug("close", element)),
+    vscode.commands.registerCommand(REOPEN_BUG_COMMAND, (element: unknown) => moveBug("reopen", element)),
+    // Greyed out in the menu (enablement false); run anyway, say why.
+    ...[CLOSE_BUG_DENIED_COMMAND, REOPEN_BUG_DENIED_COMMAND].map((id) =>
+      vscode.commands.registerCommand(id, (element: unknown) => {
+        const item = element as InspectorTreeItem | undefined;
+        const permission = item && "corpusRoot" in item ? provider.getStatusPermission(item.corpusRoot) : undefined;
+        void vscode.window.showWarningMessage(
+          `Catalyst: ${permission?.state === "denied" ? permission.reason : "not allowed"}.`,
+        );
+      }),
+    ),
   );
 
   context.subscriptions.push(
