@@ -19,7 +19,7 @@ export const KERNEL_VERSION_FLOOR = "0.54.0";
  * Newest kernel this build has been verified against — the only version a
  * deployment is ever offered a sync to. Never below the floor.
  */
-export const VERIFIED_KERNEL_VERSION = "0.120.0";
+export const VERIFIED_KERNEL_VERSION = "0.121.0";
 
 /**
  * The version to offer a deployment on `deployed` a sync to, or `null`
