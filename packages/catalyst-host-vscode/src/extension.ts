@@ -493,7 +493,7 @@ export function activate(context: vscode.ExtensionContext): void {
         : "Not yet linked to a criterion repo.";
 
       const name = await vscode.window.showInputBox({
-        title: "Configure Criterion Repository",
+        title: "Set Criterion Repo",
         prompt: `${statusText} Repository name`,
         value: pointer?.catalyst_repo ?? "",
         placeHolder: `${provider.getFolderName(corpusRoot) ?? "project"}-criterion`,
@@ -501,7 +501,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!name) return;
 
       const gitInfo = await vscode.window.showInputBox({
-        title: "Configure Criterion Repository",
+        title: "Set Criterion Repo",
         prompt: "Git URL or location for this repo",
         value: pointer?.catalyst_repo_url ?? "",
         placeHolder: "git@github.com:you/repo.git",

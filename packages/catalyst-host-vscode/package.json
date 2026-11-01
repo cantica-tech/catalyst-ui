@@ -83,8 +83,11 @@
       },
       {
         "command": "catalyst.configureCriterion",
-        "title": "Catalyst: Configure Criterion Repository…",
-        "icon": "$(repo)"
+        "title": "Catalyst: Set Criterion Repo…",
+        "icon": {
+          "light": "resources/icons/upload-repo-light.svg",
+          "dark": "resources/icons/upload-repo-dark.svg"
+        }
       },
       {
         "command": "catalyst.refreshChainInspector",
