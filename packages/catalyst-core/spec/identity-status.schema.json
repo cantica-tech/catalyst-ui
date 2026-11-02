@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "catalyst identity status",
-  "description": "The provider the deployment points at (IAM/identity.json, design 29) and whether this machine holds a person's tokens for it.",
+  "description": "The provider the deployment points at (IAM/identity.json, design 29), whether this machine holds a person's tokens for it, and, from those tokens' expiry alone (no network), the state of that session.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -17,7 +17,32 @@
       "type": "string"
     },
     "logged_in": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Tokens for this provider are stored on this machine, valid or not."
+    },
+    "session": {
+      "type": "string",
+      "enum": [
+        "active",
+        "refreshable",
+        "expired",
+        "none"
+      ],
+      "description": "`active`: the access token is valid; `refreshable`: it expired and the refresh token has not (the next use refreshes it); `expired`: both expired, the session lapsed and the system account signs instead (`catalyst identity login`); `none`: no tokens stored."
+    },
+    "verified": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "unreachable",
+        "not_checked"
+      ],
+      "description": "Whether the provider confirmed the stored login just now (a network check, made only when tokens are stored and the provider is reachable). `yes`: the provider named the person (`username`); `no`: the provider refused the stored login (lapsed, revoked, or rejected by the provider); `unreachable`: the provider could not be asked, or its answer was not understood, so the offline `session` stands; `not_checked`: no tokens are stored, so there was nothing to check."
+    },
+    "username": {
+      "type": "string",
+      "description": "The person the provider named, present only when `verified` is `yes`."
     }
   }
 }
