@@ -84,6 +84,14 @@ so. catalyst's commands are not in this Taskfile: `catalyst task` lists
 them, from the criterion's own `Taskfile.common.yml` (`catalyst task
 check-rules`, `catalyst task show-backlog`, ...).
 
+CI: every job has a `timeout-minutes` of about twice its usual
+duration. GitHub's macOS runners now and then stall, ending cancelled or
+timed out with no log; `.github/workflows/retry-stalled.yml` then reruns
+that Desktop run's failed jobs once, from its first attempt only, and only
+when every job that did not pass is a cancelled or timed-out macOS job (a
+real failure is never retried). It says why in one line;
+`scripts/retry-stalled.mjs` decides, tested by `npm test`.
+
 This project is itself governed by catalyst: `catalyst.toml` at its root
 names its criterion, kept outside the repository
 (`~/.catalyst/projects/catalyst-ui/criterion`, found with `catalyst where`).
