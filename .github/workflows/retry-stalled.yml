@@ -1,0 +1,45 @@
+name: Retry stalled macOS jobs
+
+# GitHub's macOS runners now and then stall: the job ends cancelled or timed out with no log, and a
+# rerun passes. When a Desktop run ends that way on its first attempt, its failed jobs are rerun once;
+# a real failure, or a job on another OS that did not pass, is never retried
+# (scripts/retry-stalled.mjs decides, and says why in one line). This workflow runs from the default
+# branch, with the default token; it never checks out or runs the triggering run's code.
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] reads the run's jobs and reruns them; never checks out its code
+    workflows: [Desktop]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: retry-stalled-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  retry:
+    if: github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # rerun the failed jobs
+      contents: read # the default branch's decision script
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Rerun stalled macOS jobs once
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          jobs="$RUNNER_TEMP/jobs.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs?per_page=100" > "$jobs"
+          decision="$(node scripts/retry-stalled.mjs "$jobs" "$RUN_ATTEMPT" "$RUN_CONCLUSION")"
+          echo "::notice::run $RUN_ID: $decision"
+          if [[ "$decision" == retry:* ]]; then
+            gh run rerun "$RUN_ID" --failed --repo "$GITHUB_REPOSITORY"
+          fi

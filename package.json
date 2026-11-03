@@ -12,7 +12,7 @@
     "lint": "tsc --build && eslint .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --build --pretty",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present && node --test \"scripts/*.test.mjs\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
