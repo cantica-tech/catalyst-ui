@@ -27,8 +27,9 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # Each platform builds in about 4 minutes: a stalled runner (macOS, now and then) ends in a clear
-    # timeout, and retry-stalled.yml reruns it once. Raise it when notarization is set up.
+    # Each platform builds in about 4 minutes; this catches a build that hangs while running. Raise it
+    # when notarization is set up. A stalled macOS job never gets a runner (GitHub cancels it after 15
+    # minutes of waiting, so no timeout applies); retry-stalled.yml reruns it once.
     timeout-minutes: 10
     environment: release
     permissions:
