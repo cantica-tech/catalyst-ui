@@ -1,7 +1,8 @@
 name: Retry stalled macOS jobs
 
-# GitHub's macOS runners now and then stall: the job ends cancelled or timed out with no log, and a
-# rerun passes. When a Desktop run ends that way on its first attempt, its failed jobs are rerun once;
+# A macOS job now and then stalls: it never gets a runner, GitHub cancels it after 15 minutes of
+# waiting, with no log and no steps run, and a rerun passes (a job that times out while running is
+# treated the same way). When a Desktop run ends that way on its first attempt, its failed jobs are rerun once;
 # a real failure, or a job on another OS that did not pass, is never retried
 # (scripts/retry-stalled.mjs decides, and says why in one line). This workflow runs from the default
 # branch, with the default token; it never checks out or runs the triggering run's code.
