@@ -1,6 +1,8 @@
 // Decides whether a finished workflow run is retried once
-// (.github/workflows/retry-stalled.yml): GitHub's macOS runners now and then
-// stall, and the job ends cancelled or timed out with no log; a rerun passes.
+// (.github/workflows/retry-stalled.yml): a macOS job now and then stalls. It
+// never gets a runner, GitHub cancels it after 15 minutes of waiting, with no
+// log and no steps run, and a rerun passes (a job that times out while running
+// is treated the same way).
 // A run is retried only when it is its first attempt, it did not succeed, and
 // every job that did not succeed is a macOS job that was cancelled or timed
 // out. A real failure, or any job on another OS that did not succeed, is
