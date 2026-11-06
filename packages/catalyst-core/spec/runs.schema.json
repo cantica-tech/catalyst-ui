@@ -29,7 +29,8 @@
       },
       "cost_usd": { "type": ["number", "null"] },
       "duration_ms": { "type": ["integer", "null"] },
-      "denied": { "type": "array", "items": { "type": "string" } }
+      "denied": { "type": "array", "items": { "type": "string" } },
+      "measured": { "type": "boolean", "description": "false: the agent reported no token usage, so the run's zeros are unknown, not none (catalyst >= 0.125.0; absent: measured)." }
     }
   }
 }
