@@ -33,7 +33,21 @@ export function getNodeStatusGlyph(node: ChainNode, type?: ModuleType): string {
   return "";
 }
 
-export function formatNodeLabel(node: ChainNode, type?: ModuleType): string {
+/** The mark of an entity under way, and the same hourglass turned over (REQ-000121-UVqkd7cL). */
+export const UNDER_WAY_GLYPH = "⏳ ";
+export const UNDER_WAY_TURNED_GLYPH = "⌛ ";
+
+/** Whether an artifact or row is under way: past its type's initial state and not closed (its mark is ⏳). */
+export function isUnderWay(node: ChainNode, type?: ModuleType): boolean {
+  return getNodeStatusGlyph(node, type) === UNDER_WAY_GLYPH;
+}
+
+/**
+ * A node's tree label: its status mark, its name and, in brackets, its ID and signer when the name does not
+ * already say them. `turned` writes the under-way hourglass turned over (⌛ for ⏳), one frame of the
+ * hourglass a bug turns until it is closed (REQ-000121-UVqkd7cL); it changes no other mark.
+ */
+export function formatNodeLabel(node: ChainNode, type?: ModuleType, turned = false): string {
   const idRegex =
     /^([a-z]+-[A-Z0-9_]+-\d{3,6}(?:-\d+)?|[A-Z0-9_]+-\d{3,6}(?:-\d+)?)(?:-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8})?(?:-(.*))?$/;
   const match = idRegex.exec(node.id);
@@ -80,7 +94,8 @@ export function formatNodeLabel(node: ChainNode, type?: ModuleType): string {
 
   const user = getNodeUser(node);
   const userSuffix = user ? ` - ${user}` : "";
-  const statusPrefix = getNodeStatusGlyph(node, type);
+  const glyph = getNodeStatusGlyph(node, type);
+  const statusPrefix = turned && glyph === UNDER_WAY_GLYPH ? UNDER_WAY_TURNED_GLYPH : glyph;
   // The bracket repeats nothing the label already starts with.
   const bracket = `${idWithoutUserid}${userSuffix}`;
   const same = (s: string) =>

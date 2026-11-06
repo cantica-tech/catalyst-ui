@@ -3,7 +3,7 @@ import * as assert from "assert";
 
 import type { ChainNode, ModuleType } from "catalyst-core";
 
-import { formatNodeLabel, getNodeUser } from "../tree.js";
+import { formatNodeLabel, getNodeUser, isUnderWay } from "../tree.js";
 
 function node(overrides: Partial<ChainNode> & { id: string }): ChainNode {
   return {
@@ -155,6 +155,25 @@ describe("formatNodeLabel", () => {
 
     it("marks any other state under way", () => {
       assert.strictEqual(glyph("Active"), "⏳");
+    });
+
+    it("turns the under-way hourglass over, and no other mark (REQ-000121-UVqkd7cL)", () => {
+      const turned = (status: string) =>
+        formatNodeLabel(
+          node({ id: "ITEM-000001-Ab3xR9pQ", title: "Login", status, closed: type.closed_states.includes(status) }),
+          type,
+          true,
+        ).split(" ")[0];
+      assert.strictEqual(turned("Active"), "⌛");
+      assert.strictEqual(turned("Done"), "✅");
+      assert.strictEqual(turned("Abandoned"), "🗑");
+      assert.strictEqual(turned("Open"), "…");
+      const of = (status: string) =>
+        isUnderWay(
+          node({ id: "ITEM-000001-Ab3xR9pQ", title: "Login", status, closed: type.closed_states.includes(status) }),
+          type,
+        );
+      assert.deepStrictEqual(["Active", "Done", "Open"].map(of), [true, false, false]);
     });
 
     it("marks a row the same way", () => {
