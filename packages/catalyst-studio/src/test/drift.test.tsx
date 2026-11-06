@@ -125,8 +125,17 @@ describe("the run history (studio-SHELL-000017, R6.22)", () => {
     expect(el.textContent).toContain("3 runs, $0.4200 in all.");
     expect(el.textContent).toContain("denied: Write");
     expect(el.textContent).toContain("115 in, 20 out, $0.1000");
+    expect(el.textContent).not.toContain("tokens not reported");
     const result = await axe.run(el, { resultTypes: ["violations"], rules: { "color-contrast": { enabled: false } } });
     expect(result.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  });
+
+  it("says a run whose agent reported no tokens did not report them (REQ-000078)", () => {
+    act(() => {
+      root.render(<RunHistoryView runs={[run("check-rules", true, 0, { measured: false, cost_usd: null })]} />);
+    });
+    expect(el.textContent).toContain("tokens not reported");
+    expect(el.textContent).not.toContain("0 in, 0 out");
   });
 
   it("shows nothing when the catalyst serving the page keeps no run log", async () => {
