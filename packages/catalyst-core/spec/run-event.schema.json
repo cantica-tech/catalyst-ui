@@ -77,7 +77,7 @@
         "duration_ms": { "type": ["integer", "null"] },
         "denied": { "type": "array", "items": { "type": "string" }, "description": "Tools the user's agent settings refused." },
         "result": { "type": "string", "description": "The agent's last word; on a failure, why." },
-        "measured": { "type": "boolean", "description": "false: the agent reports no usage or cost, so the zeros are unknown, not none (catalyst >= 0.88.0; absent: measured)." }
+        "measured": { "type": "boolean", "description": "false: the agent reported no token usage, so the zeros are unknown, not none (catalyst >= 0.88.0; absent: measured). A null `cost_usd` likewise means the agent reports no dollar cost (Gemini CLI, Copilot CLI)." }
       }
     }
   ]

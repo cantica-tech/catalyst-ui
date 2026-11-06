@@ -62,8 +62,11 @@ export function RunHistoryView({ runs }: { runs: RunRecord[] }) {
                   /{r.command} {r.arguments}
                 </code>{" "}
                 <span className="muted">
-                  {r.turns} turn{r.turns === 1 ? "" : "s"}, {r.usage.input + r.usage.cache_read + r.usage.cache_write}{" "}
-                  in, {r.usage.output} out{r.cost_usd !== null ? `, ${money(r.cost_usd)}` : ""}
+                  {r.turns} turn{r.turns === 1 ? "" : "s"},{" "}
+                  {r.measured === false
+                    ? "tokens not reported"
+                    : `${String(r.usage.input + r.usage.cache_read + r.usage.cache_write)} in, ${String(r.usage.output)} out`}
+                  {r.cost_usd !== null ? `, ${money(r.cost_usd)}` : ""}
                   {r.denied.length > 0 ? `; denied: ${r.denied.join(", ")}` : ""}
                 </span>
               </li>

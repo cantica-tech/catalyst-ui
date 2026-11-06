@@ -15,7 +15,12 @@ function num(v: unknown): number {
 export function runSummary(end: RunEnd): string {
   const u = end.usage;
   const cost = typeof end.cost_usd === "number" ? `, $${end.cost_usd.toFixed(4)}` : "";
-  return `${String(num(end.turns))} turn${num(end.turns) === 1 ? "" : "s"}; tokens ${String(num(u.input))} in, ${String(num(u.output))} out, cache ${String(num(u.cache_read))} read, ${String(num(u.cache_write))} written${cost}`;
+  // an agent that reports no tokens (measured: false) has unknown counts, not zero ones (REQ-000078)
+  const tokens =
+    end.measured === false
+      ? "tokens not reported by the agent"
+      : `tokens ${String(num(u.input))} in, ${String(num(u.output))} out, cache ${String(num(u.cache_read))} read, ${String(num(u.cache_write))} written`;
+  return `${String(num(end.turns))} turn${num(end.turns) === 1 ? "" : "s"}; ${tokens}${cost}`;
 }
 
 /** A run as it happens (studio-SHELL-000015): what the agent says and does, then how it ended. */

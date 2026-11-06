@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cantica-tech/catalyst/spec/analysis-change.schema.json",
+  "title": "catalyst analysis change",
+  "description": "What `catalyst analysis start|record|diff|reconcile|decide|close|abandon --json` prints: the verb, the analysis it changed, its phase after the change, the verb's warnings and what it did, and the analysis as `analysis status --json` reports it (`spec/analysis.schema.json`) (catalyst >= 0.125.0, REQ-000121). A refused verb prints nothing on stdout and exits 1.",
+  "type": "object",
+  "required": ["verb", "id", "phase", "warnings", "result", "analysis"],
+  "additionalProperties": false,
+  "properties": {
+    "verb": { "enum": ["start", "record", "diff", "reconcile", "decide", "close", "abandon"] },
+    "id": { "type": "string", "description": "The analysis's ID." },
+    "phase": { "type": "string", "description": "Its Status after the change: Extracting, Reconciling, Deciding, Closed or Abandoned." },
+    "warnings": { "type": "array", "items": { "type": "string" }, "description": "record's warnings about the pass; empty for the other verbs." },
+    "result": {
+      "type": "object",
+      "description": "What the verb did. start: files, code_state, passes, scope, mode. record: pass, replaced. diff: agreed, conflicting, a_only, b_only (counts). reconcile: findings (count). decide: finding, verdict, artifact. close: counts (per kind, accept and reject). abandon: reason."
+    },
+    "analysis": { "type": "object", "description": "The analysis after the change, as `spec/analysis.schema.json` describes it." }
+  }
+}

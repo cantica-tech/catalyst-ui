@@ -114,6 +114,10 @@ describe("the agent console (studio-SHELL-000015)", () => {
     expect(runSummary(end)).toBe("2 turns; tokens 12 in, 34 out, cache 5000 read, 600 written, $0.0123");
   });
 
+  it("says an agent that reports no tokens reported none, never zeros (REQ-000078)", () => {
+    expect(runSummary({ ...end, measured: false, cost_usd: null })).toBe("2 turns; tokens not reported by the agent");
+  });
+
   it("runs a part as its command, shows the run as it streams and how it ended, axe-clean", async () => {
     const asked: [string, string][] = [];
     let feed: (e: RunEvent) => void = () => undefined;
