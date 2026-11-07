@@ -110,7 +110,14 @@ export function activate(context: vscode.ExtensionContext): void {
   // (REQ-000068-UVqkd7cL). A TreeView, so a node can be revealed in it
   // (REQ-000017-UVqkd7cL).
   const instancesView = vscode.window.createTreeView(VIEW_ID, { treeDataProvider: provider });
-  context.subscriptions.push(instancesView);
+  context.subscriptions.push(instancesView, provider);
+  // A hidden view turns no hourglass (REQ-000121-UVqkd7cL).
+  provider.setVisible(instancesView.visible);
+  context.subscriptions.push(
+    instancesView.onDidChangeVisibility((e) => {
+      provider.setVisible(e.visible);
+    }),
+  );
 
   // The Users panel (vscode-IAM-000003-UVqkd7cL): users, roles and groups from catalyst-users, never in an
   // entity tree; read when shown or refreshed.

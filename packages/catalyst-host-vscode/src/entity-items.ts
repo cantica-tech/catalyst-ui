@@ -1,4 +1,5 @@
 import type { ChainNode, ModuleType } from "catalyst-core";
+import { isUnderWay } from "catalyst-app-model";
 
 /** A type's slug, as its definition file and an icon may be named: `House-keeping` → `house-keeping`. */
 export function typeSlug(name: string): string {
@@ -28,4 +29,15 @@ export function entityContextValue(
     return `${ENTITY_CONTEXT}.${slug}.${node.closed ? "closed" : "open"}.${status}`;
   }
   return `${ENTITY_CONTEXT}.${node.kind}`;
+}
+
+/**
+ * Whether a node is a bug under way, whose hourglass turns in the tree until it is closed (REQ-000121-UVqkd7cL):
+ * an artifact or row of the type whose slug is `bug` (as the Close Bug / Reopen Bug menus read it), past its
+ * type's initial state and not in a closed one.
+ */
+export function isTurningBug(node: ChainNode, type: ModuleType | undefined): boolean {
+  if (node.kind !== "artifact" && node.kind !== "row") return false;
+  const slug = typeSlug(type?.name ?? node.typePrefix) || node.typePrefix.toLowerCase();
+  return slug === "bug" && isUnderWay(node, type);
 }

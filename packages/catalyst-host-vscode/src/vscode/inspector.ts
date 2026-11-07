@@ -3,7 +3,8 @@ import * as vscode from "vscode";
 
 import { codiconFor } from "../codicons.js";
 import { permissionSuffix, type StatusPermission } from "../bug-status.js";
-import { entityContextValue, typeSlug } from "../entity-items.js";
+import { entityContextValue, isTurningBug, typeSlug } from "../entity-items.js";
+import { Hourglass } from "../hourglass.js";
 import type { SearchEntry } from "../instance-search.js";
 import {
   OPEN_BACKLOG_COMMAND,
@@ -94,10 +95,42 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   private readonly deployments = new Map<string, DeploymentView>();
   /** Workspace folders with no catalyst yet, offered a set-up (REQ-000069-UVqkd7cL): uri → name. */
   private readonly unsetFolders = new Map<string, string>();
-  private readonly changeEmitter = new vscode.EventEmitter<void>();
+  private readonly changeEmitter = new vscode.EventEmitter<InspectorTreeItem[] | undefined>();
   readonly onDidChangeTreeData = this.changeEmitter.event;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  /** A bug under way turns its hourglass until it is closed (REQ-000121-UVqkd7cL); only those items redraw. */
+  private readonly hourglass: Hourglass<InspectorTreeItem>;
+
+  /**
+   * @param extensionUri the extension's root, for its icons.
+   * @param reduceMotion whether VS Code's `workbench.reduceMotion` is `on`: then no hourglass turns.
+   */
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    reduceMotion: () => boolean = () =>
+      vscode.workspace.getConfiguration("workbench").get<string>("reduceMotion") === "on",
+  ) {
+    this.hourglass = new Hourglass((elements) => {
+      this.changeEmitter.fire(elements);
+    }, reduceMotion);
+  }
+
+  /** The whole tree changed: its elements are rebuilt, so the turning bugs are found again as they are shown. */
+  private refresh(): void {
+    this.hourglass.reset();
+    this.changeEmitter.fire(undefined);
+  }
+
+  /** The Instances view was shown or hidden: a hidden view turns no hourglass. */
+  setVisible(visible: boolean): void {
+    this.hourglass.setVisible(visible);
+  }
+
+  /** Stops the hourglass's timer, with the extension. */
+  dispose(): void {
+    this.hourglass.dispose();
+    this.changeEmitter.dispose();
+  }
 
   /** The icon a module type shows: the first of its candidate names this extension ships, else the generic one. */
   private typeIcon(model: ChainModel, prefix: string): vscode.ThemeIcon {
@@ -123,20 +156,20 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       model,
       definitions,
     });
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   removeDeployment(corpusRoot: string): void {
     this.deployments.delete(corpusRoot);
     this.statusPermissions.delete(corpusRoot);
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   /** Offer `folderUri` a set-up in the tree, or stop offering it (`name` undefined). */
   setUnsetFolder(folderUri: string, name: string | undefined): void {
     if (name === undefined ? !this.unsetFolders.delete(folderUri) : this.unsetFolders.get(folderUri) === name) return;
     if (name !== undefined) this.unsetFolders.set(folderUri, name);
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   /** Whether the signer may change a status in each deployment, as catalyst says (REQ-000077-UVqkd7cL). */
@@ -145,7 +178,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   setStatusPermission(corpusRoot: string, permission: StatusPermission): void {
     const before = this.statusPermissions.get(corpusRoot);
     this.statusPermissions.set(corpusRoot, permission);
-    if (JSON.stringify(before) !== JSON.stringify(permission)) this.changeEmitter.fire();
+    if (JSON.stringify(before) !== JSON.stringify(permission)) this.refresh();
   }
 
   getStatusPermission(corpusRoot: string): StatusPermission | undefined {
@@ -153,7 +186,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   }
 
   refreshTree(): void {
-    this.changeEmitter.fire();
+    this.refresh();
   }
 
   getModel(corpusRoot: string): ChainModel | undefined {
@@ -283,7 +316,12 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         : undefined;
     // An entity has one node, never with children: its relationships are
     // links in the document it opens (vscode-INSPECTOR-000002-UVqkd7cL).
-    const item = new vscode.TreeItem(formatNodeLabel(element.node, nodeType), vscode.TreeItemCollapsibleState.None);
+    // A bug under way turns its hourglass until it is closed (REQ-000121-UVqkd7cL).
+    const turnedOver = this.hourglass.show(element, isTurningBug(element.node, nodeType));
+    const item = new vscode.TreeItem(
+      formatNodeLabel(element.node, nodeType, turnedOver),
+      vscode.TreeItemCollapsibleState.None,
+    );
     // Its type and whether it is closed, for its context menu: a bug's Close Bug / Reopen Bug (REQ-000077-UVqkd7cL).
     item.contextValue = entityContextValue(
       element.node,
