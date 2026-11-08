@@ -5,6 +5,7 @@ import { codiconFor } from "../codicons.js";
 import { permissionSuffix, type StatusPermission } from "../bug-status.js";
 import { entityContextValue, isTurningBug, typeSlug } from "../entity-items.js";
 import { Hourglass } from "../hourglass.js";
+import { visibleRoot } from "../instances-visibility.js";
 import type { SearchEntry } from "../instance-search.js";
 import {
   OPEN_BACKLOG_COMMAND,
@@ -119,6 +120,24 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
   private refresh(): void {
     this.hourglass.reset();
     this.changeEmitter.fire(undefined);
+  }
+
+  /**
+   * Whether someone is logged in to catalyst-users (BUG-000049-UhmQ897l): the view shows only what the logged-in
+   * person can see, so with no one logged in — or before catalyst-users has answered — it shows nothing.
+   */
+  private someoneLoggedIn = false;
+
+  /** Who is logged in changed: the tree shows the instances, or nothing. */
+  setLoggedIn(loggedIn: boolean): void {
+    if (this.someoneLoggedIn === loggedIn) return;
+    this.someoneLoggedIn = loggedIn;
+    this.refresh();
+  }
+
+  /** Whether the tree shows any instance: only while someone is logged in. */
+  get showsInstances(): boolean {
+    return this.someoneLoggedIn;
   }
 
   /** The Instances view was shown or hidden: a hidden view turns no hourglass. */
@@ -443,7 +462,8 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
         folderUri,
         folderName,
       }));
-      return [...instances, ...unset];
+      // With no one logged in, nothing: the view's welcome text offers the login (package.json).
+      return visibleRoot(this.someoneLoggedIn, [...instances, ...unset]);
     }
     if (element.type === "deployment") {
       const view = this.deployments.get(element.corpusRoot);

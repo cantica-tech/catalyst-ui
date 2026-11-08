@@ -59,6 +59,13 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "catalystChainInspector",
+        "contents": "No one is logged in to catalyst-users, so no instance is shown: the Instances view shows only what the person logged in can see.\n[Log In to catalyst-users](command:catalyst.iam.login)",
+        "when": "!catalyst.users.loggedIn"
+      }
+    ],
     "commands": [
       {
         "command": "catalyst.showNodeDetail",
