@@ -72,7 +72,7 @@ import { journalByCorpus, setupDeployment } from "./vscode/deployments.js";
 import { buildNodeDetail, buildReferenceTable, referencesForNode } from "catalyst-app-model";
 import { groupDocument, roleDocument, userDocument } from "./directory.js";
 import { ChainInspectorProvider, type InspectorTreeItem } from "./vscode/inspector.js";
-import { buildSearchItems, NO_DEPLOYMENT, SEARCH_OPTIONS, searchSelection } from "./instance-search.js";
+import { buildSearchItems, NO_DEPLOYMENT, NOT_LOGGED_IN, SEARCH_OPTIONS, searchSelection } from "./instance-search.js";
 import { type BugMove, bugStatusCommands, bugTransition, refusalReason, statusPermission } from "./bug-status.js";
 import { UsersProvider } from "./vscode/users-view.js";
 import type { PendingSync } from "./vscode/onboarding.js";
@@ -132,10 +132,16 @@ export function activate(context: vscode.ExtensionContext): void {
   let loggedIn: LoginState;
   let lastUsername = "";
   let loginStateReads = 0;
+  /** Closes every open detail panel; set once the panels exist, below. */
+  let closeDetailPanels = (): void => undefined;
   const showLoginState = (who: LoginState): void => {
     loggedIn = who;
     if (who) lastUsername = who.username;
     void vscode.commands.executeCommand("setContext", USERS_LOGGED_IN_CONTEXT, who !== undefined);
+    // The Instances view shows only what the logged-in person can see: with no one, nothing, and no document
+    // stays open (BUG-000049-UhmQ897l).
+    provider.setLoggedIn(who !== undefined);
+    if (!who) closeDetailPanels();
     // Who signs may have changed: what they may do in each deployment is read again (REQ-000077-UVqkd7cL).
     refreshStatusPermissions();
   };
@@ -199,6 +205,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // chosen is selected and focused in the tree, then opened as a click on its node opens it.
   context.subscriptions.push(
     vscode.commands.registerCommand(SEARCH_INSTANCES_COMMAND, async () => {
+      if (!provider.showsInstances) {
+        void vscode.window.showInformationMessage(NOT_LOGGED_IN);
+        return;
+      }
       const items = buildSearchItems(provider.entityNodes());
       if (provider.getCorpusRoots().length === 0) {
         void vscode.window.showInformationMessage(NO_DEPLOYMENT);
@@ -901,12 +911,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // last focused — what targetColumn() places a new panel by.
   const panelMeta = new Map<string, { project: string; lastActive: number }>();
   let panelFocusClock = 0;
-  context.subscriptions.push({
-    dispose: () => {
-      for (const panel of detailPanels.values()) panel.dispose();
-      detailPanels.clear();
-    },
-  });
+  closeDetailPanels = () => {
+    for (const panel of [...detailPanels.values()]) panel.dispose();
+    detailPanels.clear();
+  };
+  context.subscriptions.push({ dispose: closeDetailPanels });
 
   // How to rebuild each open panel's payload, and which deployment owns
   // it — so a watcher update can push fresh content (B-10).
@@ -1026,6 +1035,10 @@ export function activate(context: vscode.ExtensionContext): void {
    * panel, never clobbering what was already showing.
    */
   function showDetailPanel(key: string, project: string, title: string, build: () => WebviewPayload | null): void {
+    if (!provider.showsInstances) {
+      void vscode.window.showInformationMessage(NOT_LOGGED_IN);
+      return; // nothing is shown to no one (BUG-000049-UhmQ897l)
+    }
     const payload = build();
     if (!payload) return;
     panelBuilders.set(key, build);
