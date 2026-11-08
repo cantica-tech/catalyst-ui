@@ -37,6 +37,9 @@ export const SEARCH_OPTIONS = {
 /** What the search says when there is nothing to search. */
 export const NO_DEPLOYMENT = "Catalyst: no catalyst deployment is open in this workspace — nothing to search.";
 
+/** What the search and an entity's document say with no one logged in to catalyst-users (BUG-000049-UhmQ897l). */
+export const NOT_LOGGED_IN = "Catalyst: no one is logged in to catalyst-users — log in to see the instances.";
+
 /** An ID without its creator's userid suffix, as the tree shows it: `REQ-000076-UVqkd7cL` → `REQ-000076`. */
 export function shortId(id: string): string {
   return id.replace(/-(?=[a-zA-Z0-9]{0,7}[A-Z])[a-zA-Z0-9]{8}$/, "");
