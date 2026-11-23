@@ -19,7 +19,7 @@ import type {
   EntityDefinition,
 } from "./types.js";
 import { coerceJournal } from "./journal.js";
-import type { CheckJson, GraphJson, RunEventJson } from "./spec.js";
+import type { CheckJson, GraphJson, InboxJson, RunEventJson } from "./spec.js";
 import type { Since } from "./since.js";
 import { fieldsOf, isRow } from "./graph-artifact.js";
 
@@ -142,6 +142,8 @@ export function modelFromGraph(graph: CatalystGraph, criterionRoot: string): Cha
         initial: t.initial,
         closed_states: t.closed_states,
         fields: t.fields,
+        grounding: t.grounding,
+        grounding_field: t.grounding_field,
       },
     ]),
   );
@@ -379,6 +381,23 @@ export function definitionsFrom(served: unknown): EntityDefinition[] {
   });
 }
 
+/** Whether a served answer has an inbox's shape: its items, each with a kind, an id and a title. */
+function isInbox(value: unknown): value is InboxJson {
+  if (typeof value !== "object" || value === null) return false;
+  const items = (value as { items?: unknown }).items;
+  return (
+    Array.isArray(items) &&
+    items.every(
+      (i) =>
+        typeof i === "object" &&
+        i !== null &&
+        typeof (i as { kind?: unknown }).kind === "string" &&
+        typeof (i as { id?: unknown }).id === "string" &&
+        typeof (i as { title?: unknown }).title === "string",
+    )
+  );
+}
+
 async function getJson(server: CatalystServer, path: string, signal?: AbortSignal): Promise<unknown> {
   const res = await fetch(`${server.url}/v1${path}`, { headers: { Authorization: `Bearer ${server.token}` }, signal });
   if (!res.ok) throw new Error(`catalyst serve ${path}: ${res.status}`);
@@ -391,13 +410,14 @@ export async function readThroughCatalyst(
   criterionRoot: string,
   signal?: AbortSignal,
 ): Promise<WatchUpdate> {
-  const [graph, check, journal, users, roles, definitions] = await Promise.all([
+  const [graph, check, journal, users, roles, definitions, inbox] = await Promise.all([
     getJson(server, "/graph", signal),
     getJson(server, "/check", signal),
     getJson(server, "/journal", signal),
     getJson(server, "/list?type=users", signal),
     getJson(server, "/list?type=role", signal),
     getJson(server, "/definitions", signal).catch(() => ({ definitions: [] })), // a catalyst before 0.88.0 has none
+    getJson(server, "/inbox", signal).catch(() => undefined), // the sidebar's Needs you; none when not served
   ]);
   const model = modelFromGraph(graph as CatalystGraph, criterionRoot);
   return {
@@ -407,6 +427,7 @@ export async function readThroughCatalyst(
     users: usersFrom(users),
     roles: rolesFrom(roles),
     definitions: definitionsFrom(definitions),
+    ...(isInbox(inbox) ? { inbox } : {}),
   };
 }
 

@@ -1,4 +1,4 @@
-import type { ChainModel, ChainNode, EntityDefinition, ModuleType, RowNode } from "catalyst-core";
+import type { ChainModel, ChainNode, EntityDefinition, ModuleType } from "catalyst-core";
 import * as vscode from "vscode";
 
 import { codiconFor } from "../codicons.js";
@@ -10,18 +10,23 @@ import type { SearchEntry } from "../instance-search.js";
 import {
   OPEN_BACKLOG_COMMAND,
   OPEN_JOURNAL_COMMAND,
+  OPEN_STUDIO_COMMAND,
   SHOW_DETAIL_COMMAND,
   SET_UP_FOLDER_COMMAND,
 } from "../constants.js";
-import { buildRowSections, type RowGroup, type RowSection } from "catalyst-app-model";
+import { type RowGroup, type RowSection } from "catalyst-app-model";
 import { breadthFirst, childId, itemKey } from "catalyst-app-model";
 import {
-  buildTreeSections,
+  buildSidebar,
   formatNodeLabel,
-  type ArtifactGroup,
-  type RuleGroup,
+  healthLine,
+  type AttentionItem,
+  type EntityEntry,
+  type InboxLike,
+  type PhaseFolder,
   type RuleTypeSection,
-  type TypeSection,
+  type Sidebar,
+  type TypeFolder,
 } from "catalyst-app-model";
 
 export interface DeploymentView {
@@ -31,22 +36,52 @@ export interface DeploymentView {
   model: ChainModel;
   /** The deployed definitions, as catalyst serves them. */
   definitions: EntityDefinition[];
+  /** What `catalyst check` last reported, for the deployment's line (`REQ-000123-UVqkd7cL`). */
+  report?: { errorCount: number; warningCount: number };
+  /** The deployed kernel's version (`version.txt`). */
+  kernel?: string | null;
+  /** What waits for a person, as catalyst's inbox last reported it. */
+  inbox?: InboxLike;
 }
+
+/** What else a deployment's update brings beside its model, for the sidebar (`REQ-000123-UVqkd7cL`). */
+export type DeploymentExtras = Pick<DeploymentView, "report" | "kernel" | "inbox">;
+
+/** The sidebar's top-level groups, in order (`REQ-000123-UVqkd7cL`). */
+export type GroupKey = "needs-you" | "work" | "governance" | "record";
+
+const GROUP_LABELS: Record<GroupKey, string> = {
+  "needs-you": "Needs you",
+  work: "Work",
+  governance: "Governance",
+  record: "Record",
+};
 
 export type InspectorTreeItem =
   | { type: "deployment"; corpusRoot: string; folderName: string }
   | { type: "unset-folder"; folderUri: string; folderName: string }
-  | { type: "artifact-group"; corpusRoot: string; group: ArtifactGroup }
-  | { type: "rule-group"; corpusRoot: string; group: RuleGroup }
+  | { type: "group"; corpusRoot: string; group: { key: GroupKey } }
+  | { type: "attention"; corpusRoot: string; item: AttentionItem }
+  | { type: "type-folder"; corpusRoot: string; folder: TypeFolder }
+  | { type: "phase-folder"; corpusRoot: string; typePrefix: string; folder: PhaseFolder }
   | { type: "rule-type-section"; corpusRoot: string; section: RuleTypeSection }
-  | { type: "type-section"; corpusRoot: string; section: TypeSection }
   | { type: "domain-section"; corpusRoot: string; nodes: ChainNode[] }
-  | { type: "node"; corpusRoot: string; node: ChainNode }
+  | { type: "node"; corpusRoot: string; node: ChainNode; children?: EntityEntry[] }
   | { type: "row-section"; corpusRoot: string; section: RowSection }
   | { type: "row-group"; corpusRoot: string; group: RowGroup }
-  | { type: "separator" }
   | { type: "journal-entry"; corpusRoot: string }
   | { type: "backlog-entry"; corpusRoot: string };
+
+/** The icon an inbox item shows, by its kind (`spec/inbox.schema.json`). */
+const ATTENTION_ICONS: Record<string, string> = {
+  "unrecorded-commit": "git-commit",
+  "unrecorded-change": "git-commit",
+  reconciliation: "git-merge",
+  analysis: "search",
+  approval: "pass",
+  proposal: "diff",
+  overdue: "watch",
+};
 
 /** Labels of the kernel's own entity types; a module type's label is its own name. */
 export const ENTITY_TYPE_LABELS: Partial<Record<string, string>> = {
@@ -167,6 +202,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     projectRoot: string,
     model: ChainModel,
     definitions: EntityDefinition[] = [],
+    extras: DeploymentExtras = {},
   ): void {
     this.deployments.set(corpusRoot, {
       corpusRoot,
@@ -174,12 +210,28 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       projectRoot,
       model,
       definitions,
+      ...extras,
     });
+    this.sidebars.delete(corpusRoot);
     this.refresh();
+  }
+
+  /** Each deployment's sidebar, built once per update (`REQ-000123-UVqkd7cL`). */
+  private readonly sidebars = new Map<string, Sidebar>();
+
+  private sidebarOf(corpusRoot: string): Sidebar | undefined {
+    const cached = this.sidebars.get(corpusRoot);
+    if (cached) return cached;
+    const view = this.deployments.get(corpusRoot);
+    if (!view) return undefined;
+    const sidebar = buildSidebar(view.model, view.inbox);
+    this.sidebars.set(corpusRoot, sidebar);
+    return sidebar;
   }
 
   removeDeployment(corpusRoot: string): void {
     this.deployments.delete(corpusRoot);
+    this.sidebars.delete(corpusRoot);
     this.statusPermissions.delete(corpusRoot);
     this.refresh();
   }
@@ -233,7 +285,12 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
 
   private treeItemOf(element: InspectorTreeItem): vscode.TreeItem {
     if (element.type === "deployment") {
-      return new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.Expanded);
+      const item = new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.Expanded);
+      const view = this.deployments.get(element.corpusRoot);
+      // its health and kernel on its own line (REQ-000123-UVqkd7cL)
+      const health = healthLine(view?.report, view?.kernel);
+      if (health) item.description = health;
+      return item;
     }
     if (element.type === "unset-folder") {
       const item = new vscode.TreeItem(element.folderName, vscode.TreeItemCollapsibleState.None);
@@ -242,17 +299,38 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       item.command = { command: SET_UP_FOLDER_COMMAND, title: "Set up catalyst…", arguments: [element.folderUri] };
       return item;
     }
-    if (element.type === "artifact-group") {
-      const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
-      const item = new vscode.TreeItem(`${element.group.label} (${total})`, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("dev-artifacts");
+    if (element.type === "group") {
+      return this.groupItem(element.corpusRoot, element.group.key);
+    }
+    if (element.type === "attention") {
+      const item = new vscode.TreeItem(element.item.title, vscode.TreeItemCollapsibleState.None);
+      item.description = element.item.id;
+      item.tooltip = `${element.item.kind}: ${element.item.title}`;
+      item.iconPath = new vscode.ThemeIcon(ATTENTION_ICONS[element.item.kind] ?? "bell");
+      // a reference: it opens the entity, whose one node stays in its own place (REQ-000123-UVqkd7cL)
+      item.command = element.item.entityId
+        ? { command: SHOW_DETAIL_COMMAND, title: "Show detail", arguments: [element.corpusRoot, element.item.entityId] }
+        : { command: OPEN_STUDIO_COMMAND, title: "Open Studio" };
       return item;
     }
-    if (element.type === "rule-group") {
-      const total = element.group.sections.reduce((sum, s) => sum + s.nodes.length, 0);
-      const item = new vscode.TreeItem(`${element.group.label} (${total})`, vscode.TreeItemCollapsibleState.Collapsed);
-      item.iconPath = this.iconUris("rule");
+    if (element.type === "type-folder") {
+      const item = new vscode.TreeItem(
+        `${element.folder.label} (${String(element.folder.count)})`,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
+      const model = this.getModel(element.corpusRoot);
+      if (model) item.iconPath = this.typeIcon(model, element.folder.typePrefix);
+      const type = model?.types?.get(element.folder.typePrefix);
+      if (type) item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), [typeSlug(type.name)], type.name);
       return item;
+    }
+    if (element.type === "phase-folder") {
+      return new vscode.TreeItem(
+        `${element.folder.glyph} ${element.folder.label} (${String(element.folder.entries.length)})`,
+        element.folder.phase === "under-way"
+          ? vscode.TreeItemCollapsibleState.Expanded
+          : vscode.TreeItemCollapsibleState.Collapsed,
+      );
     }
     if (element.type === "rule-type-section") {
       const item = new vscode.TreeItem(
@@ -261,17 +339,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       );
       item.iconPath = this.iconUris("rule");
       item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), ["rule"]);
-      return item;
-    }
-    if (element.type === "type-section") {
-      const item = new vscode.TreeItem(
-        `${element.section.label} (${String(element.section.nodes.length)})`,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
-      const model = this.getModel(element.corpusRoot);
-      if (model) item.iconPath = this.typeIcon(model, element.section.typePrefix);
-      const type = model?.types?.get(element.section.typePrefix);
-      if (type) item.tooltip = sectionTooltip(this.definitionsOf(element.corpusRoot), [typeSlug(type.name)], type.name);
       return item;
     }
     if (element.type === "domain-section") {
@@ -302,9 +369,6 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       if (model && prefix) item.iconPath = this.typeIcon(model, prefix);
       return item;
     }
-    if (element.type === "separator") {
-      return new vscode.TreeItem("─".repeat(24), vscode.TreeItemCollapsibleState.None);
-    }
     if (element.type === "journal-entry") {
       const item = new vscode.TreeItem("Journal", vscode.TreeItemCollapsibleState.None);
       item.command = {
@@ -333,13 +397,12 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       element.node.kind === "artifact" || element.node.kind === "row"
         ? nodeModel?.types?.get(element.node.typePrefix)
         : undefined;
-    // An entity has one node, never with children: its relationships are
-    // links in the document it opens (vscode-INSPECTOR-000002-UVqkd7cL).
-    // A bug under way turns its hourglass until it is closed (REQ-000121-UVqkd7cL).
+    // An entity has one node; the entities whose grounding it carries (a requirement's steps) are
+    // listed under it (REQ-000123-UVqkd7cL). A bug under way turns its hourglass until it is closed (REQ-000121-UVqkd7cL).
     const turnedOver = this.hourglass.show(element, isTurningBug(element.node, nodeType));
     const item = new vscode.TreeItem(
       formatNodeLabel(element.node, nodeType, turnedOver),
-      vscode.TreeItemCollapsibleState.None,
+      element.children?.length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None,
     );
     // Its type and whether it is closed, for its context menu: a bug's Close Bug / Reopen Bug (REQ-000077-UVqkd7cL).
     item.contextValue = entityContextValue(
@@ -360,20 +423,60 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return item;
   }
 
-  private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
-    const { artifacts, rules, domains } = buildTreeSections(view.model);
-    const sections: InspectorTreeItem[] = [
-      { type: "artifact-group", corpusRoot: view.corpusRoot, group: artifacts },
-      { type: "rule-group", corpusRoot: view.corpusRoot, group: rules },
-      { type: "domain-section", corpusRoot: view.corpusRoot, nodes: domains },
-    ];
-    const rows = [...view.model.nodes.values()].filter((n): n is RowNode => n.kind === "row");
-    for (const section of buildRowSections(rows, view.model.types)) {
-      sections.push({ type: "row-section", corpusRoot: view.corpusRoot, section });
+  /** A top-level group's item: its label and count, open or closed by what it holds (REQ-000123-UVqkd7cL). */
+  private groupItem(corpusRoot: string, key: GroupKey): vscode.TreeItem {
+    const sidebar = this.sidebarOf(corpusRoot);
+    const Collapsible = vscode.TreeItemCollapsibleState;
+    if (key === "needs-you") {
+      const n = sidebar?.needsYou.length ?? 0;
+      const item = new vscode.TreeItem(
+        `${GROUP_LABELS[key]} (${String(n)})`,
+        n > 0 ? Collapsible.Expanded : Collapsible.None,
+      );
+      if (n === 0) item.description = "nothing waiting";
+      item.iconPath = new vscode.ThemeIcon(n > 0 ? "bell-dot" : "bell");
+      return item;
     }
-    sections.push({ type: "journal-entry", corpusRoot: view.corpusRoot });
-    sections.push({ type: "backlog-entry", corpusRoot: view.corpusRoot });
-    return sections;
+    const item = new vscode.TreeItem(GROUP_LABELS[key], key === "work" ? Collapsible.Expanded : Collapsible.Collapsed);
+    item.iconPath = this.iconUris(key);
+    return item;
+  }
+
+  /** A deployment's top level: Needs you, Work, Governance, Record (REQ-000123-UVqkd7cL). */
+  private sectionsFor(view: DeploymentView): InspectorTreeItem[] {
+    return (["needs-you", "work", "governance", "record"] as const).map((key) => ({
+      type: "group",
+      corpusRoot: view.corpusRoot,
+      group: { key },
+    }));
+  }
+
+  /** What a top-level group lists. */
+  private groupChildren(corpusRoot: string, key: GroupKey): InspectorTreeItem[] {
+    const sidebar = this.sidebarOf(corpusRoot);
+    if (!sidebar) return [];
+    const folders = (list: TypeFolder[]): InspectorTreeItem[] =>
+      list.map((folder) => ({ type: "type-folder", corpusRoot, folder }));
+    if (key === "needs-you") return sidebar.needsYou.map((item) => ({ type: "attention", corpusRoot, item }));
+    if (key === "work") {
+      return [
+        ...sidebar.work.rows.map((section): InspectorTreeItem => ({ type: "row-section", corpusRoot, section })),
+        ...folders(sidebar.work.types),
+        { type: "backlog-entry", corpusRoot },
+      ];
+    }
+    if (key === "governance") {
+      return [
+        ...sidebar.governance.rules.map((section): InspectorTreeItem => ({
+          type: "rule-type-section",
+          corpusRoot,
+          section,
+        })),
+        { type: "domain-section", corpusRoot, nodes: sidebar.governance.domains },
+        ...folders(sidebar.governance.types),
+      ];
+    }
+    return [{ type: "journal-entry", corpusRoot }, ...folders(sidebar.record.types)];
   }
 
   // Stable identities, so TreeView.reveal can select a node
@@ -413,7 +516,7 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
     return breadthFirst(
       this.getChildren(deployment),
       (item) => {
-        if (item.type === "node") return []; // an entity node has no children
+        if (item.type === "attention") return []; // a reference, never the entity's node
         if ("corpusRoot" in item && item.corpusRoot !== corpusRoot) return [];
         return this.getChildren(item);
       },
@@ -441,7 +544,8 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
             node: item.node,
             ...(type ? { type } : {}),
           });
-        } else {
+          walk(this.getChildren(item)); // the entities listed under it
+        } else if (item.type !== "attention") {
           walk(this.getChildren(item));
         }
       }
@@ -469,28 +573,32 @@ export class ChainInspectorProvider implements vscode.TreeDataProvider<Inspector
       const view = this.deployments.get(element.corpusRoot);
       return view ? this.sectionsFor(view) : [];
     }
-    if (element.type === "artifact-group") {
-      return element.group.sections.map((section) => ({
-        type: "type-section",
+    if (element.type === "group") return this.groupChildren(element.corpusRoot, element.group.key);
+    if (element.type === "type-folder") {
+      return element.folder.phases.map((folder) => ({
+        type: "phase-folder",
         corpusRoot: element.corpusRoot,
-        section,
+        typePrefix: element.folder.typePrefix,
+        folder,
       }));
     }
-    if (element.type === "rule-group") {
-      return element.group.sections.map((section) => ({
-        type: "rule-type-section",
+    if (element.type === "phase-folder") {
+      return element.folder.entries.map((entry) => ({
+        type: "node",
         corpusRoot: element.corpusRoot,
-        section,
+        node: entry.node,
+        children: entry.children,
+      }));
+    }
+    if (element.type === "node") {
+      return (element.children ?? []).map((entry) => ({
+        type: "node",
+        corpusRoot: element.corpusRoot,
+        node: entry.node,
+        children: entry.children,
       }));
     }
     if (element.type === "rule-type-section") {
-      return element.section.nodes.map((node) => ({
-        type: "node",
-        corpusRoot: element.corpusRoot,
-        node,
-      }));
-    }
-    if (element.type === "type-section") {
       return element.section.nodes.map((node) => ({
         type: "node",
         corpusRoot: element.corpusRoot,

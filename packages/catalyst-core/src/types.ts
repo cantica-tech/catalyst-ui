@@ -5,6 +5,8 @@
  * "Architecture" decision (one protocol, three packages).
  */
 
+import type { InboxJson } from "./spec.js";
+
 export type NodeKind = "work-item" | "artifact" | "row" | "rule" | "domain";
 
 /**
@@ -20,6 +22,14 @@ export interface ModuleType {
   initial: string | null;
   closed_states: string[];
   fields: { name: string; kind: string; required: boolean; target_type: string | null }[];
+  /**
+   * How the type is grounded in the rules, as catalyst declares it: `required` (its own `Targets`),
+   * `inherited` (from the entity its `grounding_field` names, such as a step's `Parent`) or `none`.
+   * Absent from a model built before catalyst-ui 0.81.0.
+   */
+  grounding?: string | null;
+  /** The field an `inherited` grounding comes through, such as `Parent`. */
+  grounding_field?: string | null;
 }
 
 export interface SourceLocation {
@@ -225,6 +235,8 @@ export interface WatchUpdate {
   roles: IamRole[];
   /** The deployed definitions as catalyst serves them (catalyst >= 0.88.0; none before). */
   definitions: EntityDefinition[];
+  /** What waits for a person (`GET /v1/inbox`); absent when catalyst does not serve it. */
+  inbox?: InboxJson;
 }
 
 /** One deployed definition (`definitions/<slug>.md`): what a type or a kernel record is, in a sentence or two. */

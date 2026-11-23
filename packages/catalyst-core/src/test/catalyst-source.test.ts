@@ -87,8 +87,8 @@ const graph: CatalystGraph = {
       plural_name: "Steps",
       folder: "steps",
       location: null,
-      grounding: null,
-      grounding_field: null,
+      grounding: "inherited",
+      grounding_field: "Parent",
       states: ["planned", "in-progress", "done"],
       initial: "planned",
       closed_states: ["done"],
@@ -129,6 +129,8 @@ describe("the adapter", () => {
       links: { Targets: [RULE], Domain: ["AUTH"] },
     });
     expect(m.types?.get("REQ")).toMatchObject({ prefix: "REQ", plural_name: "Requirements", initial: "Draft" });
+    // how a type is grounded, for the sidebar (REQ-000123-UVqkd7cL)
+    expect(m.types?.get("STEP")).toMatchObject({ grounding: "inherited", grounding_field: "Parent" });
     expect(req?.location).toEqual({ file: "/c/requirements/REQ-000001-sign-in.md", line: 1 });
     expect(m.nodes.get(STEP)).toMatchObject({
       kind: "artifact",
@@ -234,6 +236,8 @@ describe.skipIf(!canServe)("through catalyst serve --local", () => {
       // users and roles as catalyst lists them (R5.3), not read from the criterion here
       expect(first.users.map((u) => u.name)).toEqual(["Test User"]);
       expect(Array.isArray(first.roles)).toBe(true);
+      // what waits for a person, for the sidebar's Needs you (REQ-000123-UVqkd7cL)
+      expect(Array.isArray(first.inbox?.items)).toBe(true);
       const bug = join(criterion, "development", "bugs", "BUG-000001-beta.md");
       const text = readFileSync(bug, "utf8");
       expect(text).toContain("| **Status** | Fixed |");
