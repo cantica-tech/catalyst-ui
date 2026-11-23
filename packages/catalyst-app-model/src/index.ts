@@ -4,6 +4,7 @@
  */
 export * from "./detail.js";
 export * from "./rows.js";
+export * from "./sidebar.js";
 export * from "./tree.js";
 export * from "./tree-ids.js";
 export * from "./type-order.js";

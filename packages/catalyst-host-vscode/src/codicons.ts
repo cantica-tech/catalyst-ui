@@ -16,6 +16,10 @@ const BY_NAME: Record<string, string> = {
   groups: "organization",
   journal: "history",
   backlog: "list-ordered",
+  // the sidebar's groups (REQ-000123-UVqkd7cL)
+  work: "tasklist",
+  governance: "law",
+  record: "archive",
   // a module's types, by the names `typeIconCandidates` gives
   requirement: "checklist",
   requirements: "checklist",

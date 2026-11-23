@@ -19,10 +19,15 @@ export function itemKey(item: { type: string } & Record<string, unknown>, label:
   if (item.type === "deployment" && typeof item.corpusRoot === "string") {
     return `deployment:${item.corpusRoot}`;
   }
-  for (const field of ["section", "group", "user", "role"]) {
+  // an inbox item, by its kind and what it is about (REQ-000123-UVqkd7cL)
+  const attention = item.type === "attention" ? (item.item as { kind?: unknown; id?: unknown } | undefined) : undefined;
+  if (typeof attention?.kind === "string" && typeof attention.id === "string") {
+    return `attention:${attention.kind}:${attention.id}`;
+  }
+  for (const field of ["section", "group", "folder", "user", "role"]) {
     const inner = item[field] as Record<string, unknown> | undefined;
     if (inner && typeof inner === "object") {
-      for (const prop of ["kind", "typePrefix", "prefix", "id", "name", "key"]) {
+      for (const prop of ["kind", "typePrefix", "prefix", "id", "name", "key", "phase"]) {
         const value = inner[prop];
         if (typeof value === "string" && value) return `${item.type}:${value}`;
       }

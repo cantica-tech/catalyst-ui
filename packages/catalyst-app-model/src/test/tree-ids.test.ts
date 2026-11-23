@@ -7,6 +7,20 @@ describe("tree identities (REQ-000017)", () => {
   it("keys items structurally", () => {
     assert.strictEqual(itemKey({ type: "node", node: { id: "REQ-000001-Ab3xR9pQ" } }, "x"), "node:REQ-000001-Ab3xR9pQ");
     assert.strictEqual(itemKey({ type: "deployment", corpusRoot: "/a/.criterion" }, "a"), "deployment:/a/.criterion");
+    // the sidebar's items keep their identity when their counts change (REQ-000123-UVqkd7cL)
+    assert.strictEqual(
+      itemKey({ type: "attention", item: { kind: "reconciliation", id: "RECON-000001" } }, "x"),
+      "attention:reconciliation:RECON-000001",
+    );
+    assert.strictEqual(
+      itemKey({ type: "type-folder", folder: { typePrefix: "REQ", label: "Requirements" } }, "Requirements (3)"),
+      "type-folder:REQ",
+    );
+    assert.strictEqual(
+      itemKey({ type: "phase-folder", folder: { phase: "done", label: "Done" } }, "✅ Done (2)"),
+      "phase-folder:done",
+    );
+    assert.strictEqual(itemKey({ type: "group", group: { key: "work" } }, "Work"), "group:work");
     assert.strictEqual(
       itemKey({ type: "section", section: { kind: "requirement", nodes: [] } }, "Requirements (3)"),
       "section:requirement",
