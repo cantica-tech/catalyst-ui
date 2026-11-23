@@ -1,5 +1,5 @@
 import type { JournalEntry, WatcherHandle } from "catalyst-core";
-import { watchProject } from "catalyst-core";
+import { readDeployedKernelVersion, watchProject } from "catalyst-core";
 import * as vscode from "vscode";
 import { buildCodeLensesForFile } from "../codelens.js";
 import { SHOW_DETAIL_COMMAND } from "../constants.js";
@@ -41,9 +41,14 @@ export function setupDeployment(
   const handle = watchProject(
     target.path,
     corpusRoot,
-    ({ model, report, journal, definitions }) => {
+    ({ model, report, journal, definitions, inbox }) => {
       journalByCorpus.set(corpusRoot, journal);
-      provider.setState(corpusRoot, target.name, target.path, model, definitions);
+      // the deployment's line shows its health and kernel, Needs you the inbox (REQ-000123-UVqkd7cL)
+      provider.setState(corpusRoot, target.name, target.path, model, definitions, {
+        report,
+        kernel: readDeployedKernelVersion(corpusRoot),
+        ...(inbox ? { inbox } : {}),
+      });
       refreshDiagnosticsForDeployment(diagnostics, ownedDiagnosticFiles, report, model);
       codeLensChangeEmitter.fire();
       // Open detail panels of this deployment show the new state (B-10).
