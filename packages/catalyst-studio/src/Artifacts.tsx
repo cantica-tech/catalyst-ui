@@ -1,3 +1,4 @@
+import { orderTypes } from "catalyst-app-model/type-order";
 import { isEntity } from "catalyst-core/graph-artifact";
 import { useEffect, useState } from "react";
 import type { GraphArtifactJson } from "catalyst-core";
@@ -28,16 +29,15 @@ function typeOf(graph: Graph, prefix: string): EntityType | undefined {
   return graph.types[prefix];
 }
 
-/** Every artifact, grouped under its type's own plural name, each opening its page. */
+/** Every artifact, grouped under its type's own plural name, types in reading order (`orderTypes`), each opening its page. */
 export function ArtifactList({ graph, onOpen }: { graph: Graph; onOpen: (id: string) => void }) {
   const byType = new Map<string, GraphArtifactJson[]>();
   for (const a of graph.artifacts) {
     if (!isEntity(a)) continue; // a table row (a roadmap item) has no page of its own
     byType.set(a.type, [...(byType.get(a.type) ?? []), a]);
   }
-  const prefixes = [...byType.keys()].sort((x, y) =>
-    (typeOf(graph, x)?.plural_name ?? x).localeCompare(typeOf(graph, y)?.plural_name ?? y),
-  );
+  // each type after the types it rests on, as the VS Code tree lists them (REQ-000122-UVqkd7cL)
+  const prefixes = orderTypes(byType.keys(), (p) => typeOf(graph, p));
   return (
     <>
       <h2>Artifacts</h2>

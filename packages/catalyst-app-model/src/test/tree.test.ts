@@ -97,6 +97,24 @@ describe("buildTreeSections (catalyst roadmap R6.7: the module's types, none nam
     assert.deepStrictEqual(domains, []);
   });
 
+  it("lists a type after the types it rests on, not by name alone (REQ-000122-UVqkd7cL)", () => {
+    const step = {
+      ...type("STEP", "Steps"),
+      fields: [{ name: "Parent", kind: "ref", required: true, target_type: "REQ" }],
+    };
+    const req = {
+      ...type("REQ", "Requirements"),
+      fields: [{ name: "Feature", kind: "ref", required: false, target_type: "FEAT" }],
+    };
+    const { artifacts } = buildTreeSections(
+      modelOf([], [type("TEST", "Tests"), step, req, type("FEAT", "Features"), type("BUG", "Bugs")]),
+    );
+    assert.deepStrictEqual(
+      artifacts.sections.map((s) => s.typePrefix),
+      ["BUG", "FEAT", "REQ", "STEP", "TEST"],
+    );
+  });
+
   it("keeps a prefix the model has artifacts of but no type for, labelled by the prefix", () => {
     const { artifacts } = buildTreeSections(modelOf([artifact("NOTE-000001")]));
     assert.deepStrictEqual(

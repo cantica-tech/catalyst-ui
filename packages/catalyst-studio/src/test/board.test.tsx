@@ -62,6 +62,19 @@ describe("the board's columns (studio-SHELL-000008)", () => {
     ]);
   });
 
+  it("offers a type after the type it rests on (REQ-000122-UVqkd7cL)", () => {
+    const child = {
+      ...type("Alpha", ["Open"], []),
+      fields: [{ name: "Parent", kind: "ref", required: true, target_type: "WORK" }],
+    };
+    const g = { ...graph, types: { ...graph.types, ALPHA: child } };
+    g.artifacts = [
+      ...graph.artifacts,
+      art({ id: "ALPHA-000001", type: "ALPHA", title: "a", file: "a.md", links: {}, Status: "Open" }),
+    ];
+    expect(boardTypes(g).map((t) => t.prefix)).toEqual(["ITEM", "WORK", "ALPHA"]);
+  });
+
   it("gives a column per state in the type's order, an undeclared status last, empty closed columns left out", () => {
     const cols = boardColumns(graph, "WORK");
     expect(cols.map((c) => [c.state, c.closed, c.cards.map((a) => a.id)])).toEqual([

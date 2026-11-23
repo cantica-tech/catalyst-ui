@@ -1,5 +1,7 @@
 import { cleanRuleTitle, type ChainModel, type ChainNode, type ModuleType } from "catalyst-core";
 
+import { orderTypes } from "./type-order.js";
+
 export function getNodeUser(node: ChainNode): string | undefined {
   const user = node.kind === "artifact" || node.kind === "row" || node.kind === "rule" ? node.signedOffBy : undefined;
   if (!user) return undefined;
@@ -160,8 +162,9 @@ export function typeLabel(model: ChainModel, prefix: string): string {
 
 /**
  * Groups a chain model's nodes into the sidebar tree: the module's artifacts
- * by type (every declared type that keeps files, in the order of their
- * plural names, plus any prefix the model has artifacts of but no type for),
+ * by type (every declared type that keeps files, plus any prefix the model
+ * has artifacts of but no type for, each after the types it rests on, then by
+ * plural name: `orderTypes`, REQ-000122-UVqkd7cL),
  * rules by document prefix, and domains — each sorted by id.
  */
 export function buildTreeSections(model: ChainModel): TreeSections {
@@ -189,7 +192,7 @@ export function buildTreeSections(model: ChainModel): TreeSections {
 
   const prefixes = new Set([...(model.types?.keys() ?? []), ...byType.keys()]);
   for (const p of rowTypes) if (!byType.has(p)) prefixes.delete(p);
-  const ordered = [...prefixes].sort((a, b) => typeLabel(model, a).localeCompare(typeLabel(model, b)));
+  const ordered = orderTypes(prefixes, (p) => model.types?.get(p));
 
   const sortedPrefixes = [...rulesByPrefix.keys()].sort((a, b) => {
     if (a === "rr") return -1;

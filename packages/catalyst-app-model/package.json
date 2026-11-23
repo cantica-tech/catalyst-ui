@@ -1,11 +1,21 @@
 {
   "name": "catalyst-app-model",
-  "version": "0.79.0",
+  "version": "0.80.0",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./type-order": {
+      "types": "./dist/type-order.d.ts",
+      "default": "./dist/type-order.js"
+    }
+  },
   "scripts": {
     "build": "tsc --build",
     "test": "vitest run"
