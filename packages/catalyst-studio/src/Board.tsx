@@ -1,3 +1,4 @@
+import { orderTypes } from "catalyst-app-model/type-order";
 import { isEntity } from "catalyst-core/graph-artifact";
 import { useEffect, useId, useState } from "react";
 
@@ -16,17 +17,22 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim().replace(/^`|`$/g, "") : "";
 }
 
-/** The types a board can show: declared with states, holding artifacts with pages (not table rows). */
+/** The types a board can show: declared with states, holding artifacts with pages (not table rows), in reading order (`orderTypes`). */
 export function boardTypes(graph: Graph): { prefix: string; type: EntityType; count: number }[] {
-  return Object.entries(graph.types)
+  const shown = Object.entries(graph.types)
     .filter(([, t]) => t.states.length > 0)
     .map(([prefix, type]) => ({
       prefix,
       type,
       count: graph.artifacts.filter((a) => a.type === prefix && !a.row).length,
     }))
-    .filter((t) => t.count > 0)
-    .sort((a, b) => a.type.plural_name.localeCompare(b.type.plural_name));
+    .filter((t) => t.count > 0);
+  // each type after the types it rests on, as the artifact list orders them (REQ-000122-UVqkd7cL)
+  const order = orderTypes(
+    shown.map((t) => t.prefix),
+    (p) => graph.types[p],
+  );
+  return order.flatMap((p) => shown.filter((t) => t.prefix === p));
 }
 
 export interface Column {
